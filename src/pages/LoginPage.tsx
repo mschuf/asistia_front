@@ -1,0 +1,112 @@
+import type { ChangeEvent, FormEvent } from "react";
+import { useState } from "react";
+import { FiLock, FiLogIn, FiUser } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import BrandMark from "../components/BrandMark";
+import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
+import type { LoginPayload } from "../types/auth";
+import { ApiError } from "../api/apiClient";
+
+export default function LoginPage() {
+  const navigate = useNavigate();
+  const { login } = useAuth();
+  const toast = useToast();
+  const [form, setForm] = useState<LoginPayload>({ username: "", password: "" });
+
+  const onChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    try {
+      await login(form);
+      toast.success("Inicio de sesión correcto.");
+      navigate("/tickets", { replace: true });
+    } catch (error) {
+      const message =
+        error instanceof ApiError || error instanceof Error
+          ? error.message
+          : "No se pudo iniciar sesión.";
+      toast.error(message);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#dbeafe_0%,_#eff6ff_30%,_#f8fafc_62%,_#ffffff_100%)] px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+        <section className="hidden overflow-hidden rounded-[2rem] border border-slate-200/70 bg-white/90 p-8 shadow-sm lg:block sm:p-10">
+          <BrandMark size="lg" />
+          <div className="mt-10 max-w-xl">
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-brand-600">
+              Mesa de ayuda
+            </p>
+            <h2 className="mt-3 text-4xl font-extrabold tracking-[-0.05em] text-slate-950 sm:text-5xl">
+              Tickets y asistencia con IA
+            </h2>
+            <p className="mt-4 text-sm leading-6 text-slate-500">
+              Accedé con tu usuario corporativo LDAP para gestionar solicitudes e incidentes integrados con GLPI.
+            </p>
+          </div>
+        </section>
+
+        <section className="rounded-[2rem] border border-slate-200/80 bg-white/95 p-6 text-slate-900 shadow-[0_30px_80px_-40px_rgba(15,23,42,0.25)] backdrop-blur-sm sm:p-8">
+          <div className="mb-8 lg:hidden">
+            <BrandMark size="md" />
+          </div>
+          <p className="text-xs font-black uppercase tracking-[0.24em] text-brand-600">Acceso</p>
+          <h2 className="mt-3 text-3xl font-extrabold tracking-[-0.04em] text-slate-950">
+            Iniciar sesión
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-slate-500">
+            Usá tu usuario de red corporativo (LDAP).
+          </p>
+
+          <form className="mt-8 space-y-5" onSubmit={onSubmit}>
+            <label className="block space-y-1.5">
+              <span className="text-sm font-semibold text-slate-700">Usuario</span>
+              <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 px-3 py-1 transition-all focus-within:border-brand-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-brand-100">
+                <FiUser className="ml-1 text-slate-400" />
+                <input
+                  className="w-full border-0 bg-transparent px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                  name="username"
+                  value={form.username}
+                  onChange={onChange}
+                  required
+                  autoComplete="username"
+                  placeholder="jdoe"
+                />
+              </div>
+            </label>
+
+            <label className="block space-y-1.5">
+              <span className="text-sm font-semibold text-slate-700">Contraseña</span>
+              <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 px-3 py-1 transition-all focus-within:border-brand-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-brand-100">
+                <FiLock className="ml-1 text-slate-400" />
+                <input
+                  className="w-full border-0 bg-transparent px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                  type="password"
+                  name="password"
+                  value={form.password}
+                  onChange={onChange}
+                  required
+                  autoComplete="current-password"
+                />
+              </div>
+            </label>
+
+            <button
+              type="submit"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3.5 text-sm font-bold text-white shadow-md shadow-brand-600/20 transition hover:bg-brand-700"
+            >
+              <FiLogIn className="h-4 w-4" /> Entrar
+            </button>
+          </form>
+        </section>
+      </div>
+    </div>
+  );
+}
