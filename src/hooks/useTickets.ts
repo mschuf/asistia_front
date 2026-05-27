@@ -3,14 +3,13 @@ import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import {
-  assignTicketTechnician,
   createTicket,
   listCategories,
   listLocations,
   listTickets,
   updateTicketStatus
 } from "../services/ticketsService";
-import type { AsistiaCategory, AsistiaLocation, AsistiaTicket, AsistiaTicketStatus } from "../types/asistia";
+import type { AsistiaTicketStatus } from "../types/asistia";
 import type { TicketFilterState, TicketsTab, UseTicketsResult } from "../types/pages/tickets-page.types";
 import { ApiError } from "../api/apiClient";
 
@@ -21,7 +20,9 @@ const initialFilters: TicketFilterState = {
 };
 
 function readTab(value: string | null): TicketsTab {
-  return value === "create" ? "create" : "history";
+  if (value === "crear" || value === "create") return "crear";
+  if (value === "historial" || value === "history") return "historial";
+  return "metricas";
 }
 
 export function useTickets(): UseTicketsResult {
@@ -30,16 +31,16 @@ export function useTickets(): UseTicketsResult {
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = readTab(searchParams.get("tab"));
 
-  const [categories, setCategories] = useState<AsistiaCategory[]>([]);
-  const [locations, setLocations] = useState<AsistiaLocation[]>([]);
-  const [tickets, setTickets] = useState<AsistiaTicket[]>([]);
+  const [categories, setCategories] = useState<UseTicketsResult["categories"]>([]);
+  const [locations, setLocations] = useState<UseTicketsResult["locations"]>([]);
+  const [tickets, setTickets] = useState<UseTicketsResult["tickets"]>([]);
   const [filters, setFilters] = useState<TicketFilterState>(initialFilters);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const setTab = useCallback(
     (nextTab: TicketsTab) => {
-      setSearchParams(nextTab === "history" ? {} : { tab: nextTab });
+      setSearchParams(nextTab === "metricas" ? {} : { tab: nextTab });
     },
     [setSearchParams]
   );
@@ -111,17 +112,10 @@ export function useTickets(): UseTicketsResult {
   }, [tickets, filters]);
 
   const handleCreateTicket = useCallback(
-    async (input: {
-      type: "incident" | "request";
-      subject: string;
-      description: string;
-      categoryId: number;
-      locationId?: number;
-      assignedTechnicianId?: number;
-    }) => {
+    async (input: Parameters<UseTicketsResult["handleCreateTicket"]>[0]) => {
       const created = await createTicket(input);
       await refreshTickets();
-      setTab("history");
+      setTab("historial");
       const mailNote = created.mail.sent ? "" : " (correo no enviado)";
       toast.success(`Ticket #${created.id} creado correctamente${mailNote}.`);
       return `Ticket #${created.id} creado`;
@@ -154,5 +148,3 @@ export function useTickets(): UseTicketsResult {
     handleStatusChange
   };
 }
-
-export { assignTicketTechnician };

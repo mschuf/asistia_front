@@ -24,10 +24,6 @@ export default defineConfig({
             return "phone";
           }
 
-          if (id.includes("framer-motion")) {
-            return "motion";
-          }
-
           return "vendor";
         }
       }
@@ -35,7 +31,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": fileURLToPath(new URL("./src/components", import.meta.url))
+      "@": fileURLToPath(new URL("./src", import.meta.url))
     }
   }
 });

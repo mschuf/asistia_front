@@ -1,5 +1,3 @@
-import type { IconType } from "react-icons";
-
 export type ToastType = "success" | "error" | "info";
 
 export interface Toast {
@@ -12,10 +10,4 @@ export interface Toast {
 export interface ToastContainerProps {
   toasts: Toast[];
   removeToast: (id: string) => void;
-}
-
-export interface ToastStyle {
-  icon: IconType;
-  border: string;
-  iconColor: string;
 }

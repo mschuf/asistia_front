@@ -1,14 +1,22 @@
-import { FiLoader } from "react-icons/fi";
-import type { BackdropProps } from "../types/components/backdrop.types";
+import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface BackdropProps {
+  isVisible: boolean;
+}
 
 export default function Backdrop({ isVisible }: BackdropProps) {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 backdrop-blur-[2px]">
-      <div className="flex items-center gap-3 rounded-xl bg-white px-6 py-4 shadow-glow">
-        <FiLoader className="h-5 w-5 animate-spin text-brand-600" />
-        <p className="text-sm font-semibold text-slate-700">Procesando...</p>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 backdrop-blur-[1px]"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <div className={cn("flex items-center gap-3 rounded-md border bg-card px-4 py-3 shadow-soft")}>
+        <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden="true" />
+        <span className="text-sm font-medium text-foreground">Cargando...</span>
       </div>
     </div>
   );

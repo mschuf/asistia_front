@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import ToastContainer from "@/ToastContainer";
+import ToastContainer from "@/components/ToastContainer";
 import type { Toast } from "../types/components/toast-container.types";
 import type {
   AddToastInput,

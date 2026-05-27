@@ -1,54 +1,72 @@
-import type { TicketFilterState } from "../../types/pages/tickets-page.types";
-import type { AsistiaTicketStatus } from "../../types/asistia";
+﻿import { useCallback, useState } from "react";
+import { ChevronDown, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+import { TICKET_STATUS_LABELS, TICKET_TYPE_LABELS } from "@/lib/constants";
+import type { TicketFilterState } from "@/types/pages/tickets-page.types";
 
 interface TicketFiltersProps {
   filters: TicketFilterState;
   onChange: (filters: TicketFilterState) => void;
 }
 
-const STATUS_OPTIONS: Array<{ value: AsistiaTicketStatus | ""; label: string }> = [
-  { value: "", label: "Todos los estados" },
-  { value: "new", label: "Nuevo" },
-  { value: "assigned", label: "Asignado" },
-  { value: "planned", label: "Planificado" },
-  { value: "waiting", label: "En espera" },
-  { value: "solved", label: "Resuelto" },
-  { value: "closed", label: "Cerrado" }
-];
+export function TicketFilters({ filters, onChange }: TicketFiltersProps) {
+  const [expanded, setExpanded] = useState(false);
 
-export default function TicketFilters({ filters, onChange }: TicketFiltersProps) {
+  const update = useCallback(
+    (key: keyof TicketFilterState, value: string) => {
+      onChange({ ...filters, [key]: value });
+    },
+    [filters, onChange]
+  );
+
   return (
-    <div className="grid gap-3 md:grid-cols-3">
-      <input
-        className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
-        placeholder="Buscar por título, #, solicitante..."
-        value={filters.search}
-        onChange={(event) => onChange({ ...filters, search: event.target.value })}
-      />
-      <select
-        className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
-        value={filters.status}
-        onChange={(event) =>
-          onChange({ ...filters, status: event.target.value as TicketFilterState["status"] })
-        }
-      >
-        {STATUS_OPTIONS.map((option) => (
-          <option key={option.value || "all"} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <select
-        className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
-        value={filters.type}
-        onChange={(event) =>
-          onChange({ ...filters, type: event.target.value as TicketFilterState["type"] })
-        }
-      >
-        <option value="">Todos los tipos</option>
-        <option value="incident">Incidente</option>
-        <option value="request">Solicitud</option>
-      </select>
+    <div className="rounded-md border bg-card p-3">
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={filters.search}
+          onChange={(event) => update("search", event.target.value)}
+          placeholder="Buscar en tickets"
+          className="pl-9 pr-10"
+        />
+        <button
+          type="button"
+          onClick={() => setExpanded((current) => !current)}
+          aria-expanded={expanded}
+          aria-label={expanded ? "Ocultar filtros avanzados" : "Mostrar filtros avanzados"}
+          title={expanded ? "Ocultar filtros" : "Mostrar filtros"}
+          className="absolute right-1 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <ChevronDown
+            className={cn("h-4 w-4 transition-transform duration-200", expanded && "rotate-180")}
+            aria-hidden="true"
+          />
+        </button>
+      </div>
+
+      {expanded ? (
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Select value={filters.status} onChange={(event) => update("status", event.target.value)}>
+            <option value="">Todos los estados</option>
+            {Object.entries(TICKET_STATUS_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </Select>
+
+          <Select value={filters.type} onChange={(event) => update("type", event.target.value)}>
+            <option value="">Todos los tipos</option>
+            {Object.entries(TICKET_TYPE_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </Select>
+        </div>
+      ) : null}
     </div>
   );
 }

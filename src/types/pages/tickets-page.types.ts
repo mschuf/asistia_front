@@ -1,11 +1,17 @@
-import type { AsistiaCategory, AsistiaLocation, AsistiaTicket, AsistiaTicketStatus } from "../asistia";
+import type {
+  AsistiaCategory,
+  AsistiaLocation,
+  AsistiaTicket,
+  AsistiaTicketStatus,
+  AsistiaTicketType
+} from "../asistia";
 
-export type TicketsTab = "create" | "history";
+export type TicketsTab = "metricas" | "crear" | "historial";
 
 export interface TicketFilterState {
   search: string;
   status: AsistiaTicketStatus | "";
-  type: "incident" | "request" | "";
+  type: AsistiaTicketType | "";
 }
 
 export interface UseTicketsResult {
@@ -21,7 +27,7 @@ export interface UseTicketsResult {
   error: string;
   refreshTickets: () => Promise<void>;
   handleCreateTicket: (input: {
-    type: "incident" | "request";
+    type: AsistiaTicketType;
     subject: string;
     description: string;
     categoryId: number;

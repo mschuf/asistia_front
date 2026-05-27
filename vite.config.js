@@ -19,9 +19,6 @@ export default defineConfig({
                     if (id.includes("react-phone-number-input") || id.includes("libphonenumber-js")) {
                         return "phone";
                     }
-                    if (id.includes("framer-motion")) {
-                        return "motion";
-                    }
                     return "vendor";
                 }
             }
@@ -29,7 +26,7 @@ export default defineConfig({
     },
     resolve: {
         alias: {
-            "@": fileURLToPath(new URL("./src/components", import.meta.url))
+            "@": fileURLToPath(new URL("./src", import.meta.url))
         }
     }
 });
