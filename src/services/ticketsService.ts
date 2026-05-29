@@ -76,6 +76,25 @@ export async function listTickets(
   });
 }
 
+export async function listHistoryTickets(
+  params?: ListTicketsParams,
+  options?: ReadRequestOptions
+): Promise<AsistiaTicketListResponse> {
+  return apiClient.get<AsistiaTicketListResponse>("/tickets/history", {
+    ...options,
+    query: {
+      page: params?.page ?? 1,
+      limit: params?.limit ?? 15,
+      technicianId: params?.technicianId,
+      locationId: params?.locationId,
+      status: params?.status,
+      statuses: params?.statuses?.length ? params.statuses.join(",") : undefined,
+      type: params?.type,
+      search: params?.search,
+    }
+  });
+}
+
 export async function createTicket(input: CreateTicketInput): Promise<CreateTicketResponse> {
   return apiClient.post<CreateTicketResponse>("/tickets", input);
 }

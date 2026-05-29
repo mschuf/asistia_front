@@ -5,8 +5,8 @@ import { useToast } from "../context/ToastContext";
 import {
   createTicket,
   listCategories,
+  listHistoryTickets,
   listLocations,
-  listTickets,
   searchTechnicians,
   updateTicketStatus
 } from "../services/ticketsService";
@@ -188,7 +188,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
       setLoading(true);
       setError("");
       try {
-        const response = await listTickets(listParams, { signal });
+        const response = await listHistoryTickets(listParams, { signal });
         if (signal?.aborted) return;
         setTickets(response.items);
         setTotal(response.total);
@@ -288,8 +288,9 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
       const mailNote = created.mail.sent ? "" : " (correo no enviado)";
       toast.success(`Ticket #${created.id} creado${mailNote}.`);
       await onTicketCreatedRef.current?.(created.id);
+      void refreshTickets();
     },
-    [toast]
+    [toast, refreshTickets]
   );
 
   const handleStatusChange = useCallback(
