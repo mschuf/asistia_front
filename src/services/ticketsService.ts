@@ -95,6 +95,17 @@ export async function listHistoryTickets(
   });
 }
 
+export async function getTicketById(
+  ticketId: number,
+  options?: ReadRequestOptions
+): Promise<AsistiaTicket> {
+  const response = await apiClient.get<unknown>(`/tickets/${ticketId}`, {
+    ...options,
+    showBackdrop: false,
+  });
+  return coerceTicketPayload(response);
+}
+
 export async function createTicket(input: CreateTicketInput): Promise<CreateTicketResponse> {
   return apiClient.post<CreateTicketResponse>("/tickets", input);
 }

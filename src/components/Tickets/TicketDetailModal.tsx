@@ -1,9 +1,12 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { TicketActions } from "@/components/tickets/TicketActions";
 import { Badge } from "@/components/ui/badge";
 import { Dialog } from "@/components/ui/dialog";
+import { Loading } from "@/components/ui/loading";
 import { formatDate } from "@/lib/format";
+import { isAbortError } from "@/lib/http";
 import { statusBadgeVariant, statusLabel, typeLabel, urgencyLabel } from "@/lib/tickets";
+import { getTicketById } from "@/services/ticketsService";
 import type { AsistiaTicket, AsistiaTicketStatus } from "@/types/asistia";
 
 interface TicketDetailModalProps {
@@ -30,63 +33,122 @@ export function TicketDetailModal({
   onStatusChange,
   pendingStatus = null
 }: TicketDetailModalProps) {
+  const [detail, setDetail] = useState<AsistiaTicket | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [detailError, setDetailError] = useState("");
+
+  useEffect(() => {
+    if (!open || !ticket) {
+      setDetail(null);
+      setLoadingDetail(false);
+      setDetailError("");
+      return;
+    }
+
+    const controller = new AbortController();
+    setLoadingDetail(true);
+    setDetailError("");
+    setDetail(null);
+
+    void getTicketById(ticket.id, { signal: controller.signal })
+      .then((fetched) => {
+        if (!controller.signal.aborted) {
+          setDetail(fetched);
+        }
+      })
+      .catch((err) => {
+        if (isAbortError(err) || controller.signal.aborted) return;
+        setDetailError("No se pudieron cargar todos los detalles.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoadingDetail(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [open, ticket?.id]);
+
+  useEffect(() => {
+    if (!open || !ticket?.description) return;
+    setDetail((current) => (current?.id === ticket.id ? ticket : current));
+  }, [ticket, open]);
+
   if (!ticket) return null;
+
+  const displayTicket = detail ?? ticket;
 
   return (
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      title={`Ticket #${ticket.id}`}
-      description={ticket.subject}
+      title={`Ticket #${displayTicket.id}`}
+      description={displayTicket.subject}
     >
-      <dl className="space-y-4">
-        <DetailRow label="Estado">
-          <Badge variant={statusBadgeVariant(ticket.status)}>{statusLabel(ticket.status)}</Badge>
-        </DetailRow>
-        <DetailRow label="Tipo">{typeLabel(ticket.type)}</DetailRow>
-        <DetailRow label="Urgencia">{urgencyLabel(ticket.urgency) || "—"}</DetailRow>
-        <DetailRow label="Categoría">{ticket.category?.name ?? "—"}</DetailRow>
-        <DetailRow label="Ubicación">{ticket.location?.name ?? "—"}</DetailRow>
-        <DetailRow label="Solicitante">
-          <div>
-            <p>{ticket.requester.name ?? "—"}</p>
-            {ticket.requester.email ? (
-              <p className="text-muted-foreground">{ticket.requester.email}</p>
-            ) : null}
-          </div>
-        </DetailRow>
-        <DetailRow label="Asignado a">
-          <div>
-            <p>{ticket.technician?.name ?? "—"}</p>
-            {ticket.technician?.email ? (
-              <p className="text-muted-foreground">{ticket.technician.email}</p>
-            ) : null}
-          </div>
-        </DetailRow>
-        <DetailRow label="Apertura">{formatDate(ticket.createdAt)}</DetailRow>
-        <DetailRow label="Última actualización">{formatDate(ticket.updatedAt)}</DetailRow>
-        <DetailRow label="Descripción">
-          {ticket.description ? (
-            <div
-              className="rich-description rounded-md border border-input bg-muted/30 p-3"
-              dangerouslySetInnerHTML={{ __html: ticket.description }}
-            />
-          ) : (
-            "—"
-          )}
-        </DetailRow>
-      </dl>
-
-      {onStatusChange ? (
-        <div className="mt-6 flex items-center justify-between gap-3 border-t pt-4">
-          <p className="text-sm font-medium text-muted-foreground">Acciones</p>
-          <TicketActions
-            ticket={ticket}
-            onStatusChange={onStatusChange}
-            pendingStatus={pendingStatus}
-          />
+      {loadingDetail && !detail ? (
+        <div className="flex min-h-32 items-center justify-center">
+          <Loading label="Cargando detalles..." />
         </div>
-      ) : null}
+      ) : (
+        <>
+          {detailError ? (
+            <p className="mb-4 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-200">
+              {detailError}
+            </p>
+          ) : null}
+
+          <dl className="space-y-4">
+            <DetailRow label="Estado">
+              <Badge variant={statusBadgeVariant(displayTicket.status)}>
+                {statusLabel(displayTicket.status)}
+              </Badge>
+            </DetailRow>
+            <DetailRow label="Tipo">{typeLabel(displayTicket.type)}</DetailRow>
+            <DetailRow label="Urgencia">{urgencyLabel(displayTicket.urgency) || "—"}</DetailRow>
+            <DetailRow label="Categoría">{displayTicket.category?.name ?? "—"}</DetailRow>
+            <DetailRow label="Ubicación">{displayTicket.location?.name ?? "—"}</DetailRow>
+            <DetailRow label="Solicitante">
+              <div>
+                <p>{displayTicket.requester.name ?? "—"}</p>
+                {displayTicket.requester.email ? (
+                  <p className="text-muted-foreground">{displayTicket.requester.email}</p>
+                ) : null}
+              </div>
+            </DetailRow>
+            <DetailRow label="Asignado a">
+              <div>
+                <p>{displayTicket.technician?.name ?? "—"}</p>
+                {displayTicket.technician?.email ? (
+                  <p className="text-muted-foreground">{displayTicket.technician.email}</p>
+                ) : null}
+              </div>
+            </DetailRow>
+            <DetailRow label="Apertura">{formatDate(displayTicket.createdAt)}</DetailRow>
+            <DetailRow label="Última actualización">{formatDate(displayTicket.updatedAt)}</DetailRow>
+            <DetailRow label="Descripción">
+              {displayTicket.description ? (
+                <div
+                  className="rich-description rounded-md border border-input bg-muted/30 p-3"
+                  dangerouslySetInnerHTML={{ __html: displayTicket.description }}
+                />
+              ) : (
+                "—"
+              )}
+            </DetailRow>
+          </dl>
+
+          {onStatusChange ? (
+            <div className="mt-6 flex items-center justify-between gap-3 border-t pt-4">
+              <p className="text-sm font-medium text-muted-foreground">Acciones</p>
+              <TicketActions
+                ticket={displayTicket}
+                onStatusChange={onStatusChange}
+                pendingStatus={pendingStatus}
+              />
+            </div>
+          ) : null}
+        </>
+      )}
     </Dialog>
   );
 }
