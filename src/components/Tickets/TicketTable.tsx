@@ -32,7 +32,7 @@ export function TicketTable({ tickets, onStatusChange, statusChanging = null }: 
     <>
     <div className="overflow-hidden rounded-md border bg-card shadow-soft">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[900px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[820px] border-collapse text-left text-sm">
           <thead className="bg-muted text-xs uppercase tracking-normal text-muted-foreground">
             <tr>
               <th className="px-4 py-3 font-semibold">Ticket</th>
@@ -41,7 +41,6 @@ export function TicketTable({ tickets, onStatusChange, statusChanging = null }: 
               <th className="px-4 py-3 font-semibold">Título</th>
               <th className="px-4 py-3 font-semibold">Estado</th>
               <th className="px-4 py-3 font-semibold">Asignado a</th>
-              <th className="px-4 py-3 font-semibold">Categoría</th>
               <th className="px-4 py-3 font-semibold">Ubicación</th>
               <th className="px-4 py-3 font-semibold">Acciones</th>
             </tr>
@@ -66,7 +65,6 @@ export function TicketTable({ tickets, onStatusChange, statusChanging = null }: 
                   <Badge variant={statusBadgeVariant(ticket.status)}>{statusLabel(ticket.status)}</Badge>
                 </td>
                 <td className="whitespace-nowrap px-4 py-3">{ticket.technician?.name ?? "—"}</td>
-                <td className="px-4 py-3 text-muted-foreground">{ticket.category?.name ?? "—"}</td>
                 <td className="px-4 py-3 text-muted-foreground">{ticket.location?.name ?? "—"}</td>
                 <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
                   <TicketActions
