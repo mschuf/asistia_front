@@ -11,3 +11,11 @@ export const TICKET_TYPE_LABELS: Record<string, string> = {
   incident: "Incidente",
   request: "Solicitud"
 };
+
+export const TICKET_URGENCY_LABELS: Record<string, string> = {
+  very_low: "Muy baja",
+  low: "Baja",
+  medium: "Media",
+  high: "Alta",
+  very_high: "Muy alta"
+};

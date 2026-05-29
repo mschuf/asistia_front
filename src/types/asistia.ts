@@ -108,6 +108,37 @@ export interface CreateTicketInput {
   requesterId?: number;
 }
 
-export interface CreateTicketResponse extends AsistiaTicket {
+/** Respuesta mínima de POST /tickets. El detalle se obtiene vía list/GET. */
+export interface CreateTicketResponse {
+  id: number;
+  subject: string;
   mail: { sent: boolean; error: string | null };
+}
+
+export interface TicketMetricSlice {
+  open: number;
+  openPercent: number;
+  openThisMonth: number;
+  totalThisMonth: number;
+}
+
+export interface MyTicketsMetricSlice {
+  inProgress: number;
+  openPercent: number;
+  openThisMonth: number;
+  totalThisMonth: number;
+}
+
+export interface OpenByLocationMetric {
+  locationId: number;
+  name: string;
+  open: number;
+}
+
+export interface TiMetricsResponse {
+  myTickets: MyTicketsMetricSlice;
+  mySite: TicketMetricSlice | null;
+  myIncidents: TicketMetricSlice;
+  myRequests: TicketMetricSlice;
+  openByLocation: OpenByLocationMetric[];
 }

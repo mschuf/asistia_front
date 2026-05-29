@@ -8,7 +8,7 @@ export function resolveRole(user: AuthUser | null): Role | null {
 }
 
 export function roleLabel(role: Role | null): string {
-  if (role === "technician") return "Técnico";
+  if (role === "technician") return "TI";
   if (role === "final_user") return "Usuario";
   return "Usuario";
 }

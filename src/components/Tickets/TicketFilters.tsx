@@ -1,17 +1,24 @@
-﻿import { useCallback, useState } from "react";
+﻿import { useCallback, useMemo, useState } from "react";
 import { ChevronDown, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { TICKET_STATUS_LABELS, TICKET_TYPE_LABELS } from "@/lib/constants";
+import { buildLocationOptions, buildTechnicianFilterOptions } from "@/lib/tickets";
+import type { AsistiaLocation, AsistiaUser } from "@/types/asistia";
+import type { AuthUser } from "@/types/auth";
 import type { TicketFilterState } from "@/types/pages/tickets-page.types";
 
 interface TicketFiltersProps {
   filters: TicketFilterState;
   onChange: (filters: TicketFilterState) => void;
+  locations: AsistiaLocation[];
+  technicians: AsistiaUser[];
+  user: AuthUser | null;
 }
 
-export function TicketFilters({ filters, onChange }: TicketFiltersProps) {
+export function TicketFilters({ filters, onChange, locations, technicians, user }: TicketFiltersProps) {
   const [expanded, setExpanded] = useState(false);
 
   const update = useCallback(
@@ -19,6 +26,12 @@ export function TicketFilters({ filters, onChange }: TicketFiltersProps) {
       onChange({ ...filters, [key]: value });
     },
     [filters, onChange]
+  );
+
+  const locationOptions = useMemo(() => buildLocationOptions(locations), [locations]);
+  const technicianOptions = useMemo(
+    () => buildTechnicianFilterOptions(technicians, user),
+    [technicians, user]
   );
 
   return (
@@ -49,7 +62,7 @@ export function TicketFilters({ filters, onChange }: TicketFiltersProps) {
       {expanded ? (
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Select value={filters.status} onChange={(event) => update("status", event.target.value)}>
-            <option value="">Todos los estados</option>
+            <option value="">En curso (asignada y planificada)</option>
             {Object.entries(TICKET_STATUS_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -65,6 +78,26 @@ export function TicketFilters({ filters, onChange }: TicketFiltersProps) {
               </option>
             ))}
           </Select>
+
+          <SearchableSelect
+            id="ticket-filter-assigned"
+            value={filters.assignedToId}
+            onChange={(value) => update("assignedToId", value)}
+            options={technicianOptions}
+            placeholder="Asignado a"
+            searchPlaceholder="Buscar técnico..."
+            emptyOption={{ value: "", label: "Todos los técnicos" }}
+          />
+
+          <SearchableSelect
+            id="ticket-filter-location"
+            value={filters.locationId}
+            onChange={(value) => update("locationId", value)}
+            options={locationOptions}
+            placeholder="Sede"
+            searchPlaceholder="Buscar sede..."
+            emptyOption={{ value: "", label: "Todas las sedes" }}
+          />
         </div>
       ) : null}
     </div>

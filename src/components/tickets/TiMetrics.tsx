@@ -1,78 +1,139 @@
-﻿import { AlertTriangle, CheckCircle2, Clock3, ListChecks, UserCheck } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { isTicketClosed, isTicketOpen, isTicketOverdue } from "@/lib/tickets";
-import type { AsistiaTicket } from "@/types/asistia";
+﻿import type { ReactNode } from "react";
+import { AlertTriangle, Building2, ClipboardList, FilePlus2, Ticket } from "lucide-react";
+import { Loading } from "@/components/ui/loading";
+import { TiOpenBySiteChart } from "@/components/tickets/TiOpenBySiteChart";
+import type { TiMetricsResponse, TicketMetricSlice, MyTicketsMetricSlice } from "@/types/asistia";
+import { cn } from "@/lib/utils";
 
 interface TiMetricsProps {
-  tickets: AsistiaTicket[];
+  metrics: TiMetricsResponse | null;
+  loading?: boolean;
+  onGoToCreate: () => void;
 }
 
-function countPriority(tickets: AsistiaTicket[]) {
-  const high = tickets.filter((ticket) => ticket.urgency === "4" || ticket.urgency === "high");
-  const low = tickets.filter((ticket) => ticket.urgency === "2" || ticket.urgency === "low");
-
-  return {
-    high: high.length,
-    low: low.length
-  };
+function MetricPercent({ slice }: { slice: TicketMetricSlice | MyTicketsMetricSlice }) {
+  const openMonth = "openThisMonth" in slice ? slice.openThisMonth : 0;
+  const totalMonth = slice.totalThisMonth;
+  return (
+    <p className="mt-1 text-sm text-muted-foreground">
+      <span className="font-medium tabular-nums text-foreground">{slice.openPercent}%</span>
+      <span className="ml-1">
+        ({openMonth} / {totalMonth} del mes)
+      </span>
+    </p>
+  );
 }
 
-export function TiMetrics({ tickets }: TiMetricsProps) {
-  const priority = countPriority(tickets);
-  const cards = [
-    {
-      label: "Abiertos",
-      value: tickets.filter(isTicketOpen).length,
-      icon: Clock3,
-      className: "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-200"
-    },
-    {
-      label: "Cerrados",
-      value: tickets.filter(isTicketClosed).length,
-      icon: CheckCircle2,
-      className:
-        "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"
-    },
-    {
-      label: "Asignados a mi",
-      value: tickets.length,
-      icon: UserCheck,
-      className:
-        "border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-900 dark:bg-violet-950/30 dark:text-violet-200"
-    },
-    {
-      label: "Vencidos",
-      value: tickets.filter((ticket) => isTicketOverdue(ticket)).length,
-      icon: AlertTriangle,
-      className: "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200"
-    }
-  ];
+interface MetricCardProps {
+  label: string;
+  value: number | string;
+  icon: typeof Ticket;
+  className: string;
+  subtitle?: ReactNode;
+  onClick?: () => void;
+  ariaLabel?: string;
+}
+
+function MetricCard({
+  label,
+  value,
+  icon: Icon,
+  className,
+  subtitle,
+  onClick,
+  ariaLabel
+}: MetricCardProps) {
+  const content = (
+    <>
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm font-medium">{label}</span>
+        <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+      </div>
+      <p className="mt-3 text-2xl font-semibold tabular-nums">{value}</p>
+      {subtitle}
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={ariaLabel ?? label}
+        className={cn(
+          "rounded-md border p-4 text-left transition-shadow hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          className
+        )}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={cn("rounded-md border p-4", className)}>{content}</div>;
+}
+
+export function TiMetrics({ metrics, loading, onGoToCreate }: TiMetricsProps) {
+  if (loading && !metrics) {
+    return (
+      <div className="flex min-h-40 items-center justify-center">
+        <Loading label="Cargando métricas..." />
+      </div>
+    );
+  }
+
+  if (!metrics) {
+    return null;
+  }
+
+  const siteValue = metrics.mySite ? metrics.mySite.open : "—";
+  const siteSubtitle = metrics.mySite ? (
+    <MetricPercent slice={metrics.mySite} />
+  ) : (
+    <p className="mt-1 text-sm text-muted-foreground">Sin sede asignada en tu perfil</p>
+  );
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-      {cards.map((card) => {
-        const Icon = card.icon;
-        return (
-          <div key={card.label} className={`rounded-md border p-4 ${card.className}`}>
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-sm font-medium">{card.label}</span>
-              <Icon className="h-5 w-5" aria-hidden="true" />
-            </div>
-            <p className="mt-3 text-2xl font-semibold">{card.value}</p>
-          </div>
-        );
-      })}
-
-      <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-sm font-medium">Por prioridad</span>
-          <ListChecks className="h-5 w-5" aria-hidden="true" />
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Badge variant="danger">Alta {priority.high}</Badge>
-          <Badge variant="success">Baja {priority.low}</Badge>
-        </div>
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Mis Tickets"
+          value={metrics.myTickets.inProgress}
+          icon={Ticket}
+          className="cursor-pointer border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-200"
+          onClick={onGoToCreate}
+          ariaLabel="Ir a crear ticket"
+          subtitle={<MetricPercent slice={metrics.myTickets} />}
+        />
+        <MetricCard
+          label="Mi Sede"
+          value={siteValue}
+          icon={Building2}
+          className="border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-900 dark:bg-violet-950/30 dark:text-violet-200"
+          subtitle={siteSubtitle}
+        />
+        <MetricCard
+          label="Mis Incidentes"
+          value={metrics.myIncidents.open}
+          icon={AlertTriangle}
+          className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100"
+          subtitle={<MetricPercent slice={metrics.myIncidents} />}
+        />
+        <MetricCard
+          label="Mis Solicitudes"
+          value={metrics.myRequests.open}
+          icon={ClipboardList}
+          className="border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"
+          subtitle={<MetricPercent slice={metrics.myRequests} />}
+        />
       </div>
+
+      <TiOpenBySiteChart data={metrics.openByLocation} />
+
+      <p className="flex items-center gap-1 text-xs text-muted-foreground">
+        <FilePlus2 className="h-3.5 w-3.5" aria-hidden="true" />
+        Mis Tickets abre la pestaña Crear
+      </p>
     </div>
   );
 }

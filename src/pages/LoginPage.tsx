@@ -56,7 +56,7 @@ export default function LoginPage() {
               onChange={(event) => setForm((prev) => ({ ...prev, username: event.target.value }))}
               required
               autoComplete="username"
-              placeholder="jdoe"
+              placeholder="nombre.apellido"
             />
           </Field>
 
@@ -69,6 +69,7 @@ export default function LoginPage() {
               onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))}
               required
               autoComplete="current-password"
+              placeholder="contraseña"
             />
           </Field>
 

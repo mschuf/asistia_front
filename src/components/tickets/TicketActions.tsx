@@ -1,11 +1,12 @@
-﻿import { ArrowUpRight, Check, Lock } from "lucide-react";
+﻿import { ArrowUpRight, Check, Loader2, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { isTicketClosed } from "@/lib/tickets";
+import { canTransitionTicketStatus, isTicketFinalized } from "@/lib/tickets";
 import type { AsistiaTicket, AsistiaTicketStatus } from "@/types/asistia";
 
 interface TicketActionsProps {
   ticket: AsistiaTicket;
   onStatusChange?: (ticketId: number, status: AsistiaTicketStatus) => void;
+  pendingStatus?: AsistiaTicketStatus | null;
 }
 
 const actions = [
@@ -35,29 +36,48 @@ const actions = [
   }
 ] as const;
 
-export function TicketActions({ ticket, onStatusChange }: TicketActionsProps) {
-  const closed = isTicketClosed(ticket);
+export function TicketActions({ ticket, onStatusChange, pendingStatus = null }: TicketActionsProps) {
+  const hasPendingAction = pendingStatus != null;
+  const finalized = isTicketFinalized(ticket);
 
   return (
     <div className="flex flex-nowrap items-center gap-1.5">
-      {actions.map(({ id, label, icon: Icon, status, className }) => (
-        <button
-          key={id}
-          type="button"
-          disabled={closed || !onStatusChange}
-          aria-label={label}
-          title={closed ? "Ticket cerrado" : label}
-          onClick={() => onStatusChange?.(ticket.id, status)}
-          className={cn(
-            "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
-            "disabled:cursor-not-allowed disabled:opacity-40",
-            className
-          )}
-        >
-          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-        </button>
-      ))}
+      {actions.map(({ id, label, icon: Icon, status, className }) => {
+        const isPending = pendingStatus === status;
+        const canTransition = canTransitionTicketStatus(ticket.status, status);
+        const disabled =
+          finalized || !onStatusChange || !canTransition || (hasPendingAction && !isPending);
+
+        return (
+          <button
+            key={id}
+            type="button"
+            disabled={disabled}
+            aria-label={label}
+            aria-busy={isPending}
+            title={
+              finalized
+                ? "No hay acciones disponibles para tickets resueltos o cerrados"
+                : !canTransition
+                  ? `No se puede cambiar a ${label.toLowerCase()} desde ${ticket.status}`
+                  : label
+            }
+            onClick={() => onStatusChange?.(ticket.id, status)}
+            className={cn(
+              "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+              "disabled:cursor-not-allowed disabled:opacity-40",
+              className
+            )}
+          >
+            {isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+            ) : (
+              <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }

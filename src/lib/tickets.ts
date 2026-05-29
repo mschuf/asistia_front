@@ -1,7 +1,17 @@
-import type { AsistiaTicket, AsistiaTicketStatus, AsistiaTicketType } from "@/types/asistia";
-import { TICKET_STATUS_LABELS, TICKET_TYPE_LABELS } from "@/lib/constants";
+import type { AsistiaTicket, AsistiaTicketStatus, AsistiaTicketType, AsistiaUser } from "@/types/asistia";
+import type { AuthUser } from "@/types/auth";
+import type { TicketFilterState } from "@/types/pages/tickets-page.types";
+import { TICKET_STATUS_LABELS, TICKET_TYPE_LABELS, TICKET_URGENCY_LABELS } from "@/lib/constants";
 
-const OPEN_STATUSES: AsistiaTicketStatus[] = ["new", "assigned", "planned", "waiting"];
+export const OPEN_STATUSES: AsistiaTicketStatus[] = ["new", "assigned", "planned", "waiting"];
+
+export const IN_PROGRESS_STATUSES: AsistiaTicketStatus[] = ["assigned", "planned", "waiting"];
+
+/** Estados mostrados por defecto en la tabla de historial. */
+export const HISTORY_TABLE_STATUSES: AsistiaTicketStatus[] = ["assigned", "planned"];
+
+/** Tamaño de página del historial (alineado con el máximo del backend). */
+export const TICKETS_PAGE_SIZE = 15;
 
 export function statusLabel(status: AsistiaTicketStatus): string {
   return TICKET_STATUS_LABELS[status] ?? status;
@@ -11,12 +21,57 @@ export function typeLabel(type: AsistiaTicketType): string {
   return TICKET_TYPE_LABELS[type] ?? type;
 }
 
+export function urgencyLabel(urgency: string): string {
+  return TICKET_URGENCY_LABELS[urgency] ?? urgency;
+}
+
 export function isTicketOpen(ticket: AsistiaTicket): boolean {
   return OPEN_STATUSES.includes(ticket.status);
 }
 
+export function isTicketInProgress(ticket: AsistiaTicket): boolean {
+  return IN_PROGRESS_STATUSES.includes(ticket.status);
+}
+
+/** Mes calendario actual en UTC (alineado con el backend). */
+export function isInCurrentMonth(isoDate: string | null): boolean {
+  if (!isoDate) return false;
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return false;
+  const now = new Date();
+  return (
+    date.getUTCFullYear() === now.getUTCFullYear() && date.getUTCMonth() === now.getUTCMonth()
+  );
+}
+
+export function formatOpenPercent(open: number, total: number): number {
+  if (total <= 0) return 0;
+  return Math.round((open / total) * 100);
+}
+
 export function isTicketClosed(ticket: AsistiaTicket): boolean {
   return ticket.status === "closed";
+}
+
+export function isTicketFinalized(ticket: AsistiaTicket): boolean {
+  return ticket.status === "solved" || ticket.status === "closed";
+}
+
+const ALLOWED_STATUS_TRANSITIONS: Record<AsistiaTicketStatus, AsistiaTicketStatus[]> = {
+  new: ["assigned", "waiting", "planned", "solved", "closed"],
+  assigned: ["planned", "waiting", "solved", "closed"],
+  planned: ["assigned", "waiting", "solved", "closed"],
+  waiting: ["assigned", "planned", "solved", "closed"],
+  solved: ["closed", "assigned"],
+  closed: [],
+};
+
+export function canTransitionTicketStatus(
+  from: AsistiaTicketStatus,
+  to: AsistiaTicketStatus
+): boolean {
+  if (from === to) return false;
+  return ALLOWED_STATUS_TRANSITIONS[from]?.includes(to) ?? false;
 }
 
 export function isTicketOverdue(ticket: AsistiaTicket): boolean {
@@ -53,7 +108,51 @@ export function buildLocationOptions(
 ) {
   return locations.map((location) => ({
     value: String(location.id),
-    label: location.fullPath || location.name,
+    label: locationDisplayName(location),
     searchText: `${location.name} ${location.fullPath}`.toLowerCase(),
   }));
+}
+
+export function locationDisplayName(location: { name: string; fullPath: string }): string {
+  return location.name || location.fullPath;
+}
+
+export function locationCompanyName(locationName: string): string {
+  const trimmed = locationName.trim();
+  if (!trimmed) return "";
+  return trimmed.split(/\s+/)[0] ?? "";
+}
+
+export function findLocationById(
+  locations: Array<{ id: number; name: string; fullPath: string }>,
+  locationId: number | null | undefined
+) {
+  if (!locationId) return null;
+  const normalizedId = Number(locationId);
+  if (!Number.isFinite(normalizedId) || normalizedId <= 0) return null;
+  return locations.find((location) => location.id === normalizedId) ?? null;
+}
+
+export function buildInitialTicketFilters(user: AuthUser | null): TicketFilterState {
+  return {
+    search: "",
+    status: "",
+    type: "",
+    assignedToId: user?.role === "technician" ? String(user.id) : "",
+    locationId: "",
+  };
+}
+
+export function buildTechnicianFilterOptions(
+  technicians: AsistiaUser[],
+  currentUser: AuthUser | null
+) {
+  return [...technicians]
+    .sort((left, right) => left.fullName.localeCompare(right.fullName, "es"))
+    .map((technician) => ({
+      value: String(technician.id),
+      label:
+        currentUser?.id === technician.id ? `${technician.fullName} (yo)` : technician.fullName,
+      searchText: `${technician.fullName} ${technician.login}`.toLowerCase(),
+    }));
 }

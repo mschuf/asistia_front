@@ -1,5 +1,5 @@
 ﻿import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import { BarChart3, Bot, FilePlus2, History, LogOut, Menu, Moon, Sun, X } from "lucide-react";
+import { BarChart3, FilePlus2, History, LogOut, Menu, Moon, Sun, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { BottomTabBar } from "@/components/layout/BottomTabBar";
@@ -30,7 +30,6 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   const [searchParams] = useSearchParams();
   const currentTab = readNavTab(searchParams.get("tab"));
   const onTicketsRoute = location.pathname.startsWith("/tickets");
-  const onAssistantRoute = location.pathname.startsWith("/assistant");
 
   function handleLogout() {
     setLoggingOut(true);
@@ -121,21 +120,6 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
               </button>
             );
           })}
-          <button
-            type="button"
-            onClick={() => {
-              navigate("/assistant");
-              setOpen(false);
-            }}
-            aria-current={onAssistantRoute ? "page" : undefined}
-            className={cn(
-              "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-              onAssistantRoute && "bg-muted text-foreground",
-            )}
-          >
-            <Bot className="h-4 w-4" aria-hidden="true" />
-            Asistente
-          </button>
         </nav>
         {isAuthenticated ? (
           <div className="border-t p-3">
