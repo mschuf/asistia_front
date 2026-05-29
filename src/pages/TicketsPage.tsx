@@ -1,13 +1,13 @@
 import { BarChart3, FilePlus2, History, RefreshCw } from "lucide-react";
 import { useRef } from "react";
 
-import { TiMetrics } from "@/components/tickets/TiMetrics";
+import { TiMetrics } from "@/components/Tickets/TiMetrics";
 
-import { TicketFilters } from "@/components/tickets/TicketFilters";
+import { TicketFilters } from "@/components/Tickets/TicketFilters";
 
-import { TicketForm } from "@/components/tickets/TicketForm";
+import { TicketForm } from "@/components/Tickets/TicketForm";
 
-import { TicketTable } from "@/components/tickets/TicketTable";
+import { TicketTable } from "@/components/Tickets/TicketTable";
 
 import { Badge } from "@/components/ui/badge";
 
@@ -25,33 +25,35 @@ import { useTiMetrics } from "@/hooks/useTiMetrics";
 
 import { useTickets } from "@/hooks/useTickets";
 
-import { findLocationById, locationCompanyName, locationDisplayName } from "@/lib/tickets";
+import {
+  findLocationById,
+  locationCompanyName,
+  locationDisplayName,
+} from "@/lib/tickets";
 
 import { roleLabel } from "@/utils/role";
 
 import type { TicketsTab } from "@/types/pages/tickets-page.types";
 
-
-
-const desktopTabs: Array<{ tab: TicketsTab; label: string; icon: typeof BarChart3 }> = [
-
+const desktopTabs: Array<{
+  tab: TicketsTab;
+  label: string;
+  icon: typeof BarChart3;
+}> = [
   { tab: "metricas", label: "Métricas", icon: BarChart3 },
 
   { tab: "crear", label: "Crear", icon: FilePlus2 },
 
-  { tab: "historial", label: "Historial", icon: History }
-
+  { tab: "historial", label: "Historial", icon: History },
 ];
 
-
-
 export default function TicketsPage() {
-
   const { user, role, isTechnician } = useAuth();
-  const refreshMetricsRef = useRef<(() => Promise<void>) | undefined>(undefined);
+  const refreshMetricsRef = useRef<(() => Promise<void>) | undefined>(
+    undefined,
+  );
 
   const {
-
     tab,
 
     setTab,
@@ -88,116 +90,90 @@ export default function TicketsPage() {
 
     handleStatusChange,
 
-    statusChanging
-
+    statusChanging,
   } = useTickets({
-    onTicketCreated: () => refreshMetricsRef.current?.()
+    onTicketCreated: () => refreshMetricsRef.current?.(),
   });
-
-
 
   const showTiMetrics = isTechnician && tab === "metricas";
 
   const {
-
     metrics: tiMetrics,
 
     loading: metricsLoading,
 
     error: metricsError,
 
-    refreshMetrics
-
+    refreshMetrics,
   } = useTiMetrics({ enabled: isTechnician, isTabActive: tab === "metricas" });
 
   refreshMetricsRef.current = refreshMetrics;
 
-
-
   const userLocation = findLocationById(locations, user?.locationId);
 
-  const userLocationName = userLocation ? locationDisplayName(userLocation) : null;
+  const userLocationName = userLocation
+    ? locationDisplayName(userLocation)
+    : null;
 
-  const userCompanyName = userLocationName ? locationCompanyName(userLocationName) : null;
+  const userCompanyName = userLocationName
+    ? locationCompanyName(userLocationName)
+    : null;
 
   const paginationFrom =
     pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1;
-  const paginationTo = Math.min(pagination.page * pagination.limit, pagination.total);
-
-
+  const paginationTo = Math.min(
+    pagination.page * pagination.limit,
+    pagination.total,
+  );
 
   async function handleRefresh() {
-
     if (tab === "historial") {
-
       await refreshTickets();
-
     }
 
     if (tab === "metricas" && isTechnician) {
-
       await refreshMetrics();
-
     }
-
   }
 
-
-
   return (
-
     <div className="space-y-5">
-
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-
         <div className="space-y-2">
-
           <div>
-
             <p className="text-lg font-semibold">Tickets</p>
 
             <p className="text-sm text-muted-foreground">
-
               {isTechnician
-
                 ? "Gestioná solicitudes e incidentes asignados o del equipo."
-
                 : "Creá y seguí tus solicitudes de soporte."}
-
             </p>
-
           </div>
 
           <div className="flex flex-wrap gap-2">
-
-            <Badge variant={role === "technician" ? "success" : "default"}>{roleLabel(role)}</Badge>
+            <Badge variant={role === "technician" ? "success" : "default"}>
+              {roleLabel(role)}
+            </Badge>
 
             {user?.name ? (
-
               <Badge className="bg-orange-50 text-orange-700 ring-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:ring-orange-800">
-
                 {user.name}
-
               </Badge>
-
             ) : null}
 
-            {userCompanyName ? <Badge variant="info">{userCompanyName}</Badge> : null}
+            {userCompanyName ? (
+              <Badge variant="info">{userCompanyName}</Badge>
+            ) : null}
 
-            {userLocationName ? <Badge variant="default">{userLocationName}</Badge> : null}
-
+            {userLocationName ? (
+              <Badge variant="default">{userLocationName}</Badge>
+            ) : null}
           </div>
-
         </div>
 
-
-
         <div className="ml-auto hidden shrink-0 items-center gap-2 sm:flex">
-
           {tab === "historial" || (tab === "metricas" && isTechnician) ? (
-
             <div className="flex shrink-0 rounded-md border bg-card p-1">
-
               <Button
                 type="button"
                 variant="ghost"
@@ -205,227 +181,134 @@ export default function TicketsPage() {
                 className="gap-2"
                 onClick={() => void handleRefresh()}
               >
-
                 <RefreshCw className="h-4 w-4" aria-hidden="true" />
-
                 Actualizar
-
               </Button>
-
             </div>
-
           ) : null}
 
           <div className="flex shrink-0 rounded-md border bg-card p-1">
-
             {desktopTabs.map(({ tab: nextTab, label, icon: Icon }) => (
-
               <Button
-
                 key={nextTab}
-
                 type="button"
-
                 size="sm"
-
                 variant={tab === nextTab ? "default" : "ghost"}
-
                 className={cn("gap-2")}
-
                 onClick={() => setTab(nextTab)}
-
               >
-
                 <Icon className="h-4 w-4" aria-hidden="true" />
 
                 {label}
-
               </Button>
-
             ))}
-
           </div>
-
         </div>
-
       </div>
 
-
-
       {metricsError && tab === "metricas" && isTechnician ? (
-
         <p className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-
           {metricsError}
-
         </p>
-
       ) : null}
-
-
 
       {tab === "metricas" && isTechnician ? (
-
         <TiMetrics
-
           metrics={tiMetrics}
-
           loading={metricsLoading}
-
           onGoToCreate={() => setTab("crear")}
-
         />
-
       ) : null}
-
-
 
       {tab === "metricas" && !isTechnician ? (
-
         <EmptyState
-
           title="Métricas"
-
           description="Las métricas detalladas están disponibles para el rol de soporte TI."
-
         />
-
       ) : null}
-
-
 
       {tab === "crear" && user ? (
-
         catalogsLoading ? (
-
           <div className="flex min-h-40 items-center justify-center">
-
             <Loading label="Cargando formulario..." />
-
           </div>
-
         ) : catalogsError ? (
-
           <EmptyState
-
             title="No se pudo cargar el formulario"
-
             description={catalogsError}
-
           />
-
         ) : (
-
           <TicketForm
-
             categories={categories}
-
             locations={locations}
-
             isTechnician={isTechnician}
-
             user={user}
-
             onSubmit={handleCreateTicket}
-
           />
-
         )
-
       ) : null}
 
-
-
       {tab === "historial" ? (
-
         <div className="space-y-4">
-
           {catalogsLoading ? (
-
             <div className="flex min-h-24 items-center justify-center">
-
               <Loading label="Cargando filtros..." />
-
             </div>
-
           ) : (
-
             <TicketFilters
-
               filters={filters}
-
               onChange={setFilters}
-
               locations={locations}
-
               technicians={technicians}
-
               user={user}
-
             />
-
           )}
 
           {catalogsError ? (
-
             <p className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-
               {catalogsError}
-
             </p>
-
           ) : null}
 
           {techniciansError ? (
-
             <p className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-
               {techniciansError}
-
             </p>
-
           ) : null}
 
           {error && !loading ? (
-
             <EmptyState
-
               title="No se pudieron cargar los tickets"
-
               description={error}
-
               action={
-
-                <Button type="button" variant="outline" onClick={() => void refreshTickets()}>
-
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void refreshTickets()}
+                >
                   Reintentar
-
                 </Button>
-
               }
-
             />
-
           ) : loading ? (
-
             <div className="flex min-h-40 items-center justify-center">
-
               <Loading label="Cargando tickets..." />
-
             </div>
-
           ) : (
             <>
               <TicketTable
                 tickets={tickets}
-                onStatusChange={(ticketId, status) => void handleStatusChange(ticketId, status)}
+                onStatusChange={(ticketId, status) =>
+                  void handleStatusChange(ticketId, status)
+                }
                 statusChanging={statusChanging}
               />
 
               {pagination.total > 0 ? (
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm text-muted-foreground">
-                    Mostrando {paginationFrom}-{paginationTo} de {pagination.total} tickets
+                    Mostrando {paginationFrom}-{paginationTo} de{" "}
+                    {pagination.total} tickets
                   </p>
                   <div className="flex items-center gap-2">
                     <Button
@@ -454,15 +337,8 @@ export default function TicketsPage() {
               ) : null}
             </>
           )}
-
         </div>
-
       ) : null}
-
     </div>
-
   );
-
 }
-
-

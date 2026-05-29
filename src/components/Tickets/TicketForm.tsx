@@ -7,7 +7,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ServerSearchableSelect } from "@/components/ui/server-searchable-select";
 import type { SearchableSelectOption } from "@/components/ui/searchable-select";
 import { Badge } from "@/components/ui/badge";
-import { RichDescriptionEditor } from "@/components/tickets/RichDescriptionEditor";
+import { RichDescriptionEditor } from "@/components/Tickets/RichDescriptionEditor";
 import { buildCategoryOptions, buildLocationOptions } from "@/lib/tickets";
 import { stripHtml } from "@/lib/utils";
 import { getUserById, searchTechnicians, searchUsers } from "@/services/ticketsService";

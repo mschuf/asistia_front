@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { TicketActions } from "@/components/tickets/TicketActions";
+import { TicketActions } from "@/components/Tickets/TicketActions";
 import { Badge } from "@/components/ui/badge";
 import { Dialog } from "@/components/ui/dialog";
 import { Loading } from "@/components/ui/loading";
