@@ -1,5 +1,5 @@
 /* asistIA service worker — shell cache mínimo */
-const CACHE_VERSION = "asistia-v1";
+const CACHE_VERSION = "asistia-v2";
 const PRECACHE_URLS = [
   "/",
   "/index.html",

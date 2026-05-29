@@ -1,4 +1,10 @@
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:1001/api/v1";
+const API_URL =
+  import.meta.env.VITE_API_URL ??
+  (import.meta.env.DEV ? "http://localhost:1001/api/v1" : "");
+
+if (!API_URL) {
+  throw new Error("VITE_API_URL no esta configurado para este build.");
+}
 
 type TokenGetter = () => string | null;
 type RequestHook = () => void;
