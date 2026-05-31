@@ -11,7 +11,7 @@ import type {
   TiMetricsResponse
 } from "../types/asistia";
 
-type ReadRequestOptions = { signal?: AbortSignal };
+type ReadRequestOptions = { signal?: AbortSignal; showBackdrop?: boolean };
 
 function coerceTicketPayload(payload: unknown): AsistiaTicket {
   if (!payload || typeof payload !== "object") {
@@ -82,6 +82,7 @@ export async function listHistoryTickets(
 ): Promise<AsistiaTicketListResponse> {
   return apiClient.get<AsistiaTicketListResponse>("/tickets/history", {
     ...options,
+    showBackdrop: options?.showBackdrop ?? true,
     query: {
       page: params?.page ?? 1,
       limit: params?.limit ?? 15,

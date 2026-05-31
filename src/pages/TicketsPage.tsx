@@ -78,6 +78,10 @@ export default function TicketsPage() {
 
     catalogsLoading,
 
+    locationsLoading,
+
+    techniciansLoading,
+
     error,
 
     catalogsError,
@@ -143,11 +147,11 @@ export default function TicketsPage() {
           <div>
             <p className="text-lg font-semibold">Tickets</p>
 
-            <p className="text-sm text-muted-foreground">
+            {/* <p className="text-sm text-muted-foreground">
               {isTechnician
                 ? "Gestioná solicitudes e incidentes asignados o del equipo."
                 : "Creá y seguí tus solicitudes de soporte."}
-            </p>
+            </p> */}
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -250,19 +254,15 @@ export default function TicketsPage() {
 
       {tab === "historial" ? (
         <div className="space-y-4">
-          {catalogsLoading ? (
-            <div className="flex min-h-24 items-center justify-center">
-              <Loading label="Cargando filtros..." />
-            </div>
-          ) : (
-            <TicketFilters
-              filters={filters}
-              onChange={setFilters}
-              locations={locations}
-              technicians={technicians}
-              user={user}
-            />
-          )}
+          <TicketFilters
+            filters={filters}
+            onChange={setFilters}
+            locations={locations}
+            technicians={technicians}
+            user={user}
+            locationsLoading={locationsLoading}
+            techniciansLoading={techniciansLoading}
+          />
 
           {catalogsError ? (
             <p className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -290,10 +290,6 @@ export default function TicketsPage() {
                 </Button>
               }
             />
-          ) : loading ? (
-            <div className="flex min-h-40 items-center justify-center">
-              <Loading label="Cargando tickets..." />
-            </div>
           ) : (
             <>
               <TicketTable

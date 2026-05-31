@@ -76,6 +76,9 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [catalogsLoading, setCatalogsLoading] = useState(false);
+  const [locationsLoading, setLocationsLoading] = useState(false);
+  const [techniciansLoading, setTechniciansLoading] = useState(false);
+  const [historyTicketsReady, setHistoryTicketsReady] = useState(false);
   const [error, setError] = useState("");
   const [catalogsError, setCatalogsError] = useState("");
   const [techniciansError, setTechniciansError] = useState("");
@@ -98,17 +101,11 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
   const totalPages = Math.max(1, Math.ceil(total / TICKETS_PAGE_SIZE));
 
   const needsCategories = tab === "crear" || visitedTabs.has("crear");
-  const needsLocations =
-    tab === "crear" ||
-    tab === "historial" ||
-    visitedTabs.has("crear") ||
-    visitedTabs.has("historial") ||
-    Boolean(user?.locationId);
-  const needsTechnicians = tab === "historial" || visitedTabs.has("historial");
+  const needsLocationsForCrear = tab === "crear" || visitedTabs.has("crear");
 
   const shouldFetchCategories = needsCategories && !loadedCatalogs.categories;
-  const shouldFetchLocations = needsLocations && !loadedCatalogs.locations;
-  const shouldFetchTechnicians = needsTechnicians && !loadedCatalogs.technicians;
+  const shouldFetchLocationsForCrear =
+    needsLocationsForCrear && !loadedCatalogs.locations;
 
   const setTab = useCallback(
     (nextTab: TicketsTab) => {
@@ -158,6 +155,11 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
 
   useEffect(() => {
     if (tab === "historial") return;
+    setHistoryTicketsReady(false);
+  }, [tab]);
+
+  useEffect(() => {
+    if (tab === "historial") return;
 
     const defaults = buildInitialTicketFilters(user);
     setFiltersState((current) => {
@@ -200,7 +202,10 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
           err instanceof ApiError || err instanceof Error ? err.message : "Error al cargar tickets";
         setError(message);
       } finally {
-        if (!signal?.aborted) setLoading(false);
+        if (!signal?.aborted) {
+          setLoading(false);
+          setHistoryTicketsReady(true);
+        }
       }
     },
     [listParams, ticketsFetchKey]
@@ -211,15 +216,14 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
   }, [fetchTickets]);
 
   useEffect(() => {
-    if (!shouldFetchCategories && !shouldFetchLocations && !shouldFetchTechnicians) return;
+    if (!shouldFetchCategories && !shouldFetchLocationsForCrear) return;
 
     const controller = new AbortController();
     const { signal } = controller;
 
-    async function loadCatalogs() {
+    async function loadCreateCatalogs() {
       setCatalogsLoading(true);
       setCatalogsError("");
-      setTechniciansError("");
       try {
         const tasks: Promise<void>[] = [];
 
@@ -233,7 +237,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
           );
         }
 
-        if (shouldFetchLocations) {
+        if (shouldFetchLocationsForCrear) {
           tasks.push(
             listLocations({ signal }).then((result) => {
               if (signal.aborted) return;
@@ -244,22 +248,6 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
         }
 
         await Promise.all(tasks);
-
-        if (shouldFetchTechnicians) {
-          try {
-            const result = await searchTechnicians(undefined, 100, { signal });
-            if (signal.aborted) return;
-            setTechnicians(result.items);
-            setLoadedCatalogs((current) => ({ ...current, technicians: true }));
-          } catch (err) {
-            if (signal.aborted || isAbortError(err)) return;
-            const message =
-              err instanceof ApiError || err instanceof Error
-                ? err.message
-                : "No se pudieron cargar los técnicos";
-            setTechniciansError(message);
-          }
-        }
       } catch (err) {
         if (signal.aborted || isAbortError(err)) return;
         const message =
@@ -270,9 +258,74 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
       }
     }
 
-    void loadCatalogs();
+    void loadCreateCatalogs();
     return () => controller.abort();
-  }, [shouldFetchCategories, shouldFetchLocations, shouldFetchTechnicians]);
+  }, [shouldFetchCategories, shouldFetchLocationsForCrear]);
+
+  useEffect(() => {
+    if (tab !== "historial" || !historyTicketsReady || loadedCatalogs.locations) return;
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    async function loadHistoryLocations() {
+      setLocationsLoading(true);
+      setCatalogsError("");
+      try {
+        const result = await listLocations({ signal, showBackdrop: false });
+        if (signal.aborted) return;
+        setLocations(result);
+        setLoadedCatalogs((current) => ({ ...current, locations: true }));
+      } catch (err) {
+        if (signal.aborted || isAbortError(err)) return;
+        const message =
+          err instanceof ApiError || err instanceof Error
+            ? err.message
+            : "No se pudieron cargar las sedes";
+        setCatalogsError(message);
+      } finally {
+        if (!signal.aborted) setLocationsLoading(false);
+      }
+    }
+
+    void loadHistoryLocations();
+    return () => controller.abort();
+  }, [tab, historyTicketsReady, loadedCatalogs.locations]);
+
+  useEffect(() => {
+    if (tab !== "historial" || !loadedCatalogs.locations || loadedCatalogs.technicians) {
+      return;
+    }
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    async function loadHistoryTechnicians() {
+      setTechniciansLoading(true);
+      setTechniciansError("");
+      try {
+        const result = await searchTechnicians(undefined, 100, {
+          signal,
+          showBackdrop: false,
+        });
+        if (signal.aborted) return;
+        setTechnicians(result.items);
+        setLoadedCatalogs((current) => ({ ...current, technicians: true }));
+      } catch (err) {
+        if (signal.aborted || isAbortError(err)) return;
+        const message =
+          err instanceof ApiError || err instanceof Error
+            ? err.message
+            : "No se pudieron cargar los técnicos";
+        setTechniciansError(message);
+      } finally {
+        if (!signal.aborted) setTechniciansLoading(false);
+      }
+    }
+
+    void loadHistoryTechnicians();
+    return () => controller.abort();
+  }, [tab, loadedCatalogs.locations, loadedCatalogs.technicians]);
 
   useEffect(() => {
     if (tab !== "historial") return;
@@ -365,6 +418,8 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
     setFilters,
     loading,
     catalogsLoading,
+    locationsLoading,
+    techniciansLoading,
     error,
     catalogsError,
     techniciansError,

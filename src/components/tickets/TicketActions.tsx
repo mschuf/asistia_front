@@ -46,7 +46,11 @@ export function TicketActions({ ticket, onStatusChange, pendingStatus = null }: 
         const isPending = pendingStatus === status;
         const canTransition = canTransitionTicketStatus(ticket.status, status);
         const disabled =
-          finalized || !onStatusChange || !canTransition || (hasPendingAction && !isPending);
+          id === "waiting" ||
+          finalized ||
+          !onStatusChange ||
+          !canTransition ||
+          (hasPendingAction && !isPending);
 
         return (
           <button

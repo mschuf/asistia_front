@@ -16,9 +16,19 @@ interface TicketFiltersProps {
   locations: AsistiaLocation[];
   technicians: AsistiaUser[];
   user: AuthUser | null;
+  locationsLoading?: boolean;
+  techniciansLoading?: boolean;
 }
 
-export function TicketFilters({ filters, onChange, locations, technicians, user }: TicketFiltersProps) {
+export function TicketFilters({
+  filters,
+  onChange,
+  locations,
+  technicians,
+  user,
+  locationsLoading = false,
+  techniciansLoading = false,
+}: TicketFiltersProps) {
   const [expanded, setExpanded] = useState(false);
 
   const update = useCallback(
@@ -84,9 +94,10 @@ export function TicketFilters({ filters, onChange, locations, technicians, user 
             value={filters.assignedToId}
             onChange={(value) => update("assignedToId", value)}
             options={technicianOptions}
-            placeholder="Asignado a"
+            placeholder={techniciansLoading ? "Cargando técnicos..." : "Asignado a"}
             searchPlaceholder="Buscar técnico..."
             emptyOption={{ value: "", label: "Todos los técnicos" }}
+            disabled={techniciansLoading}
           />
 
           <SearchableSelect
@@ -94,9 +105,10 @@ export function TicketFilters({ filters, onChange, locations, technicians, user 
             value={filters.locationId}
             onChange={(value) => update("locationId", value)}
             options={locationOptions}
-            placeholder="Sede"
+            placeholder={locationsLoading ? "Cargando sedes..." : "Sede"}
             searchPlaceholder="Buscar sede..."
             emptyOption={{ value: "", label: "Todas las sedes" }}
+            disabled={locationsLoading}
           />
         </div>
       ) : null}

@@ -41,6 +41,8 @@ export interface UseTicketsResult {
   setFilters: (value: TicketFilterState) => void;
   loading: boolean;
   catalogsLoading: boolean;
+  locationsLoading: boolean;
+  techniciansLoading: boolean;
   error: string;
   catalogsError: string;
   techniciansError: string;
