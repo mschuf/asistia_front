@@ -236,7 +236,7 @@ export default function TicketsPage() {
         <TiMetrics
           metrics={tiMetrics}
           loading={metricsLoading}
-          onGoToCreate={() => setTab("crear")}
+          onGoToHistorial={() => setTab("historial")}
         />
       ) : null}
 

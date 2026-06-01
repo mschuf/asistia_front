@@ -37,10 +37,16 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
-      <div className="mx-auto flex w-full max-w-md flex-col gap-6 rounded-lg border bg-card p-6 shadow-soft">
+      <div className="mx-auto flex w-full max-w-md flex-col gap-6 rounded-lg border bg-card px-6 pb-6 pt-2 shadow-soft">
         <div>
-          <p className="text-lg font-semibold leading-tight">asistIA</p>
-          <p className="text-xs text-muted-foreground">Gestión Inteligente de Requerimientos</p>
+          <div className="flex flex-col items-center text-center">
+            <img
+              src="/images/logo.png"
+              alt="asistIA"
+              className="h-[9.5rem] w-auto dark:[filter:drop-shadow(1px_0_0_#fff)_drop-shadow(-1px_0_0_#fff)_drop-shadow(0_1px_0_#fff)_drop-shadow(0_-1px_0_#fff)_drop-shadow(1px_1px_0_#fff)_drop-shadow(-1px_1px_0_#fff)_drop-shadow(1px_-1px_0_#fff)_drop-shadow(-1px_-1px_0_#fff)]"
+            />
+            <p className="mt-2 text-xs text-muted-foreground">Gestión Inteligente de Requerimientos</p>
+          </div>
           <h1 className="mt-4 text-xl font-semibold">Iniciar sesión</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Usá tu usuario de red corporativo (LDAP).

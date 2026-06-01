@@ -13,6 +13,10 @@ function readInitialTheme(): Theme {
   return stored === "dark" ? "dark" : "light";
 }
 
+export function initTheme(): void {
+  document.documentElement.classList.toggle("dark", readInitialTheme() === "dark");
+}
+
 export function useTheme() {
   const [theme, setTheme] = useState<Theme>(readInitialTheme);
 

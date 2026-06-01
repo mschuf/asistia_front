@@ -1,5 +1,5 @@
 ﻿import type { ReactNode } from "react";
-import { AlertTriangle, Building2, ClipboardList, FilePlus2, Ticket } from "lucide-react";
+import { AlertTriangle, Building2, ClipboardList, History, Ticket } from "lucide-react";
 import { Loading } from "@/components/ui/loading";
 import { TiOpenBySiteChart } from "@/components/tickets/TiOpenBySiteChart";
 import type { TiMetricsResponse, TicketMetricSlice, MyTicketsMetricSlice } from "@/types/asistia";
@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 interface TiMetricsProps {
   metrics: TiMetricsResponse | null;
   loading?: boolean;
-  onGoToCreate: () => void;
+  onGoToHistorial: () => void;
 }
 
 function MetricPercent({ slice }: { slice: TicketMetricSlice | MyTicketsMetricSlice }) {
@@ -73,7 +73,7 @@ function MetricCard({
   return <div className={cn("rounded-md border p-4", className)}>{content}</div>;
 }
 
-export function TiMetrics({ metrics, loading, onGoToCreate }: TiMetricsProps) {
+export function TiMetrics({ metrics, loading, onGoToHistorial }: TiMetricsProps) {
   if (loading && !metrics) {
     return (
       <div className="flex min-h-40 items-center justify-center">
@@ -97,20 +97,20 @@ export function TiMetrics({ metrics, loading, onGoToCreate }: TiMetricsProps) {
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
-          label="Mis Tickets"
-          value={metrics.myTickets.inProgress}
-          icon={Ticket}
-          className="cursor-pointer border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-200"
-          onClick={onGoToCreate}
-          ariaLabel="Ir a crear ticket"
-          subtitle={<MetricPercent slice={metrics.myTickets} />}
-        />
-        <MetricCard
           label="Mi Sede"
           value={siteValue}
           icon={Building2}
           className="border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-900 dark:bg-violet-950/30 dark:text-violet-200"
           subtitle={siteSubtitle}
+        />
+        <MetricCard
+          label="Mis Tickets"
+          value={metrics.myTickets.inProgress}
+          icon={Ticket}
+          className="cursor-pointer border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-200"
+          onClick={onGoToHistorial}
+          ariaLabel="Ir a historial"
+          subtitle={<MetricPercent slice={metrics.myTickets} />}
         />
         <MetricCard
           label="Mis Incidentes"
@@ -131,8 +131,8 @@ export function TiMetrics({ metrics, loading, onGoToCreate }: TiMetricsProps) {
       <TiOpenBySiteChart data={metrics.openByLocation} />
 
       <p className="flex items-center gap-1 text-xs text-muted-foreground">
-        <FilePlus2 className="h-3.5 w-3.5" aria-hidden="true" />
-        Mis Tickets abre la pestaña Crear
+        <History className="h-3.5 w-3.5" aria-hidden="true" />
+        Mis Tickets abre la pestaña Historial
       </p>
     </div>
   );

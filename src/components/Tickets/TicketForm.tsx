@@ -34,18 +34,24 @@ type FormErrors = Partial<Record<"category" | "description" | "technician", stri
 
 const DESCRIPTION_MIN_LENGTH = 12;
 const TECHNICIAN_EMPTY_OPTION = { value: "", label: "Seleccione un TI" };
-const REQUESTER_EMPTY_OPTION = { value: "", label: "Yo mismo (por defecto)" };
+const REQUESTER_EMPTY_OPTION = { value: "", label: "Seleccione solicitante" };
 
-function defaultRequesterId(user: AuthUser): string {
+function defaultRequesterId(user: AuthUser, isTechnician: boolean): string {
+  if (isTechnician) return "";
   return user.id ? String(user.id) : "";
+}
+
+function defaultTechnicianId(user: AuthUser, isTechnician: boolean): string {
+  if (isTechnician && user.id) return String(user.id);
+  return "";
 }
 
 export function TicketForm({ categories, locations, isTechnician, user, onSubmit }: TicketFormProps) {
   const [ticketType, setTicketType] = useState<AsistiaTicketType>("request");
   const [categoryId, setCategoryId] = useState("");
   const [description, setDescription] = useState("");
-  const [technicianId, setTechnicianId] = useState("");
-  const [requesterId, setRequesterId] = useState(() => defaultRequesterId(user));
+  const [technicianId, setTechnicianId] = useState(() => defaultTechnicianId(user, isTechnician));
+  const [requesterId, setRequesterId] = useState(() => defaultRequesterId(user, isTechnician));
   const [locationId, setLocationId] = useState(user.locationId ? String(user.locationId) : "");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -53,15 +59,15 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
   const categoryOptions = useMemo(() => buildCategoryOptions(categories), [categories]);
   const locationOptions = useMemo(() => buildLocationOptions(locations), [locations]);
   const showLocationField = locations.length > 0 && (isTechnician || !user.locationId);
-  const defaultRequesterOption = useMemo<SearchableSelectOption | null>(() => {
-    if (!user.id) return null;
+  const defaultTechnicianOption = useMemo<SearchableSelectOption | null>(() => {
+    if (!isTechnician || !user.id) return null;
     const label = user.name || user.login;
     return {
       value: String(user.id),
       label,
       searchText: `${user.name} ${user.login} ${user.email ?? ""}`.toLowerCase()
     };
-  }, [user.id, user.name, user.login, user.email]);
+  }, [isTechnician, user.id, user.name, user.login, user.email]);
 
   const loadTechnicianOptions = useCallback(async (query: string, _signal: AbortSignal) => {
     const result = await searchTechnicians(query);
@@ -129,8 +135,8 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
     setTicketType("request");
     setCategoryId("");
     setDescription("");
-    setTechnicianId("");
-    setRequesterId(defaultRequesterId(user));
+    setTechnicianId(defaultTechnicianId(user, isTechnician));
+    setRequesterId(defaultRequesterId(user, isTechnician));
     setLocationId(user.locationId ? String(user.locationId) : "");
     if (clearFeedback) {
       setSubmitError("");
@@ -209,7 +215,6 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
               onChange={setRequesterId}
               onLoadOptions={loadRequesterOptions}
               resolveSelectedOption={resolveRequesterOption}
-              defaultSelectedOption={defaultRequesterOption}
               placeholder="Seleccione solicitante"
               searchPlaceholder="Buscar usuario..."
               emptyOption={REQUESTER_EMPTY_OPTION}
@@ -239,6 +244,7 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
                 onChange={setTechnicianId}
                 onLoadOptions={loadTechnicianOptions}
                 resolveSelectedOption={resolveTechnicianOption}
+                defaultSelectedOption={defaultTechnicianOption}
                 placeholder="Seleccione un TI"
                 searchPlaceholder="Buscar técnico..."
                 emptyOption={TECHNICIAN_EMPTY_OPTION}

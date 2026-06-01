@@ -3,7 +3,7 @@ import { TicketActions } from "@/components/tickets/TicketActions";
 import { TicketDetailModal } from "@/components/tickets/TicketDetailModal";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { formatDate } from "@/lib/format";
+import { formatDateParts, formatNameParts } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { statusBadgeVariant, statusLabel, typeLabel } from "@/lib/tickets";
 import type { AsistiaTicket, AsistiaTicketStatus } from "@/types/asistia";
@@ -12,6 +12,26 @@ interface TicketTableProps {
   tickets: AsistiaTicket[];
   onStatusChange?: (ticketId: number, status: AsistiaTicketStatus) => void;
   statusChanging?: { ticketId: number; status: AsistiaTicketStatus } | null;
+}
+
+function AperturaCell({ value }: { value: string | null }) {
+  const { date, time } = formatDateParts(value);
+  return (
+    <div className="leading-tight">
+      <span className="whitespace-nowrap">{date}</span>
+      {time ? <span className="mt-1.5 block whitespace-nowrap">{time}</span> : null}
+    </div>
+  );
+}
+
+function NameCell({ value }: { value: string | null | undefined }) {
+  const { firstLine, secondLine } = formatNameParts(value);
+  return (
+    <div className="leading-tight">
+      <span className="whitespace-nowrap">{firstLine}</span>
+      {secondLine ? <span className="mt-1.5 block whitespace-nowrap">{secondLine}</span> : null}
+    </div>
+  );
 }
 
 export function TicketTable({ tickets, onStatusChange, statusChanging = null }: TicketTableProps) {
@@ -32,11 +52,12 @@ export function TicketTable({ tickets, onStatusChange, statusChanging = null }: 
     <>
     <div className="overflow-hidden rounded-md border bg-card shadow-soft">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[820px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[860px] border-collapse text-left text-sm">
           <thead className="bg-muted text-xs uppercase tracking-normal text-muted-foreground">
             <tr>
               <th className="px-4 py-3 font-semibold">Ticket</th>
               <th className="px-4 py-3 font-semibold">Apertura</th>
+              <th className="px-4 py-3 font-semibold">Solicitante</th>
               <th className="px-4 py-3 font-semibold">Tipo</th>
               <th className="px-4 py-3 font-semibold">Título</th>
               <th className="px-4 py-3 font-semibold">Estado</th>
@@ -56,15 +77,20 @@ export function TicketTable({ tickets, onStatusChange, statusChanging = null }: 
                 onClick={() => setSelectedTicket(ticket)}
               >
                 <td className="whitespace-nowrap px-4 py-3 font-medium">#{ticket.id}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
-                  {formatDate(ticket.createdAt)}
+                <td className="px-4 py-3 text-muted-foreground">
+                  <AperturaCell value={ticket.createdAt} />
+                </td>
+                <td className="px-4 py-3">
+                  <NameCell value={ticket.requester.name} />
                 </td>
                 <td className="whitespace-nowrap px-4 py-3">{typeLabel(ticket.type)}</td>
                 <td className="min-w-56 px-4 py-3">{ticket.subject}</td>
                 <td className="whitespace-nowrap px-4 py-3">
                   <Badge variant={statusBadgeVariant(ticket.status)}>{statusLabel(ticket.status)}</Badge>
                 </td>
-                <td className="whitespace-nowrap px-4 py-3">{ticket.technician?.name ?? "—"}</td>
+                <td className="px-4 py-3">
+                  <NameCell value={ticket.technician?.name} />
+                </td>
                 <td className="px-4 py-3 text-muted-foreground">{ticket.location?.name ?? "—"}</td>
                 <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
                   <TicketActions
