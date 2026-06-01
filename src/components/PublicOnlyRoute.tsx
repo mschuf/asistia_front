@@ -6,7 +6,11 @@ interface PublicOnlyRouteProps {
 }
 
 export default function PublicOnlyRoute({ children }: PublicOnlyRouteProps) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isBootstrapping } = useAuth();
+
+  if (isBootstrapping) {
+    return null;
+  }
 
   if (isAuthenticated) {
     return <Navigate to="/tickets" replace />;

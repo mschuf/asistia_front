@@ -6,13 +6,13 @@ export interface LogoutOptions {
 }
 
 export interface AuthContextValue {
-  token: string | null;
   user: AuthUser | null;
   role: AuthUser["role"] | null;
   isAuthenticated: boolean;
+  isBootstrapping: boolean;
   isTechnician: boolean;
   login: (payload: LoginPayload) => Promise<LoginResponse>;
-  logout: (options?: LogoutOptions) => void;
+  logout: (options?: LogoutOptions) => Promise<void>;
   clearSession: () => void;
 }
 

@@ -1,16 +1,14 @@
 const API_URL =
   import.meta.env.VITE_API_URL ??
-  (import.meta.env.DEV ? "http://localhost:1001/api/v1" : "");
+  (import.meta.env.DEV ? "/api/v1" : "");
 
 if (!API_URL) {
   throw new Error("VITE_API_URL no esta configurado para este build.");
 }
 
-type TokenGetter = () => string | null;
 type RequestHook = () => void;
 type UnauthorizedHook = (payload: ApiPayload | null) => void;
 
-let getToken: TokenGetter = () => null;
 let onUnauthorized: UnauthorizedHook = () => {};
 let onRequestStart: RequestHook = () => {};
 let onRequestEnd: RequestHook = () => {};
@@ -43,7 +41,6 @@ interface RequestOptions {
 }
 
 interface ConfigureApiClientOptions {
-  getTokenFn?: TokenGetter;
   onUnauthorizedFn?: UnauthorizedHook;
   onRequestStartFn?: RequestHook;
   onRequestEndFn?: RequestHook;
@@ -64,12 +61,10 @@ export class ApiError extends Error {
 }
 
 export function configureApiClient({
-  getTokenFn,
   onUnauthorizedFn,
   onRequestStartFn,
   onRequestEndFn
 }: ConfigureApiClientOptions): void {
-  if (typeof getTokenFn === "function") getToken = getTokenFn;
   if (typeof onUnauthorizedFn === "function") onUnauthorized = onUnauthorizedFn;
   if (typeof onRequestStartFn === "function") onRequestStart = onRequestStartFn;
   if (typeof onRequestEndFn === "function") onRequestEnd = onRequestEndFn;
@@ -78,7 +73,7 @@ export function configureApiClient({
 function buildUrl(path: string, query?: RequestOptions["query"]): string {
   const base = API_URL.endsWith("/") ? API_URL.slice(0, -1) : API_URL;
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  const url = new URL(`${base}${normalizedPath}`);
+  const url = new URL(`${base}${normalizedPath}`, window.location.origin);
   if (query) {
     for (const [key, value] of Object.entries(query)) {
       if (value === undefined || value === null || value === "") continue;
@@ -130,12 +125,11 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   if (showBackdrop) onRequestStart();
 
   try {
-    const token = auth ? getToken() : null;
     const response = await fetch(buildUrl(path, query), {
       method,
+      credentials: "include",
       headers: {
         ...(isFormData ? {} : { "Content-Type": "application/json" }),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...headers
       },
       signal: controller?.signal,

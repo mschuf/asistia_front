@@ -33,12 +33,11 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
 
   function handleLogout() {
     setLoggingOut(true);
-    try {
-      logout({ showToast: true });
-      setOpen(false);
-    } finally {
-      setLoggingOut(false);
-    }
+    void logout({ showToast: true })
+      .finally(() => {
+        setLoggingOut(false);
+        setOpen(false);
+      });
   }
 
   function goToTab(tab: NavTab) {

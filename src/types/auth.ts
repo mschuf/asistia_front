@@ -2,5 +2,6 @@ export type {
   AsistiaRole,
   AuthUser,
   LoginPayload,
-  LoginResponse
+  LoginResponse,
+  SessionResponse
 } from "./asistia";

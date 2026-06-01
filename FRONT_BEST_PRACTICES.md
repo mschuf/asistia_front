@@ -17,9 +17,12 @@ types/pages/mi-feature.types.ts
 
 ## Autenticación
 
-- Token/usuario en `AuthContext` + `localStorage` (`asistia_*`).
-- Login LDAP: `POST /auth/login` con `{ username, password }`.
+- Sesión vía cookie HttpOnly (`asistia_access_token`); el JWT no se guarda en `localStorage`.
+- Usuario y expiración solo en memoria React; al recargar se rehidrata con `GET /auth/me`.
+- Login LDAP: obtener clave pública (`GET /auth/public-key`), cifrar contraseña RSA-OAEP y `POST /auth/login` con `{ username, encryptedPassword }`.
+- Todas las peticiones HTTP usan `credentials: 'include'` en `apiClient`.
 - 401 / `TOKEN_EXPIRED` → logout + redirect `/login` + toast.
+- Al iniciar la app se eliminan claves legacy `asistia_*` de `localStorage` si existían.
 
 ## UI/UX
 

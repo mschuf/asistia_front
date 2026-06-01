@@ -28,9 +28,13 @@ export interface LoginPayload {
 }
 
 export interface LoginResponse {
-  accessToken: string;
   expiresIn: string;
   user: AuthUser;
+}
+
+export interface SessionResponse {
+  user: AuthUser;
+  expiresAt: number;
 }
 
 export interface AsistiaCategory {

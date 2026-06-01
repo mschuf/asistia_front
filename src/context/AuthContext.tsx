@@ -1,32 +1,26 @@
-import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiClient, configureApiClient } from "../api/apiClient";
 import { useTokenTimer } from "../hooks/useTokenTimer";
-import type { AuthUser, LoginPayload, LoginResponse } from "../types/auth";
+import type { AuthUser, LoginPayload, LoginResponse, SessionResponse } from "../types/auth";
 import type {
   AuthContextValue,
   AuthProviderProps,
   LogoutOptions
 } from "../types/context/auth-context.types";
+import { clearAuthPublicKeyCache, encryptPassword, loadAuthPublicKey } from "../utils/crypto";
 import { parseExpiresInSeconds } from "../utils/parseExpiresIn";
 import { isTechnicianRole, resolveRole } from "../utils/role";
 import { useLoading } from "./LoadingContext";
 import { useToast } from "./ToastContext";
 
-const TOKEN_STORAGE_KEY = "asistia_token";
-const USER_STORAGE_KEY = "asistia_user";
-const EXPIRES_AT_STORAGE_KEY = "asistia_expires_at";
+const LEGACY_STORAGE_KEYS = ["asistia_token", "asistia_user", "asistia_expires_at"] as const;
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-function readUserFromStorage(): AuthUser | null {
-  const raw = localStorage.getItem(USER_STORAGE_KEY);
-  if (!raw) return null;
-
-  try {
-    return JSON.parse(raw) as AuthUser;
-  } catch {
-    return null;
+function clearLegacyStorage(): void {
+  for (const key of LEGACY_STORAGE_KEYS) {
+    localStorage.removeItem(key);
   }
 }
 
@@ -34,66 +28,103 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const navigate = useNavigate();
   const { startLoading, stopLoading } = useLoading();
   const toast = useToast();
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_STORAGE_KEY));
-  const [user, setUser] = useState<AuthUser | null>(() => readUserFromStorage());
-  const [expiresAt, setExpiresAt] = useState<number | null>(() => {
-    const raw = localStorage.getItem(EXPIRES_AT_STORAGE_KEY);
-    return raw ? Number(raw) : null;
-  });
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [expiresAt, setExpiresAt] = useState<number | null>(null);
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
 
   const clearSession = useCallback(() => {
-    setToken(null);
     setUser(null);
     setExpiresAt(null);
-    localStorage.removeItem(TOKEN_STORAGE_KEY);
-    localStorage.removeItem(USER_STORAGE_KEY);
-    localStorage.removeItem(EXPIRES_AT_STORAGE_KEY);
+    clearAuthPublicKeyCache();
   }, []);
 
-  const saveSession = useCallback((accessToken: string, expiresIn: string, sessionUser: AuthUser) => {
-    const expiry = Date.now() + parseExpiresInSeconds(expiresIn) * 1000;
-    setToken(accessToken);
+  const applySession = useCallback((sessionUser: AuthUser, sessionExpiresAt: number) => {
     setUser(sessionUser);
-    setExpiresAt(expiry);
-    localStorage.setItem(TOKEN_STORAGE_KEY, accessToken);
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(sessionUser));
-    localStorage.setItem(EXPIRES_AT_STORAGE_KEY, String(expiry));
+    setExpiresAt(sessionExpiresAt);
   }, []);
 
   const handleSessionExpired = useCallback(() => {
-    if (!token) return;
+    if (!user) return;
     clearSession();
     toast.error("Tu token expiró. Volvé a iniciar sesión.", "Sesión expirada");
     navigate("/login", { replace: true });
-  }, [token, clearSession, toast, navigate]);
+  }, [user, clearSession, toast, navigate]);
 
   useTokenTimer(expiresAt, handleSessionExpired);
 
   useLayoutEffect(() => {
     configureApiClient({
-      getTokenFn: () => token,
       onRequestStartFn: startLoading,
       onRequestEndFn: stopLoading,
       onUnauthorizedFn: () => handleSessionExpired()
     });
-  }, [token, startLoading, stopLoading, handleSessionExpired]);
+  }, [startLoading, stopLoading, handleSessionExpired]);
+
+  useEffect(() => {
+    clearLegacyStorage();
+
+    let cancelled = false;
+
+    async function bootstrapSession(): Promise<void> {
+      try {
+        const session = await apiClient.get<SessionResponse>("/auth/me", {
+          showBackdrop: false,
+          timeoutMs: 10000
+        });
+        if (!cancelled) {
+          applySession(session.user, session.expiresAt);
+        }
+      } catch {
+        if (!cancelled) {
+          clearSession();
+        }
+      } finally {
+        if (!cancelled) {
+          setIsBootstrapping(false);
+        }
+      }
+    }
+
+    void bootstrapSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [applySession, clearSession]);
 
   const login = useCallback(
     async ({ username, password }: LoginPayload): Promise<LoginResponse> => {
+      await loadAuthPublicKey(async () => {
+        const response = await apiClient.get<{ publicKey: string }>("/auth/public-key", {
+          auth: false,
+          showBackdrop: false,
+          timeoutMs: 10000
+        });
+        return response.publicKey;
+      });
+
+      const encryptedPassword = await encryptPassword(password);
       const response = await apiClient.post<LoginResponse>(
         "/auth/login",
-        { username, password },
+        { username, encryptedPassword },
         { auth: false, timeoutMs: 15000 }
       );
 
-      saveSession(response.accessToken, response.expiresIn, response.user);
+      const expiry = Date.now() + parseExpiresInSeconds(response.expiresIn) * 1000;
+      applySession(response.user, expiry);
       return response;
     },
-    [saveSession]
+    [applySession]
   );
 
   const logout = useCallback(
-    ({ showToast = false }: LogoutOptions = {}) => {
+    async ({ showToast = false }: LogoutOptions = {}) => {
+      try {
+        await apiClient.post("/auth/logout", undefined, { showBackdrop: false, timeoutMs: 10000 });
+      } catch {
+        // Si la cookie ya expiró, igual limpiamos el estado local.
+      }
+
       clearSession();
       if (showToast) {
         toast.info("La sesión se cerró correctamente.");
@@ -107,16 +138,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const value = useMemo<AuthContextValue>(
     () => ({
-      token,
       user,
       role,
-      isAuthenticated: Boolean(token && user),
+      isAuthenticated: Boolean(user),
+      isBootstrapping,
       isTechnician: isTechnicianRole(role),
       login,
       logout,
       clearSession
     }),
-    [token, user, role, login, logout, clearSession]
+    [user, role, isBootstrapping, login, logout, clearSession]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
