@@ -1,14 +1,14 @@
 import { BarChart3, FilePlus2, History, RefreshCw } from "lucide-react";
 import { useRef, useState } from "react";
 
-import { TiMetrics } from "@/components/Tickets/TiMetrics";
+import { TiMetrics } from "@/components/tickets/TiMetrics";
 
-import { TicketFilters } from "@/components/Tickets/TicketFilters";
+import { TicketFilters } from "@/components/tickets/TicketFilters";
 
-import { TicketForm } from "@/components/Tickets/TicketForm";
+import { TicketForm } from "@/components/tickets/TicketForm";
 
-import { TicketResolveModal } from "@/components/Tickets/TicketResolveModal";
-import { TicketTable } from "@/components/Tickets/TicketTable";
+import { TicketResolveModal } from "@/components/tickets/TicketResolveModal";
+import { TicketTable } from "@/components/tickets/TicketTable";
 
 import { Badge } from "@/components/ui/badge";
 

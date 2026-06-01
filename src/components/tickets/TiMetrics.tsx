@@ -1,7 +1,7 @@
 ﻿import type { ReactNode } from "react";
 import { AlertTriangle, Building2, ClipboardList, FilePlus2, Ticket } from "lucide-react";
 import { Loading } from "@/components/ui/loading";
-import { TiOpenBySiteChart } from "@/components/Tickets/TiOpenBySiteChart";
+import { TiOpenBySiteChart } from "@/components/tickets/TiOpenBySiteChart";
 import type { TiMetricsResponse, TicketMetricSlice, MyTicketsMetricSlice } from "@/types/asistia";
 import { cn } from "@/lib/utils";
 

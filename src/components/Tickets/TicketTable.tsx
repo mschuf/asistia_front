@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from "react";
-import { TicketActions } from "@/components/Tickets/TicketActions";
-import { TicketDetailModal } from "@/components/Tickets/TicketDetailModal";
+import { TicketActions } from "@/components/tickets/TicketActions";
+import { TicketDetailModal } from "@/components/tickets/TicketDetailModal";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate } from "@/lib/format";
