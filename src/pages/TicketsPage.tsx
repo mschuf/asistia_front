@@ -162,8 +162,7 @@ export default function TicketsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <div>
-            <p className="text-lg font-semibold">Tickets</p>
-
+            {/*<p className="text-lg font-semibold">Tickets</p>*/}
             {/* <p className="text-sm text-muted-foreground">
               {isTechnician
                 ? "Gestioná solicitudes e incidentes asignados o del equipo."
