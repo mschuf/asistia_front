@@ -111,13 +111,24 @@ export async function createTicket(input: CreateTicketInput): Promise<CreateTick
   return apiClient.post<CreateTicketResponse>("/tickets", input);
 }
 
+export type UpdateTicketStatusOptions = {
+  resolutionNote?: string;
+};
+
 export async function updateTicketStatus(
   ticketId: number,
-  status: AsistiaTicket["status"]
+  status: AsistiaTicket["status"],
+  options?: UpdateTicketStatusOptions
 ): Promise<AsistiaTicket> {
+  const body: { status: AsistiaTicket["status"]; resolutionNote?: string } = { status };
+  const note = options?.resolutionNote?.trim();
+  if (note) {
+    body.resolutionNote = note;
+  }
+
   const response = await apiClient.patch<unknown>(
     `/tickets/${ticketId}/status`,
-    { status },
+    body,
     { showBackdrop: false, timeoutMs: 30_000 }
   );
   return coerceTicketPayload(response);

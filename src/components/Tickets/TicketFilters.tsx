@@ -3,6 +3,7 @@ import { ChevronDown, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Select } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { TICKET_STATUS_LABELS, TICKET_TYPE_LABELS } from "@/lib/constants";
 import { buildLocationOptions, buildTechnicianFilterOptions } from "@/lib/tickets";
@@ -13,6 +14,7 @@ import type { TicketFilterState } from "@/types/pages/tickets-page.types";
 interface TicketFiltersProps {
   filters: TicketFilterState;
   onChange: (filters: TicketFilterState) => void;
+  onApply: () => void;
   locations: AsistiaLocation[];
   technicians: AsistiaUser[];
   user: AuthUser | null;
@@ -23,6 +25,7 @@ interface TicketFiltersProps {
 export function TicketFilters({
   filters,
   onChange,
+  onApply,
   locations,
   technicians,
   user,
@@ -51,6 +54,11 @@ export function TicketFilters({
         <Input
           value={filters.search}
           onChange={(event) => update("search", event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter") return;
+            event.preventDefault();
+            onApply();
+          }}
           placeholder="Buscar en tickets"
           className="pl-9 pr-10"
         />
@@ -70,7 +78,7 @@ export function TicketFilters({
       </div>
 
       {expanded ? (
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
           <Select value={filters.status} onChange={(event) => update("status", event.target.value)}>
             <option value="">En curso (asignada y planificada)</option>
             {Object.entries(TICKET_STATUS_LABELS).map(([value, label]) => (
@@ -110,6 +118,11 @@ export function TicketFilters({
             emptyOption={{ value: "", label: "Todas las sedes" }}
             disabled={locationsLoading}
           />
+
+          <Button type="button" size="sm" className="w-fit shrink-0 gap-1 px-2" onClick={onApply}>
+            <Search className="h-3.5 w-3.5" aria-hidden="true" />
+            Buscar
+          </Button>
         </div>
       ) : null}
     </div>

@@ -39,6 +39,7 @@ export interface UseTicketsResult {
   setPage: (page: number) => void;
   filters: TicketFilterState;
   setFilters: (value: TicketFilterState) => void;
+  applyFilters: () => void;
   loading: boolean;
   catalogsLoading: boolean;
   locationsLoading: boolean;
@@ -56,6 +57,10 @@ export interface UseTicketsResult {
     assignedTechnicianId?: number;
     requesterId?: number;
   }) => Promise<void>;
-  handleStatusChange: (ticketId: number, status: AsistiaTicketStatus) => Promise<void>;
+  handleStatusChange: (
+    ticketId: number,
+    status: AsistiaTicketStatus,
+    options?: { resolutionNote?: string }
+  ) => Promise<boolean>;
   statusChanging: { ticketId: number; status: AsistiaTicketStatus } | null;
 }

@@ -23,8 +23,6 @@ import {
   TICKETS_PAGE_SIZE
 } from "../lib/tickets";
 
-const SEARCH_DEBOUNCE_MS = 350;
-
 function readTab(value: string | null): TicketsTab {
   if (value === "crear" || value === "create") return "crear";
   if (value === "historial" || value === "history") return "historial";
@@ -71,7 +69,9 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
   const [technicians, setTechnicians] = useState<AsistiaUser[]>([]);
   const [tickets, setTickets] = useState<UseTicketsResult["tickets"]>([]);
   const [filters, setFiltersState] = useState<TicketFilterState>(() => buildInitialTicketFilters(user));
-  const [debouncedSearch, setDebouncedSearch] = useState(filters.search);
+  const [appliedFilters, setAppliedFilters] = useState<TicketFilterState>(() =>
+    buildInitialTicketFilters(user)
+  );
   const [page, setPageState] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -88,8 +88,8 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
   } | null>(null);
 
   const listParams = useMemo(
-    () => toListTicketParams(filters, page, debouncedSearch),
-    [filters, page, debouncedSearch]
+    () => toListTicketParams(appliedFilters, page, appliedFilters.search),
+    [appliedFilters, page]
   );
   const ticketsFetchKey = JSON.stringify(listParams);
   const loadedTicketsKeyRef = useRef<string | null>(null);
@@ -106,6 +106,11 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
   const shouldFetchCategories = needsCategories && !loadedCatalogs.categories;
   const shouldFetchLocationsForCrear =
     needsLocationsForCrear && !loadedCatalogs.locations;
+  const shouldPrefetchLocationsForBadges =
+    Boolean(user?.locationId) &&
+    !loadedCatalogs.locations &&
+    tab !== "crear" &&
+    tab !== "historial";
 
   const setTab = useCallback(
     (nextTab: TicketsTab) => {
@@ -131,18 +136,14 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
           };
         }
       }
-      const searchOnly =
-        prev.search !== next.search &&
-        prev.status === next.status &&
-        prev.type === next.type &&
-        prev.assignedToId === next.assignedToId &&
-        prev.locationId === next.locationId;
-      if (!searchOnly) {
-        setPageState(1);
-      }
       return next;
     });
   }, [user]);
+
+  const applyFilters = useCallback(() => {
+    setAppliedFilters(filters);
+    setPageState(1);
+  }, [filters]);
 
   useEffect(() => {
     setVisitedTabs((current) => {
@@ -171,19 +172,18 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
         current.locationId === defaults.locationId;
       return isDefault ? current : defaults;
     });
-    setDebouncedSearch(defaults.search);
+    setAppliedFilters((current) => {
+      const isDefault =
+        current.search === defaults.search &&
+        current.status === defaults.status &&
+        current.type === defaults.type &&
+        current.assignedToId === defaults.assignedToId &&
+        current.locationId === defaults.locationId;
+      return isDefault ? current : defaults;
+    });
     setPageState(1);
     loadedTicketsKeyRef.current = null;
   }, [tab, user]);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedSearch(filters.search), SEARCH_DEBOUNCE_MS);
-    return () => window.clearTimeout(timer);
-  }, [filters.search]);
-
-  useEffect(() => {
-    setPageState(1);
-  }, [debouncedSearch]);
 
   const fetchTickets = useCallback(
     async (signal?: AbortSignal) => {
@@ -214,6 +214,28 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
   const refreshTickets = useCallback(async () => {
     await fetchTickets();
   }, [fetchTickets]);
+
+  useEffect(() => {
+    if (!shouldPrefetchLocationsForBadges) return;
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    async function prefetchLocationsForBadges() {
+      try {
+        const result = await listLocations({ signal, showBackdrop: false });
+        if (signal.aborted) return;
+        setLocations(result);
+        setLoadedCatalogs((current) => ({ ...current, locations: true }));
+      } catch (err) {
+        // El prefetch de badges es best-effort: no debe impactar métricas.
+        if (signal.aborted || isAbortError(err)) return;
+      }
+    }
+
+    void prefetchLocationsForBadges();
+    return () => controller.abort();
+  }, [shouldPrefetchLocationsForBadges]);
 
   useEffect(() => {
     if (!shouldFetchCategories && !shouldFetchLocationsForCrear) return;
@@ -263,7 +285,9 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
   }, [shouldFetchCategories, shouldFetchLocationsForCrear]);
 
   useEffect(() => {
-    if (tab !== "historial" || !historyTicketsReady || loadedCatalogs.locations) return;
+    if (tab !== "historial" || !historyTicketsReady || loadedCatalogs.locations) {
+      return;
+    }
 
     const controller = new AbortController();
     const { signal } = controller;
@@ -347,8 +371,12 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
   );
 
   const handleStatusChange = useCallback(
-    async (ticketId: number, status: AsistiaTicketStatus) => {
-      if (statusChangeLockRef.current) return;
+    async (
+      ticketId: number,
+      status: AsistiaTicketStatus,
+      options?: { resolutionNote?: string }
+    ): Promise<boolean> => {
+      if (statusChangeLockRef.current) return false;
 
       const normalizedTicketId = Number(ticketId);
       const previousTicket = ticketsRef.current.find(
@@ -357,7 +385,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
 
       if (!previousTicket || !canTransitionTicketStatus(previousTicket.status, status)) {
         toast.error("No se pudo cambiar el estado del ticket.");
-        return;
+        return false;
       }
 
       setTickets((current) =>
@@ -370,7 +398,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
       setStatusChanging({ ticketId: normalizedTicketId, status });
 
       try {
-        const updated = await updateTicketStatus(normalizedTicketId, status);
+        const updated = await updateTicketStatus(normalizedTicketId, status, options);
         if (!updated?.id) {
           throw new ApiError("La API no confirmó el cambio de estado.");
         }
@@ -381,6 +409,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
           )
         );
         toast.success(`Ticket #${normalizedTicketId}: ${statusLabel(status)}.`);
+        return true;
       } catch (err) {
         setTickets((current) =>
           current.map((ticket) =>
@@ -392,6 +421,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
             ? err.message
             : "No se pudo actualizar el estado";
         toast.error(message);
+        return false;
       } finally {
         statusChangeLockRef.current = false;
         setStatusChanging(null);
@@ -416,6 +446,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
     setPage,
     filters,
     setFilters,
+    applyFilters,
     loading,
     catalogsLoading,
     locationsLoading,

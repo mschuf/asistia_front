@@ -1,5 +1,5 @@
 import { BarChart3, FilePlus2, History, RefreshCw } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 import { TiMetrics } from "@/components/Tickets/TiMetrics";
 
@@ -7,6 +7,7 @@ import { TicketFilters } from "@/components/Tickets/TicketFilters";
 
 import { TicketForm } from "@/components/Tickets/TicketForm";
 
+import { TicketResolveModal } from "@/components/Tickets/TicketResolveModal";
 import { TicketTable } from "@/components/Tickets/TicketTable";
 
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +34,7 @@ import {
 
 import { roleLabel } from "@/utils/role";
 
+import type { AsistiaTicket, AsistiaTicketStatus } from "@/types/asistia";
 import type { TicketsTab } from "@/types/pages/tickets-page.types";
 
 const desktopTabs: Array<{
@@ -74,6 +76,8 @@ export default function TicketsPage() {
 
     setFilters,
 
+    applyFilters,
+
     loading,
 
     catalogsLoading,
@@ -112,6 +116,19 @@ export default function TicketsPage() {
   } = useTiMetrics({ enabled: isTechnician, isTabActive: tab === "metricas" });
 
   refreshMetricsRef.current = refreshMetrics;
+
+  const [resolveTarget, setResolveTarget] = useState<AsistiaTicket | null>(null);
+
+  const handleTicketStatusChange = (ticketId: number, status: AsistiaTicketStatus) => {
+    if (status === "solved" && isTechnician) {
+      const ticket = tickets.find((item) => Number(item.id) === Number(ticketId));
+      if (ticket) {
+        setResolveTarget(ticket);
+      }
+      return;
+    }
+    void handleStatusChange(ticketId, status);
+  };
 
   const userLocation = findLocationById(locations, user?.locationId);
 
@@ -257,6 +274,7 @@ export default function TicketsPage() {
           <TicketFilters
             filters={filters}
             onChange={setFilters}
+            onApply={applyFilters}
             locations={locations}
             technicians={technicians}
             user={user}
@@ -294,10 +312,29 @@ export default function TicketsPage() {
             <>
               <TicketTable
                 tickets={tickets}
-                onStatusChange={(ticketId, status) =>
-                  void handleStatusChange(ticketId, status)
-                }
+                onStatusChange={handleTicketStatusChange}
                 statusChanging={statusChanging}
+              />
+
+              <TicketResolveModal
+                ticket={resolveTarget}
+                open={resolveTarget !== null}
+                onOpenChange={(open) => {
+                  if (!open) setResolveTarget(null);
+                }}
+                submitting={
+                  resolveTarget !== null &&
+                  statusChanging?.ticketId === Number(resolveTarget.id) &&
+                  statusChanging.status === "solved"
+                }
+                onConfirm={(resolutionNote) => {
+                  if (!resolveTarget) return;
+                  void handleStatusChange(resolveTarget.id, "solved", { resolutionNote }).then(
+                    (ok) => {
+                      if (ok) setResolveTarget(null);
+                    }
+                  );
+                }}
               />
 
               {pagination.total > 0 ? (
