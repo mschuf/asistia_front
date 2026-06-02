@@ -41,7 +41,7 @@ export async function listLocations(options?: ReadRequestOptions): Promise<Asist
 export async function fetchTiMetrics(options?: ReadRequestOptions): Promise<TiMetricsResponse> {
   return apiClient.get<TiMetricsResponse>("/tickets/metrics", {
     ...options,
-    showBackdrop: false,
+    showBackdrop: options?.showBackdrop ?? false,
     timeoutMs: 60_000,
   });
 }

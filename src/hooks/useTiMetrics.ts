@@ -20,7 +20,7 @@ export function useTiMetrics({ enabled, isTabActive = false }: UseTiMetricsOptio
     setLoading(true);
     setError("");
     try {
-      const data = await fetchTiMetrics();
+      const data = await fetchTiMetrics({ showBackdrop: true });
       setMetrics(data);
     } catch (err) {
       const message =

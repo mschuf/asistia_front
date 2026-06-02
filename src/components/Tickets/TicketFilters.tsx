@@ -14,7 +14,7 @@ import type { TicketFilterState } from "@/types/pages/tickets-page.types";
 interface TicketFiltersProps {
   filters: TicketFilterState;
   onChange: (filters: TicketFilterState) => void;
-  onApply: () => void;
+  onApply: (filters?: TicketFilterState) => void;
   locations: AsistiaLocation[];
   technicians: AsistiaUser[];
   user: AuthUser | null;
@@ -59,7 +59,7 @@ export function TicketFilters({
             event.preventDefault();
             onApply();
           }}
-          placeholder="Buscar en tickets"
+          placeholder="Buscar ticket..."
           className="pl-9 pr-10"
         />
         <button
@@ -80,7 +80,7 @@ export function TicketFilters({
       {expanded ? (
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
           <Select value={filters.status} onChange={(event) => update("status", event.target.value)}>
-            <option value="">En curso (asignada y planificada)</option>
+            <option value="">Abiertos</option>
             {Object.entries(TICKET_STATUS_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -119,7 +119,12 @@ export function TicketFilters({
             disabled={locationsLoading}
           />
 
-          <Button type="button" size="sm" className="w-fit shrink-0 gap-1 px-2" onClick={onApply}>
+          <Button
+            type="button"
+            size="sm"
+            className="w-fit shrink-0 gap-1 px-2"
+            onClick={() => onApply(filters)}
+          >
             <Search className="h-3.5 w-3.5" aria-hidden="true" />
             Buscar
           </Button>
