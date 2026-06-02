@@ -43,7 +43,7 @@ export default function LoginPage() {
             <img
               src="/images/logo.png"
               alt="asistIA"
-              className="h-[9.5rem] w-auto dark:[filter:drop-shadow(1px_0_0_#fff)_drop-shadow(-1px_0_0_#fff)_drop-shadow(0_1px_0_#fff)_drop-shadow(0_-1px_0_#fff)_drop-shadow(1px_1px_0_#fff)_drop-shadow(-1px_1px_0_#fff)_drop-shadow(1px_-1px_0_#fff)_drop-shadow(-1px_-1px_0_#fff)]"
+              className="h-[6.65rem] w-auto dark:[filter:drop-shadow(1px_0_0_#fff)_drop-shadow(-1px_0_0_#fff)_drop-shadow(0_1px_0_#fff)_drop-shadow(0_-1px_0_#fff)_drop-shadow(1px_1px_0_#fff)_drop-shadow(-1px_1px_0_#fff)_drop-shadow(1px_-1px_0_#fff)_drop-shadow(-1px_-1px_0_#fff)]"
             />
             <p className="mt-2 text-xs text-muted-foreground">Gestión Inteligente de Requerimientos</p>
           </div>
