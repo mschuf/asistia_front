@@ -9,6 +9,7 @@ const AppShellLayout = lazy(() => import("./layouts/AppShellLayout"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const TicketsPage = lazy(() => import("./pages/TicketsPage"));
 const AssistantPage = lazy(() => import("./pages/AssistantPage"));
+const MailTestPage = lazy(() => import("./pages/MailTestPage"));
 
 export default function App() {
   const { isAuthenticated } = useAuth();
@@ -35,6 +36,7 @@ export default function App() {
           <Route index element={<Navigate to="/tickets" replace />} />
           <Route path="tickets" element={<TicketsPage />} />
           <Route path="assistant" element={<AssistantPage />} />
+          <Route path="mail/test" element={<MailTestPage />} />
         </Route>
         <Route path="*" element={<Navigate to={isAuthenticated ? "/tickets" : "/login"} replace />} />
       </Routes>

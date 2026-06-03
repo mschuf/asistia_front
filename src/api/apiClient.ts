@@ -1,5 +1,6 @@
+const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
 const API_URL =
-  import.meta.env.VITE_API_URL ??
+  configuredApiUrl ||
   (import.meta.env.DEV ? "/api/v1" : "");
 
 if (!API_URL) {
