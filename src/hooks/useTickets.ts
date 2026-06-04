@@ -399,13 +399,19 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
 
       try {
         const updated = await updateTicketStatus(normalizedTicketId, status, options);
-        if (!updated?.id) {
+        if (!updated?.id || !updated?.status) {
           throw new ApiError("La API no confirmó el cambio de estado.");
         }
 
         setTickets((current) =>
           current.map((ticket) =>
-            Number(ticket.id) === normalizedTicketId ? updated : ticket
+            Number(ticket.id) === normalizedTicketId
+              ? {
+                  ...ticket,
+                  status: updated.status,
+                  updatedAt: new Date().toISOString(),
+                }
+              : ticket
           )
         );
         toast.success(`Ticket #${normalizedTicketId}: ${statusLabel(status)}.`);

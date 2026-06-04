@@ -59,7 +59,7 @@ export function TicketFilters({
             event.preventDefault();
             onApply();
           }}
-          placeholder="Buscar ticket..."
+          placeholder="Buscar ticket por ID, descripción, título. Para más opciones, usa los filtros avanzados."
           className="pl-9 pr-10"
         />
         <button

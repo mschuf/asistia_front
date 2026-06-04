@@ -4,6 +4,7 @@ import type {
   AsistiaLocation,
   AsistiaTicket,
   AsistiaTicketListResponse,
+  UpdateTicketStatusResponse,
   AsistiaUser,
   AsistiaUserListResponse,
   CreateTicketInput,
@@ -119,7 +120,7 @@ export async function updateTicketStatus(
   ticketId: number,
   status: AsistiaTicket["status"],
   options?: UpdateTicketStatusOptions
-): Promise<AsistiaTicket> {
+): Promise<UpdateTicketStatusResponse> {
   const body: { status: AsistiaTicket["status"]; resolutionNote?: string } = { status };
   const note = options?.resolutionNote?.trim();
   if (note) {
@@ -131,7 +132,7 @@ export async function updateTicketStatus(
     body,
     { showBackdrop: false, timeoutMs: 30_000 }
   );
-  return coerceTicketPayload(response);
+  return coerceTicketPayload(response) as UpdateTicketStatusResponse;
 }
 
 export async function assignTicketTechnician(

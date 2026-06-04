@@ -119,6 +119,11 @@ export interface CreateTicketResponse {
   mail: { sent: boolean; error: string | null };
 }
 
+export interface UpdateTicketStatusResponse {
+  id: number;
+  status: AsistiaTicketStatus;
+}
+
 export interface TicketMetricSlice {
   open: number;
   openPercent: number;
