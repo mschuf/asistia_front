@@ -1,12 +1,12 @@
 ﻿import { Eraser, SendHorizontal } from "lucide-react";
 import { FormEvent, useCallback, useMemo, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Loading } from "@/components/ui/loading";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { ServerSearchableSelect } from "@/components/ui/server-searchable-select";
 import type { SearchableSelectOption } from "@/components/ui/searchable-select";
-import { Badge } from "@/components/ui/badge";
+import { ServerSearchableSelect } from "@/components/ui/server-searchable-select";
 import { RichDescriptionEditor } from "@/components/tickets/RichDescriptionEditor";
 import { buildCategoryOptions, buildLocationOptions } from "@/lib/tickets";
 import { stripHtml } from "@/lib/utils";
@@ -65,7 +65,7 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
     return {
       value: String(user.id),
       label,
-      searchText: `${user.name} ${user.login} ${user.email ?? ""}`.toLowerCase()
+      searchText: `${user.name} ${user.login} ${user.email ?? ""}`.toLowerCase(),
     };
   }, [isTechnician, user.id, user.name, user.login, user.email]);
 
@@ -75,30 +75,28 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
       (technician): SearchableSelectOption => ({
         value: String(technician.id),
         label: technician.fullName || technician.login,
-        searchText: `${technician.fullName} ${technician.login} ${technician.email ?? ""}`.toLowerCase()
-      })
+        searchText: `${technician.fullName} ${technician.login} ${technician.email ?? ""}`.toLowerCase(),
+      }),
     );
   }, []);
 
-  const resolveTechnicianOption = useCallback(async (value: string, _signal: AbortSignal) => {
-    const result = await searchTechnicians();
-    const technician = result.items.find((item) => String(item.id) === value);
-    if (!technician) return null;
+  const resolveTechnicianOption = useCallback(async (value: string, signal: AbortSignal) => {
+    const technician = await getUserById(Number(value), { signal });
     return {
       value: String(technician.id),
       label: technician.fullName || technician.login,
-      searchText: `${technician.fullName} ${technician.login}`.toLowerCase()
+      searchText: `${technician.fullName} ${technician.login}`.toLowerCase(),
     };
   }, []);
 
   const loadRequesterOptions = useCallback(async (query: string, signal: AbortSignal) => {
-    const result = await searchUsers(query, 20, { signal });
+    const result = await searchUsers(query, undefined, { signal });
     return result.items.map(
       (requester): SearchableSelectOption => ({
         value: String(requester.id),
         label: requester.fullName || requester.login,
-        searchText: `${requester.fullName} ${requester.login} ${requester.email ?? ""}`.toLowerCase()
-      })
+        searchText: `${requester.fullName} ${requester.login} ${requester.email ?? ""}`.toLowerCase(),
+      }),
     );
   }, []);
 
@@ -107,25 +105,21 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
     return {
       value: String(requester.id),
       label: requester.fullName || requester.login,
-      searchText: `${requester.fullName} ${requester.login}`.toLowerCase()
+      searchText: `${requester.fullName} ${requester.login}`.toLowerCase(),
     };
   }, []);
 
   const errors = useMemo<FormErrors>(() => {
     const nextErrors: FormErrors = {};
-
     if (!categoryId) {
       nextErrors.category = "Seleccione una categoría.";
     }
-
     if (stripHtml(description).length < DESCRIPTION_MIN_LENGTH) {
       nextErrors.description = `La descripción debe tener al menos ${DESCRIPTION_MIN_LENGTH} caracteres.`;
     }
-
     if (isTechnician && !technicianId) {
       nextErrors.technician = "Seleccione el técnico asignado.";
     }
-
     return nextErrors;
   }, [categoryId, description, isTechnician, technicianId]);
 
@@ -161,7 +155,7 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
         categoryId: Number(categoryId),
         locationId: locationId ? Number(locationId) : undefined,
         assignedTechnicianId: technicianId ? Number(technicianId) : undefined,
-        requesterId: requesterId ? Number(requesterId) : undefined
+        requesterId: requesterId ? Number(requesterId) : undefined,
       });
       resetForm(false);
     } catch (error) {
@@ -236,22 +230,20 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
         </Field>
 
         {isTechnician ? (
-          <>
-            <Field id="ticket-technician" label="Técnico" error={errors.technician}>
-              <ServerSearchableSelect
-                id="ticket-technician"
-                value={technicianId}
-                onChange={setTechnicianId}
-                onLoadOptions={loadTechnicianOptions}
-                resolveSelectedOption={resolveTechnicianOption}
-                defaultSelectedOption={defaultTechnicianOption}
-                placeholder="Seleccione un TI"
-                searchPlaceholder="Buscar técnico..."
-                emptyOption={TECHNICIAN_EMPTY_OPTION}
-                aria-describedby={errors.technician ? "ticket-technician-error" : undefined}
-              />
-            </Field>
-          </>
+          <Field id="ticket-technician" label="Técnico" error={errors.technician}>
+            <ServerSearchableSelect
+              id="ticket-technician"
+              value={technicianId}
+              onChange={setTechnicianId}
+              onLoadOptions={loadTechnicianOptions}
+              resolveSelectedOption={resolveTechnicianOption}
+              defaultSelectedOption={defaultTechnicianOption}
+              placeholder="Seleccione un TI"
+              searchPlaceholder="Buscar técnico..."
+              emptyOption={TECHNICIAN_EMPTY_OPTION}
+              aria-describedby={errors.technician ? "ticket-technician-error" : undefined}
+            />
+          </Field>
         ) : null}
 
         {showLocationField ? (
@@ -290,6 +282,7 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
           <Eraser className="h-4 w-4" aria-hidden="true" />
           Limpiar
         </Button>
+
         <Button type="submit" disabled={!canSubmit}>
           {submitting ? (
             <Loading label="Creando" className="text-primary-foreground" />

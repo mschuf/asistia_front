@@ -144,23 +144,23 @@ export async function assignTicketTechnician(
 
 export async function searchTechnicians(
   search?: string,
-  limit = 20,
+  limit?: number,
   options?: ReadRequestOptions
 ): Promise<AsistiaUserListResponse> {
   return apiClient.get<AsistiaUserListResponse>("/users/technicians", {
     ...options,
-    query: { search, limit }
+    query: { search, limit: limit ?? undefined }
   });
 }
 
 export async function searchUsers(
   search?: string,
-  limit = 20,
+  limit?: number,
   options?: ReadRequestOptions
 ): Promise<AsistiaUserListResponse> {
   return apiClient.get<AsistiaUserListResponse>("/users", {
     ...options,
-    query: { search, limit }
+    query: { search, limit: limit ?? undefined }
   });
 }
 
