@@ -3,15 +3,12 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import PublicOnlyRoute from "@/components/PublicOnlyRoute";
 import { Loading } from "@/components/ui/loading";
-import { mailTestUiEnabled } from "@/config/features";
 import { useAuth } from "./context/AuthContext";
 
 const AppShellLayout = lazy(() => import("./layouts/AppShellLayout"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const TicketsPage = lazy(() => import("./pages/TicketsPage"));
 const AssistantPage = lazy(() => import("./pages/AssistantPage"));
-const MailTestPage = mailTestUiEnabled ? lazy(() => import("./pages/MailTestPage")) : null;
-
 export default function App() {
   const { isAuthenticated } = useAuth();
 
@@ -26,7 +23,6 @@ export default function App() {
             </PublicOnlyRoute>
           }
         />
-        {MailTestPage ? <Route path="/mail/test" element={<MailTestPage />} /> : null}
         <Route
           path="/"
           element={

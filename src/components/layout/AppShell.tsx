@@ -1,9 +1,8 @@
 ﻿import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import { BarChart3, FilePlus2, History, LogOut, Mail, Menu, Moon, Sun, X } from "lucide-react";
+import { BarChart3, FilePlus2, History, LogOut, Menu, Moon, Sun, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { BottomTabBar } from "@/components/layout/BottomTabBar";
-import { mailTestUiEnabled } from "@/config/features";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { roleLabel } from "@/utils/role";
@@ -21,10 +20,6 @@ const ticketNavItems: Array<{ label: string; tab: NavTab; icon: typeof FilePlus2
   { label: "Historial", tab: "historial", icon: History },
   { label: "Métricas", tab: "metricas", icon: BarChart3 },
 ];
-
-const toolNavItems = mailTestUiEnabled
-  ? ([{ label: "Probar correo", path: "/mail/test", icon: Mail }] as const)
-  : ([] as const);
 
 export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   const [open, setOpen] = useState(false);
@@ -48,11 +43,6 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   function goToTab(tab: NavTab) {
     const search = tab === "metricas" ? "" : `?tab=${tab}`;
     navigate(`/tickets${search}`);
-    setOpen(false);
-  }
-
-  function goToPath(path: string) {
-    navigate(path);
     setOpen(false);
   }
 
@@ -129,33 +119,6 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
               </button>
             );
           })}
-          {toolNavItems.length > 0 ? (
-            <>
-              <div className="my-2 border-t" role="presentation" />
-              <p className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Herramientas
-              </p>
-              {toolNavItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === item.path;
-                return (
-                  <button
-                    key={item.path}
-                    type="button"
-                    onClick={() => goToPath(item.path)}
-                    aria-current={isActive ? "page" : undefined}
-                    className={cn(
-                      "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-                      isActive && "bg-muted text-foreground",
-                    )}
-                  >
-                    <Icon className="h-4 w-4" aria-hidden="true" />
-                    {item.label}
-                  </button>
-                );
-              })}
-            </>
-          ) : null}
         </nav>
         {isAuthenticated ? (
           <div className="border-t p-3">

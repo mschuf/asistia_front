@@ -12,9 +12,9 @@ interface BottomTabItem {
 }
 
 const items: BottomTabItem[] = [
+  { tab: "metricas", label: "Métricas", icon: BarChart3 },
   { tab: "crear", label: "Crear", icon: FilePlus2 },
   { tab: "historial", label: "Historial", icon: History },
-  { tab: "metricas", label: "Métricas", icon: BarChart3 },
 ];
 
 function readBottomTab(value: string | null): BottomTab {
