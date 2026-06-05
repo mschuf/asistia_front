@@ -39,7 +39,7 @@ export interface UseTicketsResult {
   setPage: (page: number) => void;
   filters: TicketFilterState;
   setFilters: (value: TicketFilterState) => void;
-  applyFilters: () => void;
+  applyFilters: (filters?: TicketFilterState) => void;
   loading: boolean;
   catalogsLoading: boolean;
   locationsLoading: boolean;

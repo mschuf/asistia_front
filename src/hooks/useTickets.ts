@@ -140,8 +140,8 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
     });
   }, [user]);
 
-  const applyFilters = useCallback(() => {
-    setAppliedFilters(filters);
+  const applyFilters = useCallback((nextFilters?: TicketFilterState) => {
+    setAppliedFilters(nextFilters ?? filters);
     setPageState(1);
   }, [filters]);
 
