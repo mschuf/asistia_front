@@ -26,6 +26,7 @@ export default function App() {
             </PublicOnlyRoute>
           }
         />
+        {MailTestPage ? <Route path="/mail/test" element={<MailTestPage />} /> : null}
         <Route
           path="/"
           element={
@@ -37,7 +38,6 @@ export default function App() {
           <Route index element={<Navigate to="/tickets" replace />} />
           <Route path="tickets" element={<TicketsPage />} />
           <Route path="assistant" element={<AssistantPage />} />
-          {MailTestPage ? <Route path="mail/test" element={<MailTestPage />} /> : null}
         </Route>
         <Route path="*" element={<Navigate to={isAuthenticated ? "/tickets" : "/login"} replace />} />
       </Routes>
