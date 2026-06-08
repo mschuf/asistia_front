@@ -115,8 +115,11 @@ export function TicketAssignModal({
       onOpenChange={onOpenChange}
       title={`Asignar ticket #${ticket.id}`}
       description="Puede reasignar el técnico y/o cambiar la sede del ticket."
+      allowOverflow
+      className="w-full max-w-lg"
+      contentClassName="min-h-[min(20rem,50vh)] sm:px-6 sm:py-6"
     >
-      <div className="space-y-4">
+      <div className="space-y-6">
         <Field id="ticket-assign-technician" label="Técnico (TI)">
           <ServerSearchableSelect
             id="ticket-assign-technician"

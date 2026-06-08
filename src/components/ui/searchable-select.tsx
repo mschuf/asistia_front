@@ -37,6 +37,7 @@ export function SearchableSelect({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const [placement, setPlacement] = useState<"bottom" | "top">("bottom");
   const containerRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const listboxId = useId();
@@ -67,8 +68,30 @@ export function SearchableSelect({
     }
 
     setHighlightedIndex(0);
+
+    const updatePlacement = () => {
+      const element = containerRef.current;
+      if (!element) {
+        return;
+      }
+
+      const rect = element.getBoundingClientRect();
+      const dropdownMaxHeight = 280;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      setPlacement(spaceBelow < dropdownMaxHeight && spaceAbove > spaceBelow ? "top" : "bottom");
+    };
+
+    updatePlacement();
     const frame = window.requestAnimationFrame(() => searchRef.current?.focus());
-    return () => window.cancelAnimationFrame(frame);
+    window.addEventListener("resize", updatePlacement);
+    window.addEventListener("scroll", updatePlacement, true);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", updatePlacement);
+      window.removeEventListener("scroll", updatePlacement, true);
+    };
   }, [open]);
 
   useEffect(() => {
@@ -159,7 +182,12 @@ export function SearchableSelect({
       </button>
 
       {open ? (
-        <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-md border bg-card shadow-md">
+        <div
+          className={cn(
+            "absolute z-[60] w-full overflow-hidden rounded-md border bg-card shadow-md",
+            placement === "top" ? "bottom-full mb-1" : "top-full mt-1",
+          )}
+        >
           <div className="flex items-center gap-2 border-b px-3 py-2">
             <Search className="h-4 w-4 shrink-0 opacity-50" aria-hidden="true" />
             <Input
