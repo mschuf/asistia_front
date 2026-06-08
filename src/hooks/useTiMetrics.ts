@@ -6,7 +6,7 @@ import type { TiMetricsResponse } from "@/types/asistia";
 
 interface UseTiMetricsOptions {
   enabled: boolean;
-  /** Recargar al mostrar la pestaña Métricas (p. ej. tras crear un ticket en otra pestaña). */
+  /** Recargar al mostrar la pestaña Indicadores (p. ej. tras crear un ticket en otra pestaña). */
   isTabActive?: boolean;
 }
 
@@ -26,7 +26,7 @@ export function useTiMetrics({ enabled, isTabActive = false }: UseTiMetricsOptio
       const message =
         err instanceof ApiError || err instanceof Error
           ? err.message
-          : "No se pudieron cargar las métricas";
+          : "No se pudieron cargar las indicadores";
       setError(message);
     } finally {
       setLoading(false);
@@ -51,7 +51,7 @@ export function useTiMetrics({ enabled, isTabActive = false }: UseTiMetricsOptio
         const message =
           err instanceof ApiError || err instanceof Error
             ? err.message
-            : "No se pudieron cargar las métricas";
+            : "No se pudieron cargar las indicadores";
         setError(message);
       } finally {
         if (!signal.aborted) setLoading(false);

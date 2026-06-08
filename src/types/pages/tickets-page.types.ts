@@ -15,6 +15,7 @@ export interface TicketFilterState {
   type: AsistiaTicketType | "";
   assignedToId: string;
   locationId: string;
+  statusesPreset?: AsistiaTicketStatus[];
 }
 
 export interface TicketPaginationState {
@@ -31,8 +32,10 @@ export interface UseTicketsOptions {
 export interface UseTicketsResult {
   tab: TicketsTab;
   setTab: (tab: TicketsTab) => void;
+  goToHistorialWithFilters: (preset: TicketFilterState) => void;
   categories: AsistiaCategory[];
   locations: AsistiaLocation[];
+  historyLocations: AsistiaLocation[];
   technicians: AsistiaUser[];
   tickets: AsistiaTicket[];
   pagination: TicketPaginationState;
@@ -63,4 +66,9 @@ export interface UseTicketsResult {
     options?: { resolutionNote?: string }
   ) => Promise<boolean>;
   statusChanging: { ticketId: number; status: AsistiaTicketStatus } | null;
+  handleAssignTicket: (
+    ticketId: number,
+    input: { technicianId?: number; locationId?: number }
+  ) => Promise<boolean>;
+  assigning: { ticketId: number } | null;
 }

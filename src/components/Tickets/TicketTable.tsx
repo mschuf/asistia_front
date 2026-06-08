@@ -12,6 +12,8 @@ interface TicketTableProps {
   tickets: AsistiaTicket[];
   onStatusChange?: (ticketId: number, status: AsistiaTicketStatus) => void;
   statusChanging?: { ticketId: number; status: AsistiaTicketStatus } | null;
+  onAssignClick?: (ticket: AsistiaTicket) => void;
+  assigning?: { ticketId: number } | null;
 }
 
 function AperturaCell({ value }: { value: string | null }) {
@@ -34,7 +36,13 @@ function NameCell({ value }: { value: string | null | undefined }) {
   );
 }
 
-export function TicketTable({ tickets, onStatusChange, statusChanging = null }: TicketTableProps) {
+export function TicketTable({
+  tickets,
+  onStatusChange,
+  statusChanging = null,
+  onAssignClick,
+  assigning = null,
+}: TicketTableProps) {
   const [selectedTicket, setSelectedTicket] = useState<AsistiaTicket | null>(null);
 
   useEffect(() => {
@@ -58,11 +66,11 @@ export function TicketTable({ tickets, onStatusChange, statusChanging = null }: 
               <th className="px-4 py-3 font-semibold">Ticket</th>
               <th className="px-4 py-3 font-semibold">Apertura</th>
               <th className="px-4 py-3 font-semibold">Solicitante</th>
+              <th className="px-4 py-3 font-semibold">Ubicación</th>
               <th className="px-4 py-3 font-semibold">Tipo</th>
               <th className="px-4 py-3 font-semibold">Título</th>
               <th className="px-4 py-3 font-semibold">Estado</th>
               <th className="px-4 py-3 font-semibold">Asignado a</th>
-              <th className="px-4 py-3 font-semibold">Ubicación</th>
               <th className="px-4 py-3 font-semibold">Acciones</th>
             </tr>
           </thead>
@@ -83,6 +91,7 @@ export function TicketTable({ tickets, onStatusChange, statusChanging = null }: 
                 <td className="px-4 py-3">
                   <NameCell value={ticket.requester.name} />
                 </td>
+                <td className="px-4 py-3 text-muted-foreground">{ticket.location?.name ?? "—"}</td>
                 <td className="whitespace-nowrap px-4 py-3">{typeLabel(ticket.type)}</td>
                 <td className="min-w-56 px-4 py-3">{ticket.subject}</td>
                 <td className="whitespace-nowrap px-4 py-3">
@@ -91,7 +100,6 @@ export function TicketTable({ tickets, onStatusChange, statusChanging = null }: 
                 <td className="px-4 py-3">
                   <NameCell value={ticket.technician?.name} />
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">{ticket.location?.name ?? "—"}</td>
                 <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
                   <TicketActions
                     ticket={ticket}
@@ -99,6 +107,10 @@ export function TicketTable({ tickets, onStatusChange, statusChanging = null }: 
                     pendingStatus={
                       statusChanging?.ticketId === Number(ticket.id) ? statusChanging.status : null
                     }
+                    onAssignClick={
+                      onAssignClick ? () => onAssignClick(ticket) : undefined
+                    }
+                    assignPending={assigning?.ticketId === Number(ticket.id)}
                   />
                 </td>
               </tr>
@@ -120,6 +132,8 @@ export function TicketTable({ tickets, onStatusChange, statusChanging = null }: 
           ? statusChanging.status
           : null
       }
+      onAssignClick={onAssignClick}
+      assigning={assigning}
     />
     </>
   );

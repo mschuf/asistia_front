@@ -3,15 +3,17 @@ import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import {
+  assignTicketTechnician,
   createTicket,
   listCategories,
   listHistoryTickets,
   listLocations,
   searchTechnicians,
+  updateTicketLocation,
   updateTicketStatus
 } from "../services/ticketsService";
 import type { ListTicketsParams } from "../services/ticketsService";
-import type { AsistiaTicketStatus, AsistiaUser } from "../types/asistia";
+import type { AsistiaTicket, AsistiaTicketStatus, AsistiaUser } from "../types/asistia";
 import type { TicketFilterState, TicketsTab, UseTicketsOptions, UseTicketsResult } from "../types/pages/tickets-page.types";
 import { ApiError } from "../api/apiClient";
 import { isAbortError } from "../lib/http";
@@ -36,6 +38,7 @@ function toListTicketParams(
 ): ListTicketsParams {
   const trimmedSearch = search.trim();
   const useHistoryDefaultStatuses = !filters.status && !trimmedSearch;
+  const defaultStatuses = filters.statusesPreset ?? HISTORY_TABLE_STATUSES;
 
   return {
     page,
@@ -43,7 +46,7 @@ function toListTicketParams(
     technicianId: filters.assignedToId ? Number(filters.assignedToId) : undefined,
     locationId: filters.locationId ? Number(filters.locationId) : undefined,
     status: filters.status || undefined,
-    statuses: useHistoryDefaultStatuses ? [...HISTORY_TABLE_STATUSES] : undefined,
+    statuses: useHistoryDefaultStatuses ? [...defaultStatuses] : undefined,
     type: filters.type || undefined,
     search: trimmedSearch || undefined
   };
@@ -61,11 +64,13 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
   const [loadedCatalogs, setLoadedCatalogs] = useState({
     categories: false,
     locations: false,
+    historyLocations: false,
     technicians: false
   });
 
   const [categories, setCategories] = useState<UseTicketsResult["categories"]>([]);
   const [locations, setLocations] = useState<UseTicketsResult["locations"]>([]);
+  const [historyLocations, setHistoryLocations] = useState<UseTicketsResult["historyLocations"]>([]);
   const [technicians, setTechnicians] = useState<AsistiaUser[]>([]);
   const [tickets, setTickets] = useState<UseTicketsResult["tickets"]>([]);
   const [filters, setFiltersState] = useState<TicketFilterState>(() => buildInitialTicketFilters(user));
@@ -86,6 +91,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
     ticketId: number;
     status: AsistiaTicketStatus;
   } | null>(null);
+  const [assigning, setAssigning] = useState<{ ticketId: number } | null>(null);
 
   const listParams = useMemo(
     () => toListTicketParams(appliedFilters, page, appliedFilters.search),
@@ -94,6 +100,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
   const ticketsFetchKey = JSON.stringify(listParams);
   const loadedTicketsKeyRef = useRef<string | null>(null);
   const statusChangeLockRef = useRef(false);
+  const assignLockRef = useRef(false);
   const ticketsRef = useRef(tickets);
 
   ticketsRef.current = tickets;
@@ -119,18 +126,30 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
     [setSearchParams]
   );
 
+  const goToHistorialWithFilters = useCallback(
+    (preset: TicketFilterState) => {
+      setFiltersState(preset);
+      setAppliedFilters(preset);
+      setPageState(1);
+      loadedTicketsKeyRef.current = null;
+      setSearchParams({ tab: "historial" });
+    },
+    [setSearchParams]
+  );
+
   const setPage = useCallback((nextPage: number) => {
     setPageState(Math.max(1, nextPage));
   }, []);
 
   const setFilters = useCallback((value: TicketFilterState) => {
     setFiltersState((prev) => {
-      let next = value;
+      const { statusesPreset: _, ...withoutPreset } = value;
+      let next: TicketFilterState = withoutPreset;
       if (!value.search.trim() && prev.search.trim()) {
         const defaults = buildInitialTicketFilters(user);
         if (!value.status && !value.assignedToId) {
           next = {
-            ...value,
+            ...withoutPreset,
             status: defaults.status,
             assignedToId: defaults.assignedToId,
           };
@@ -169,7 +188,8 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
         current.status === defaults.status &&
         current.type === defaults.type &&
         current.assignedToId === defaults.assignedToId &&
-        current.locationId === defaults.locationId;
+        current.locationId === defaults.locationId &&
+        !current.statusesPreset;
       return isDefault ? current : defaults;
     });
     setAppliedFilters((current) => {
@@ -178,7 +198,8 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
         current.status === defaults.status &&
         current.type === defaults.type &&
         current.assignedToId === defaults.assignedToId &&
-        current.locationId === defaults.locationId;
+        current.locationId === defaults.locationId &&
+        !current.statusesPreset;
       return isDefault ? current : defaults;
     });
     setPageState(1);
@@ -228,7 +249,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
         setLocations(result);
         setLoadedCatalogs((current) => ({ ...current, locations: true }));
       } catch (err) {
-        // El prefetch de badges es best-effort: no debe impactar métricas.
+        // El prefetch de badges es best-effort: no debe impactar indicadores.
         if (signal.aborted || isAbortError(err)) return;
       }
     }
@@ -285,7 +306,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
   }, [shouldFetchCategories, shouldFetchLocationsForCrear]);
 
   useEffect(() => {
-    if (tab !== "historial" || !historyTicketsReady || loadedCatalogs.locations) {
+    if (tab !== "historial" || !historyTicketsReady || loadedCatalogs.historyLocations) {
       return;
     }
 
@@ -296,10 +317,10 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
       setLocationsLoading(true);
       setCatalogsError("");
       try {
-        const result = await listLocations({ signal, showBackdrop: false });
+        const result = await listLocations({ signal, showBackdrop: false, activeOnly: true });
         if (signal.aborted) return;
-        setLocations(result);
-        setLoadedCatalogs((current) => ({ ...current, locations: true }));
+        setHistoryLocations(result);
+        setLoadedCatalogs((current) => ({ ...current, historyLocations: true }));
       } catch (err) {
         if (signal.aborted || isAbortError(err)) return;
         const message =
@@ -314,10 +335,10 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
 
     void loadHistoryLocations();
     return () => controller.abort();
-  }, [tab, historyTicketsReady, loadedCatalogs.locations]);
+  }, [tab, historyTicketsReady, loadedCatalogs.historyLocations]);
 
   useEffect(() => {
-    if (tab !== "historial" || !loadedCatalogs.locations || loadedCatalogs.technicians) {
+    if (tab !== "historial" || !loadedCatalogs.historyLocations || loadedCatalogs.technicians) {
       return;
     }
 
@@ -333,7 +354,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
           showBackdrop: false,
         });
         if (signal.aborted) return;
-        setTechnicians(result.items);
+        setTechnicians(result.items.filter((technician) => technician.isActive));
         setLoadedCatalogs((current) => ({ ...current, technicians: true }));
       } catch (err) {
         if (signal.aborted || isAbortError(err)) return;
@@ -349,7 +370,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
 
     void loadHistoryTechnicians();
     return () => controller.abort();
-  }, [tab, loadedCatalogs.locations, loadedCatalogs.technicians]);
+  }, [tab, loadedCatalogs.historyLocations, loadedCatalogs.technicians]);
 
   useEffect(() => {
     if (tab !== "historial") return;
@@ -436,11 +457,85 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
     [toast]
   );
 
+  const handleAssignTicket = useCallback(
+    async (
+      ticketId: number,
+      input: { technicianId?: number; locationId?: number }
+    ): Promise<boolean> => {
+      if (assignLockRef.current) return false;
+
+      const normalizedTicketId = Number(ticketId);
+      const previousTicket = ticketsRef.current.find(
+        (ticket) => Number(ticket.id) === normalizedTicketId
+      );
+
+      if (!previousTicket) {
+        toast.error("No se encontró el ticket.");
+        return false;
+      }
+
+      const currentTechnicianId = previousTicket.technician?.id ?? null;
+      const currentLocationId = previousTicket.location?.id ?? null;
+      const wantsTechnicianChange =
+        input.technicianId !== undefined &&
+        Number(input.technicianId) !== Number(currentTechnicianId);
+      const wantsLocationChange =
+        input.locationId !== undefined &&
+        Number(input.locationId) !== Number(currentLocationId);
+
+      if (!wantsTechnicianChange && !wantsLocationChange) {
+        toast.error("No hay cambios para guardar.");
+        return false;
+      }
+
+      assignLockRef.current = true;
+      setAssigning({ ticketId: normalizedTicketId });
+
+      try {
+        let updated: AsistiaTicket | null = null;
+
+        if (wantsTechnicianChange && input.technicianId) {
+          updated = await assignTicketTechnician(normalizedTicketId, input.technicianId);
+        }
+        if (wantsLocationChange && input.locationId) {
+          updated = await updateTicketLocation(normalizedTicketId, input.locationId);
+        }
+
+        if (updated) {
+          setTickets((current) =>
+            current.map((ticket) =>
+              Number(ticket.id) === normalizedTicketId ? updated! : ticket
+            )
+          );
+        }
+
+        const parts: string[] = [];
+        if (wantsTechnicianChange) parts.push("técnico");
+        if (wantsLocationChange) parts.push("sede");
+        toast.success(`Ticket #${normalizedTicketId}: ${parts.join(" y ")} actualizado(s).`);
+        return true;
+      } catch (err) {
+        const message =
+          err instanceof ApiError || err instanceof Error
+            ? err.message
+            : "No se pudo actualizar la asignación";
+        toast.error(message);
+        return false;
+      } finally {
+        assignLockRef.current = false;
+        setAssigning(null);
+      }
+    },
+    [toast]
+  );
+
   return {
     tab,
     setTab,
+    goToHistorialWithFilters,
     categories,
     locations,
+    historyLocations,
     technicians,
     tickets,
     pagination: {
@@ -463,6 +558,8 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
     refreshTickets,
     handleCreateTicket,
     handleStatusChange,
-    statusChanging
+    statusChanging,
+    handleAssignTicket,
+    assigning
   };
 }

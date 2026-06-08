@@ -1,12 +1,14 @@
 import { BarChart3, FilePlus2, History, RefreshCw } from "lucide-react";
 import { useRef, useState } from "react";
 
+import { MobileRefreshFab } from "@/components/layout/MobileRefreshFab";
 import { TiMetrics } from "@/components/tickets/TiMetrics";
 
 import { TicketFilters } from "@/components/tickets/TicketFilters";
 
 import { TicketForm } from "@/components/tickets/TicketForm";
 
+import { TicketAssignModal } from "@/components/tickets/TicketAssignModal";
 import { TicketResolveModal } from "@/components/tickets/TicketResolveModal";
 import { TicketTable } from "@/components/tickets/TicketTable";
 
@@ -27,6 +29,7 @@ import { useTiMetrics } from "@/hooks/useTiMetrics";
 import { useTickets } from "@/hooks/useTickets";
 
 import {
+  buildSiteHistorialFilters,
   findLocationById,
   locationCompanyName,
   locationDisplayName,
@@ -42,7 +45,7 @@ const desktopTabs: Array<{
   label: string;
   icon: typeof BarChart3;
 }> = [
-  { tab: "metricas", label: "Métricas", icon: BarChart3 },
+  { tab: "metricas", label: "Indicadores", icon: BarChart3 },
 
   { tab: "crear", label: "Crear", icon: FilePlus2 },
 
@@ -60,9 +63,13 @@ export default function TicketsPage() {
 
     setTab,
 
+    goToHistorialWithFilters,
+
     categories,
 
     locations,
+
+    historyLocations,
 
     technicians,
 
@@ -99,11 +106,13 @@ export default function TicketsPage() {
     handleStatusChange,
 
     statusChanging,
+
+    handleAssignTicket,
+
+    assigning,
   } = useTickets({
     onTicketCreated: () => refreshMetricsRef.current?.(),
   });
-
-  const showTiMetrics = isTechnician && tab === "metricas";
 
   const {
     metrics: tiMetrics,
@@ -118,6 +127,7 @@ export default function TicketsPage() {
   refreshMetricsRef.current = refreshMetrics;
 
   const [resolveTarget, setResolveTarget] = useState<AsistiaTicket | null>(null);
+  const [assignTarget, setAssignTarget] = useState<AsistiaTicket | null>(null);
 
   const handleTicketStatusChange = (ticketId: number, status: AsistiaTicketStatus) => {
     if (status === "solved" && isTechnician) {
@@ -236,13 +246,18 @@ export default function TicketsPage() {
           metrics={tiMetrics}
           loading={metricsLoading}
           onGoToHistorial={() => setTab("historial")}
+          onGoToHistorialForSite={() => {
+            const preset = buildSiteHistorialFilters(user);
+            if (preset) goToHistorialWithFilters(preset);
+          }}
+          onRefresh={() => void refreshMetrics()}
         />
       ) : null}
 
       {tab === "metricas" && !isTechnician ? (
         <EmptyState
-          title="Métricas"
-          description="Las métricas detalladas están disponibles para el rol de soporte TI."
+          title="Indicadores"
+          description="Las indicadores detalladas están disponibles para el rol de soporte TI."
         />
       ) : null}
 
@@ -273,7 +288,7 @@ export default function TicketsPage() {
             filters={filters}
             onChange={setFilters}
             onApply={applyFilters}
-            locations={locations}
+            locations={historyLocations}
             technicians={technicians}
             user={user}
             locationsLoading={locationsLoading}
@@ -312,6 +327,8 @@ export default function TicketsPage() {
                 tickets={tickets}
                 onStatusChange={handleTicketStatusChange}
                 statusChanging={statusChanging}
+                onAssignClick={isTechnician ? setAssignTarget : undefined}
+                assigning={assigning}
               />
 
               <TicketResolveModal
@@ -332,6 +349,25 @@ export default function TicketsPage() {
                       if (ok) setResolveTarget(null);
                     }
                   );
+                }}
+              />
+
+              <TicketAssignModal
+                ticket={assignTarget}
+                locations={historyLocations}
+                open={assignTarget !== null}
+                onOpenChange={(open) => {
+                  if (!open) setAssignTarget(null);
+                }}
+                submitting={
+                  assignTarget !== null &&
+                  assigning?.ticketId === Number(assignTarget.id)
+                }
+                onConfirm={(input) => {
+                  if (!assignTarget) return;
+                  void handleAssignTicket(assignTarget.id, input).then((ok) => {
+                    if (ok) setAssignTarget(null);
+                  });
                 }}
               />
 
@@ -369,6 +405,14 @@ export default function TicketsPage() {
             </>
           )}
         </div>
+      ) : null}
+
+      {tab === "historial" ? (
+        <MobileRefreshFab
+          visible
+          onClick={() => void handleRefresh()}
+          loading={loading}
+        />
       ) : null}
     </div>
   );

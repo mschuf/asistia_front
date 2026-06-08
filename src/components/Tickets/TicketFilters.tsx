@@ -6,7 +6,7 @@ import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { TICKET_STATUS_LABELS, TICKET_TYPE_LABELS } from "@/lib/constants";
-import { buildLocationOptions, buildTechnicianFilterOptions } from "@/lib/tickets";
+import { buildLocationFilterOptions, buildTechnicianFilterOptions } from "@/lib/tickets";
 import type { AsistiaLocation, AsistiaUser } from "@/types/asistia";
 import type { AuthUser } from "@/types/auth";
 import type { TicketFilterState } from "@/types/pages/tickets-page.types";
@@ -36,12 +36,13 @@ export function TicketFilters({
 
   const update = useCallback(
     (key: keyof TicketFilterState, value: string) => {
-      onChange({ ...filters, [key]: value });
+      const { statusesPreset: _, ...rest } = filters;
+      onChange({ ...rest, [key]: value });
     },
     [filters, onChange]
   );
 
-  const locationOptions = useMemo(() => buildLocationOptions(locations), [locations]);
+  const locationOptions = useMemo(() => buildLocationFilterOptions(locations), [locations]);
   const technicianOptions = useMemo(
     () => buildTechnicianFilterOptions(technicians, user),
     [technicians, user]

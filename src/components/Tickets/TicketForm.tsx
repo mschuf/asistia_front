@@ -8,7 +8,14 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import type { SearchableSelectOption } from "@/components/ui/searchable-select";
 import { ServerSearchableSelect } from "@/components/ui/server-searchable-select";
 import { RichDescriptionEditor } from "@/components/tickets/RichDescriptionEditor";
-import { buildCategoryOptions, buildLocationOptions } from "@/lib/tickets";
+import {
+  buildCategoryOptions,
+  buildLocationOptions,
+  buildRequesterDisplayLabel,
+  findLocationById,
+  locationDisplayName,
+  prependTicketDescriptionPrefix,
+} from "@/lib/tickets";
 import { stripHtml } from "@/lib/utils";
 import { getUserById, searchTechnicians, searchUsers } from "@/services/ticketsService";
 import type { AsistiaCategory, AsistiaLocation, AsistiaTicketType } from "@/types/asistia";
@@ -89,25 +96,36 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
     };
   }, []);
 
-  const loadRequesterOptions = useCallback(async (query: string, signal: AbortSignal) => {
-    const result = await searchUsers(query, undefined, { signal });
-    return result.items.map(
-      (requester): SearchableSelectOption => ({
-        value: String(requester.id),
-        label: requester.fullName || requester.login,
-        searchText: `${requester.fullName} ${requester.login} ${requester.email ?? ""}`.toLowerCase(),
-      }),
-    );
-  }, []);
+  const loadRequesterOptions = useCallback(
+    async (query: string, signal: AbortSignal) => {
+      const result = await searchUsers(query, undefined, { signal });
+      return result.items.map((requester): SearchableSelectOption => {
+        const location = findLocationById(locations, requester.locationId);
+        const locationName = location ? locationDisplayName(location) : "";
+        return {
+          value: String(requester.id),
+          label: buildRequesterDisplayLabel(requester, locations),
+          searchText:
+            `${requester.fullName} ${requester.login} ${requester.email ?? ""} ${locationName}`.toLowerCase(),
+        };
+      });
+    },
+    [locations],
+  );
 
-  const resolveRequesterOption = useCallback(async (value: string, signal: AbortSignal) => {
-    const requester = await getUserById(Number(value), { signal });
-    return {
-      value: String(requester.id),
-      label: requester.fullName || requester.login,
-      searchText: `${requester.fullName} ${requester.login}`.toLowerCase(),
-    };
-  }, []);
+  const resolveRequesterOption = useCallback(
+    async (value: string, signal: AbortSignal) => {
+      const requester = await getUserById(Number(value), { signal });
+      const location = findLocationById(locations, requester.locationId);
+      const locationName = location ? locationDisplayName(location) : "";
+      return {
+        value: String(requester.id),
+        label: buildRequesterDisplayLabel(requester, locations),
+        searchText: `${requester.fullName} ${requester.login} ${locationName}`.toLowerCase(),
+      };
+    },
+    [locations],
+  );
 
   const errors = useMemo<FormErrors>(() => {
     const nextErrors: FormErrors = {};
@@ -147,11 +165,12 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
     try {
       const selectedCategory = categories.find((category) => String(category.id) === categoryId);
       const subject = selectedCategory?.fullPath || selectedCategory?.name || "";
+      const effectiveType = isTechnician ? ticketType : "request";
 
       await onSubmit({
-        type: ticketType,
+        type: effectiveType,
         subject,
-        description,
+        description: prependTicketDescriptionPrefix(description, effectiveType, selectedCategory),
         categoryId: Number(categoryId),
         locationId: locationId ? Number(locationId) : undefined,
         assignedTechnicianId: technicianId ? Number(technicianId) : undefined,
@@ -175,31 +194,26 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {!isTechnician ? (
-          <div className="rounded-md border bg-muted/40 p-3">
-            <p className="text-sm font-medium">{user.name}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{user.email ?? user.login}</p>
-          </div>
-        ) : null}
-
-        <Field id="ticket-type" label="Tipo">
-          <div className="grid grid-cols-3 gap-2">
-            {(["request", "incident"] as AsistiaTicketType[]).map((type) => (
-              <Button
-                key={type}
-                type="button"
-                variant={ticketType === type ? "default" : "outline"}
-                onClick={() => setTicketType(type)}
-                className="w-full"
-              >
-                {type === "incident" ? "Incidente" : "Solicitud"}
+        {isTechnician ? (
+          <Field id="ticket-type" label="Tipo">
+            <div className="grid grid-cols-3 gap-2">
+              {(["request", "incident"] as AsistiaTicketType[]).map((type) => (
+                <Button
+                  key={type}
+                  type="button"
+                  variant={ticketType === type ? "default" : "outline"}
+                  onClick={() => setTicketType(type)}
+                  className="w-full"
+                >
+                  {type === "incident" ? "Incidente" : "Solicitud"}
+                </Button>
+              ))}
+              <Button type="button" variant="outline" disabled className="w-full">
+                Requerimiento
               </Button>
-            ))}
-            <Button type="button" variant="outline" disabled className="w-full">
-              Requerimiento
-            </Button>
-          </div>
-        </Field>
+            </div>
+          </Field>
+        ) : null}
 
         {isTechnician ? (
           <Field id="ticket-requester" label="Solicitante">

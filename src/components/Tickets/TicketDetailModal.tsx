@@ -15,6 +15,8 @@ interface TicketDetailModalProps {
   onOpenChange: (open: boolean) => void;
   onStatusChange?: (ticketId: number, status: AsistiaTicketStatus) => void;
   pendingStatus?: AsistiaTicketStatus | null;
+  onAssignClick?: (ticket: AsistiaTicket) => void;
+  assigning?: { ticketId: number } | null;
 }
 
 function DetailRow({ label, children }: { label: string; children: ReactNode }) {
@@ -31,7 +33,9 @@ export function TicketDetailModal({
   open,
   onOpenChange,
   onStatusChange,
-  pendingStatus = null
+  pendingStatus = null,
+  onAssignClick,
+  assigning = null,
 }: TicketDetailModalProps) {
   const [detail, setDetail] = useState<AsistiaTicket | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -127,23 +131,26 @@ export function TicketDetailModal({
             <DetailRow label="Última actualización">{formatDate(displayTicket.updatedAt)}</DetailRow>
             <DetailRow label="Descripción">
               {displayTicket.description ? (
-                <div
-                  className="rich-description rounded-md border border-input bg-muted/30 p-3"
-                  dangerouslySetInnerHTML={{ __html: displayTicket.description }}
-                />
+                <div className="rich-description whitespace-pre-wrap rounded-md border border-input bg-muted/30 p-3">
+                  {displayTicket.description}
+                </div>
               ) : (
                 "—"
               )}
             </DetailRow>
           </dl>
 
-          {onStatusChange ? (
+          {onStatusChange || onAssignClick ? (
             <div className="mt-6 flex items-center justify-between gap-3 border-t pt-4">
               <p className="text-sm font-medium text-muted-foreground">Acciones</p>
               <TicketActions
                 ticket={displayTicket}
                 onStatusChange={onStatusChange}
                 pendingStatus={pendingStatus}
+                onAssignClick={
+                  onAssignClick ? () => onAssignClick(displayTicket) : undefined
+                }
+                assignPending={assigning?.ticketId === Number(displayTicket.id)}
               />
             </div>
           ) : null}

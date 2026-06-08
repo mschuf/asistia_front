@@ -1,5 +1,6 @@
 ﻿import type { ReactNode } from "react";
 import { AlertTriangle, Building2, ClipboardList, History, Ticket } from "lucide-react";
+import { MobileRefreshFab } from "@/components/layout/MobileRefreshFab";
 import { Loading } from "@/components/ui/loading";
 import { TiOpenBySiteChart } from "@/components/tickets/TiOpenBySiteChart";
 import type { TiMetricsResponse, TicketMetricSlice, MyTicketsMetricSlice } from "@/types/asistia";
@@ -9,6 +10,8 @@ interface TiMetricsProps {
   metrics: TiMetricsResponse | null;
   loading?: boolean;
   onGoToHistorial: () => void;
+  onGoToHistorialForSite?: () => void;
+  onRefresh?: () => void;
 }
 
 function MetricPercent({ slice }: { slice: TicketMetricSlice | MyTicketsMetricSlice }) {
@@ -34,6 +37,10 @@ interface MetricCardProps {
   ariaLabel?: string;
 }
 
+function openCountLabel(count: number): string {
+  return count === 1 ? "abierto" : "abiertos";
+}
+
 function MetricCard({
   label,
   value,
@@ -49,7 +56,16 @@ function MetricCard({
         <span className="text-sm font-medium">{label}</span>
         <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
       </div>
-      <p className="mt-3 text-2xl font-semibold tabular-nums">{value}</p>
+      <p className="mt-3 text-2xl font-semibold tabular-nums">
+        {typeof value === "number" ? (
+          <>
+            {value}{" "}
+            <span className="text-base font-medium">{openCountLabel(value)}</span>
+          </>
+        ) : (
+          value
+        )}
+      </p>
       {subtitle}
     </>
   );
@@ -73,17 +89,30 @@ function MetricCard({
   return <div className={cn("rounded-md border p-4", className)}>{content}</div>;
 }
 
-export function TiMetrics({ metrics, loading, onGoToHistorial }: TiMetricsProps) {
+export function TiMetrics({
+  metrics,
+  loading,
+  onGoToHistorial,
+  onGoToHistorialForSite,
+  onRefresh,
+}: TiMetricsProps) {
   if (loading && !metrics) {
     return (
-      <div className="flex min-h-40 items-center justify-center">
-        <Loading label="Cargando métricas..." />
-      </div>
+      <>
+        <div className="flex min-h-40 items-center justify-center">
+          <Loading label="Cargando indicadores..." />
+        </div>
+        {onRefresh ? (
+          <MobileRefreshFab visible onClick={onRefresh} loading={loading} />
+        ) : null}
+      </>
     );
   }
 
   if (!metrics) {
-    return null;
+    return onRefresh ? (
+      <MobileRefreshFab visible onClick={onRefresh} loading={loading} />
+    ) : null;
   }
 
   const siteValue = metrics.mySite ? metrics.mySite.open : "—";
@@ -94,13 +123,19 @@ export function TiMetrics({ metrics, loading, onGoToHistorial }: TiMetricsProps)
   );
 
   return (
+    <>
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           label="Mi Sede"
           value={siteValue}
           icon={Building2}
-          className="border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-900 dark:bg-violet-950/30 dark:text-violet-200"
+          className={cn(
+            "border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-900 dark:bg-violet-950/30 dark:text-violet-200",
+            metrics.mySite && "cursor-pointer"
+          )}
+          onClick={metrics.mySite ? onGoToHistorialForSite : undefined}
+          ariaLabel="Ir a historial filtrado por mi sede"
           subtitle={siteSubtitle}
         />
         <MetricCard
@@ -132,8 +167,12 @@ export function TiMetrics({ metrics, loading, onGoToHistorial }: TiMetricsProps)
 
       <p className="flex items-center gap-1 text-xs text-muted-foreground">
         <History className="h-3.5 w-3.5" aria-hidden="true" />
-        Mis Tickets abre la pestaña Historial
+        Mi Sede y Mis Tickets abren Historial con filtros aplicados
       </p>
     </div>
+    {onRefresh ? (
+      <MobileRefreshFab visible onClick={onRefresh} loading={loading} />
+    ) : null}
+  </>
   );
 }

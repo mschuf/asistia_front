@@ -113,6 +113,14 @@ export function buildLocationOptions(
   }));
 }
 
+export function buildLocationFilterOptions(
+  locations: Array<{ id: number; name: string; fullPath: string }>
+) {
+  return buildLocationOptions(locations).sort((left, right) =>
+    left.label.localeCompare(right.label, "es")
+  );
+}
+
 export function locationDisplayName(location: { name: string; fullPath: string }): string {
   return location.name || location.fullPath;
 }
@@ -121,6 +129,33 @@ export function locationCompanyName(locationName: string): string {
   const trimmed = locationName.trim();
   if (!trimmed) return "";
   return trimmed.split(/\s+/)[0] ?? "";
+}
+
+export function categoryFirstWord(fullPath: string): string {
+  const trimmed = fullPath.trim();
+  if (!trimmed) return "";
+  return trimmed.split(/\s+/)[0] ?? "";
+}
+
+export function buildTicketDescriptionPrefix(
+  type: AsistiaTicketType,
+  category: { fullPath?: string; name?: string } | undefined,
+): string {
+  const typeText = typeLabel(type);
+  if (!typeText) return "";
+
+  const firstWord = categoryFirstWord(category?.fullPath ?? "");
+  const prefixText = firstWord ? `${typeText} ${firstWord}` : typeText;
+  return `<p>${prefixText}</p>`;
+}
+
+export function prependTicketDescriptionPrefix(
+  description: string,
+  type: AsistiaTicketType,
+  category: { fullPath?: string; name?: string } | undefined,
+): string {
+  const prefix = buildTicketDescriptionPrefix(type, category);
+  return prefix ? `${prefix}${description}` : description;
 }
 
 export function findLocationById(
@@ -133,6 +168,16 @@ export function findLocationById(
   return locations.find((location) => location.id === normalizedId) ?? null;
 }
 
+export function buildRequesterDisplayLabel(
+  user: { fullName: string; login: string; locationId: number | null },
+  locations: Array<{ id: number; name: string; fullPath: string }>,
+): string {
+  const name = user.fullName || user.login;
+  const location = findLocationById(locations, user.locationId);
+  const locationName = location ? locationDisplayName(location) : null;
+  return locationName ? `${name} (${locationName})` : name;
+}
+
 export function buildInitialTicketFilters(user: AuthUser | null): TicketFilterState {
   return {
     search: "",
@@ -143,11 +188,24 @@ export function buildInitialTicketFilters(user: AuthUser | null): TicketFilterSt
   };
 }
 
+export function buildSiteHistorialFilters(user: AuthUser | null): TicketFilterState | null {
+  if (!user?.locationId) return null;
+  return {
+    search: "",
+    status: "",
+    type: "",
+    assignedToId: "",
+    locationId: String(user.locationId),
+    statusesPreset: [...OPEN_STATUSES],
+  };
+}
+
 export function buildTechnicianFilterOptions(
   technicians: AsistiaUser[],
   currentUser: AuthUser | null
 ) {
   return [...technicians]
+    .filter((technician) => technician.isActive)
     .sort((left, right) => left.fullName.localeCompare(right.fullName, "es"))
     .map((technician) => ({
       value: String(technician.id),

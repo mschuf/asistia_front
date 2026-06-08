@@ -14,6 +14,8 @@ import type {
 
 type ReadRequestOptions = { signal?: AbortSignal; showBackdrop?: boolean };
 
+type ListLocationsOptions = ReadRequestOptions & { activeOnly?: boolean };
+
 function coerceTicketPayload(payload: unknown): AsistiaTicket {
   if (!payload || typeof payload !== "object") {
     throw new Error("La API no devolvió un ticket válido.");
@@ -35,8 +37,13 @@ export async function listCategories(options?: ReadRequestOptions): Promise<Asis
   return apiClient.get<AsistiaCategory[]>("/categories", options);
 }
 
-export async function listLocations(options?: ReadRequestOptions): Promise<AsistiaLocation[]> {
-  return apiClient.get<AsistiaLocation[]>("/locations", options);
+export async function listLocations(options?: ListLocationsOptions): Promise<AsistiaLocation[]> {
+  return apiClient.get<AsistiaLocation[]>("/locations", {
+    ...options,
+    query: {
+      activeOnly: options?.activeOnly ? true : undefined,
+    },
+  });
 }
 
 export async function fetchTiMetrics(options?: ReadRequestOptions): Promise<TiMetricsResponse> {
@@ -109,7 +116,7 @@ export async function getTicketById(
 }
 
 export async function createTicket(input: CreateTicketInput): Promise<CreateTicketResponse> {
-  return apiClient.post<CreateTicketResponse>("/tickets", input);
+  return apiClient.post<CreateTicketResponse>("/tickets", input, { timeoutMs: 60_000 });
 }
 
 export type UpdateTicketStatusOptions = {
@@ -139,7 +146,24 @@ export async function assignTicketTechnician(
   ticketId: number,
   technicianId: number
 ): Promise<AsistiaTicket> {
-  return apiClient.post<AsistiaTicket>(`/tickets/${ticketId}/assign`, { technicianId });
+  const response = await apiClient.post<unknown>(
+    `/tickets/${ticketId}/assign`,
+    { technicianId },
+    { showBackdrop: false, timeoutMs: 30_000 }
+  );
+  return coerceTicketPayload(response);
+}
+
+export async function updateTicketLocation(
+  ticketId: number,
+  locationId: number
+): Promise<AsistiaTicket> {
+  const response = await apiClient.patch<unknown>(
+    `/tickets/${ticketId}/location`,
+    { locationId },
+    { showBackdrop: false, timeoutMs: 30_000 }
+  );
+  return coerceTicketPayload(response);
 }
 
 export async function searchTechnicians(

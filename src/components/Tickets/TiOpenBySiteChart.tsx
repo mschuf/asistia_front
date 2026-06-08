@@ -1,3 +1,4 @@
+import { getSiteMetricBarStyle } from "@/lib/site-metric-bar-colors";
 import type { OpenByLocationMetric } from "@/types/asistia";
 
 interface TiOpenBySiteChartProps {
@@ -21,7 +22,10 @@ export function TiOpenBySiteChart({ data }: TiOpenBySiteChartProps) {
     <div className="rounded-md border bg-card p-4">
       <p className="text-sm font-medium">Indicadores</p>
       <p className="mt-1 text-xs text-muted-foreground">Tickets abiertos totales por sede</p>
-      <ul className="mt-4 max-h-96 space-y-3 overflow-y-auto pr-1" role="list">
+      <ul
+        className="scrollbar-brand mt-4 max-h-96 space-y-3 overflow-y-auto pr-2"
+        role="list"
+      >
         {sorted.map((row) => {
           const widthPct = maxOpen > 0 ? Math.round((row.open / maxOpen) * 100) : 0;
           return (
@@ -38,8 +42,8 @@ export function TiOpenBySiteChart({ data }: TiOpenBySiteChartProps) {
                 aria-hidden="true"
               >
                 <div
-                  className="h-full rounded-full bg-sky-500 transition-[width] dark:bg-sky-600"
-                  style={{ width: `${widthPct}%` }}
+                  className="h-full min-w-[2px] rounded-full transition-[width]"
+                  style={{ ...getSiteMetricBarStyle(row.name), width: `${widthPct}%` }}
                 />
               </div>
             </li>

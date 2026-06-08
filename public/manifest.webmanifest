@@ -1,7 +1,7 @@
 {
-  "name": "asistIA — Gestión Inteligente de Requerimientos",
+  "name": "asistIA — Gestión Inteligente de Servicios",
   "short_name": "asistIA",
-  "description": "asistIA: Gestión Inteligente de Requerimientos",
+  "description": "asistIA: Gestión Inteligente de Servicios",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",

@@ -18,7 +18,7 @@ type NavTab = "metricas" | "crear" | "historial";
 const ticketNavItems: Array<{ label: string; tab: NavTab; icon: typeof FilePlus2 }> = [
   { label: "Crear", tab: "crear", icon: FilePlus2 },
   { label: "Historial", tab: "historial", icon: History },
-  { label: "Métricas", tab: "metricas", icon: BarChart3 },
+  { label: "Indicadores", tab: "metricas", icon: BarChart3 },
 ];
 
 export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
@@ -63,7 +63,7 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
             <div className="min-w-0">
               <p className="truncate text-base font-semibold leading-tight">asistIA</p>
               <p className="truncate text-xs text-muted-foreground">
-                Gestión Inteligente de Requerimientos
+                Gestión Inteligente de Servicios
               </p>
             </div>
           </div>

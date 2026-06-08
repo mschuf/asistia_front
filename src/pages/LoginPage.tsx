@@ -45,7 +45,7 @@ export default function LoginPage() {
               alt="asistIA"
               className="h-[6.65rem] w-auto dark:[filter:drop-shadow(1px_0_0_#fff)_drop-shadow(-1px_0_0_#fff)_drop-shadow(0_1px_0_#fff)_drop-shadow(0_-1px_0_#fff)_drop-shadow(1px_1px_0_#fff)_drop-shadow(-1px_1px_0_#fff)_drop-shadow(1px_-1px_0_#fff)_drop-shadow(-1px_-1px_0_#fff)]"
             />
-            <p className="mt-2 text-xs text-muted-foreground">Gestión Inteligente de Requerimientos</p>
+            <p className="mt-2 text-xs text-muted-foreground">Gestión Inteligente de Servicios</p>
           </div>
           <h1 className="mt-4 text-xl font-semibold">Iniciar sesión</h1>
           <p className="mt-1 text-sm text-muted-foreground">
