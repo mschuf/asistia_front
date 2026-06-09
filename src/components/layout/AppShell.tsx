@@ -3,6 +3,7 @@ import { BarChart3, Building2, FilePlus2, History, LogOut, Menu, MessageSquareTe
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { BottomTabBar } from "@/components/layout/BottomTabBar";
+import { InstallAppButton } from "@/components/layout/InstallAppButton";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { roleLabel } from "@/utils/role";
@@ -198,6 +199,9 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
             </Button>
           </div>
         ) : null}
+        <div className="border-t p-3">
+          <InstallAppButton />
+        </div>
         <p className="border-t px-4 py-3 text-center text-xs text-muted-foreground">
           Hecho con{" "}
           <span className="text-destructive/80" aria-hidden="true">

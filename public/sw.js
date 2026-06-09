@@ -1,17 +1,31 @@
 /* asistIA service worker — shell cache mínimo */
-const CACHE_VERSION = "asistia-v2";
+const CACHE_VERSION = "asistia-v3";
 const PRECACHE_URLS = [
   "/",
   "/index.html",
   "/manifest.webmanifest",
   "/icons/icon.svg",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
+  "/icons/icon-512-maskable.png",
+  "/icons/apple-touch-icon.png",
 ];
+
+function precacheUrls(cache) {
+  return Promise.allSettled(
+    PRECACHE_URLS.map((url) =>
+      cache.add(url).catch((error) => {
+        console.warn("[asistIA SW] No se pudo precachear:", url, error);
+      }),
+    ),
+  );
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_VERSION)
-      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .then((cache) => precacheUrls(cache))
       .then(() => self.skipWaiting()),
   );
 });

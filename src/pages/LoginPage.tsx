@@ -1,5 +1,6 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
+import { Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const toast = useToast();
   const [form, setForm] = useState<LoginPayload>({ username: "", password: "" });
   const [loading, setLoading] = useState(false);
+  const [revealPassword, setRevealPassword] = useState(false);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -67,16 +69,33 @@ export default function LoginPage() {
           </Field>
 
           <Field id="login-password" label="Contraseña">
-            <Input
-              id="login-password"
-              type="password"
-              name="password"
-              value={form.password}
-              onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))}
-              required
-              autoComplete="current-password"
-              placeholder="contraseña"
-            />
+            <div className="relative">
+              <Input
+                id="login-password"
+                type={revealPassword ? "text" : "password"}
+                name="password"
+                value={form.password}
+                onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))}
+                required
+                autoComplete="current-password"
+                placeholder="contraseña"
+                className="pr-10"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 text-muted-foreground"
+                aria-label="Mantener presionado para ver la contraseña"
+                title="Mantener presionado para ver"
+                onPointerDown={() => setRevealPassword(true)}
+                onPointerUp={() => setRevealPassword(false)}
+                onPointerLeave={() => setRevealPassword(false)}
+                onPointerCancel={() => setRevealPassword(false)}
+              >
+                <Eye className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            </div>
           </Field>
 
           <Button type="submit" className="w-full" disabled={loading}>
