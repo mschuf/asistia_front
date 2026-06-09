@@ -12,6 +12,7 @@ interface TiMetricsProps {
   onGoToHistorial: () => void;
   onGoToHistorialForSite?: () => void;
   onRefresh?: () => void;
+  openBySiteChartDescription?: string;
 }
 
 function MetricPercent({ slice }: { slice: TicketMetricSlice | MyTicketsMetricSlice }) {
@@ -95,6 +96,7 @@ export function TiMetrics({
   onGoToHistorial,
   onGoToHistorialForSite,
   onRefresh,
+  openBySiteChartDescription,
 }: TiMetricsProps) {
   if (loading && !metrics) {
     return (
@@ -163,7 +165,10 @@ export function TiMetrics({
         />
       </div>
 
-      <TiOpenBySiteChart data={metrics.openByLocation} />
+      <TiOpenBySiteChart
+        data={metrics.openByLocation}
+        description={openBySiteChartDescription}
+      />
 
       <p className="flex items-center gap-1 text-xs text-muted-foreground">
         <History className="h-3.5 w-3.5" aria-hidden="true" />

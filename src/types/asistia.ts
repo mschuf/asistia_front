@@ -20,6 +20,7 @@ export interface AuthUser {
   entityId?: number | null;
   entityName?: string | null;
   groupIds?: number[];
+  isSuperAdmin?: boolean;
 }
 
 export interface LoginPayload {

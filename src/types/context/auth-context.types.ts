@@ -11,6 +11,7 @@ export interface AuthContextValue {
   isAuthenticated: boolean;
   isBootstrapping: boolean;
   isTechnician: boolean;
+  isSuperAdmin: boolean;
   login: (payload: LoginPayload) => Promise<LoginResponse>;
   logout: (options?: LogoutOptions) => Promise<void>;
   clearSession: () => void;

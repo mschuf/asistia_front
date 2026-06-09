@@ -1,5 +1,5 @@
 ﻿import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import { BarChart3, FilePlus2, History, LogOut, Menu, Moon, Sun, X } from "lucide-react";
+import { BarChart3, Building2, FilePlus2, History, LogOut, Menu, MessageSquareText, Moon, Sun, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { BottomTabBar } from "@/components/layout/BottomTabBar";
@@ -16,15 +16,25 @@ interface AppShellProps {
 type NavTab = "metricas" | "crear" | "historial";
 
 const ticketNavItems: Array<{ label: string; tab: NavTab; icon: typeof FilePlus2 }> = [
+  { label: "Indicadores", tab: "metricas", icon: BarChart3 },
   { label: "Crear", tab: "crear", icon: FilePlus2 },
   { label: "Historial", tab: "historial", icon: History },
-  { label: "Indicadores", tab: "metricas", icon: BarChart3 },
+];
+
+const superAdminNavItems: Array<{
+  label: string;
+  icon: typeof Building2;
+  path: string | null;
+  enabled: boolean;
+}> = [
+  { label: "Empresas", icon: Building2, path: "/admin/empresas", enabled: true },
+  { label: "Prompts", icon: MessageSquareText, path: "/admin/prompts", enabled: true },
 ];
 
 export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   const [open, setOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  const { isAuthenticated, user, role, logout } = useAuth();
+  const { isAuthenticated, user, role, isSuperAdmin, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -43,6 +53,11 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   function goToTab(tab: NavTab) {
     const search = tab === "metricas" ? "" : `?tab=${tab}`;
     navigate(`/tickets${search}`);
+    setOpen(false);
+  }
+
+  function goToSuperAdmin(path: string) {
+    navigate(path);
     setOpen(false);
   }
 
@@ -119,6 +134,48 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
               </button>
             );
           })}
+          {isSuperAdmin ? (
+            <div className="space-y-1 border-t pt-3">
+              <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Super-Admin
+              </p>
+              {superAdminNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = item.path ? location.pathname.startsWith(item.path) : false;
+
+                if (!item.enabled || !item.path) {
+                  return (
+                    <button
+                      key={item.label}
+                      type="button"
+                      disabled
+                      aria-disabled="true"
+                      className="flex w-full cursor-not-allowed items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground/70"
+                    >
+                      <Icon className="h-4 w-4" aria-hidden="true" />
+                      {item.label}
+                    </button>
+                  );
+                }
+
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => goToSuperAdmin(item.path!)}
+                    aria-current={isActive ? "page" : undefined}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                      isActive && "bg-muted text-foreground",
+                    )}
+                  >
+                    <Icon className="h-4 w-4" aria-hidden="true" />
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
         </nav>
         {isAuthenticated ? (
           <div className="border-t p-3">
@@ -147,7 +204,7 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
             ♥
           </span>{" "}
           por el equipo TI
-        </p>
+        </p> 
       </aside>
 
       {open ? (

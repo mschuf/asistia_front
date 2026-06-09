@@ -122,7 +122,7 @@ export default function TicketsPage() {
     error: metricsError,
 
     refreshMetrics,
-  } = useTiMetrics({ enabled: isTechnician, isTabActive: tab === "metricas" });
+  } = useTiMetrics({ enabled: tab === "metricas", isTabActive: tab === "metricas" });
 
   refreshMetricsRef.current = refreshMetrics;
 
@@ -162,7 +162,7 @@ export default function TicketsPage() {
       await refreshTickets();
     }
 
-    if (tab === "metricas" && isTechnician) {
+    if (tab === "metricas") {
       await refreshMetrics();
     }
   }
@@ -202,7 +202,7 @@ export default function TicketsPage() {
         </div>
 
         <div className="ml-auto hidden shrink-0 items-center gap-2 sm:flex">
-          {tab === "historial" || (tab === "metricas" && isTechnician) ? (
+          {tab === "historial" || tab === "metricas" ? (
             <div className="flex shrink-0 rounded-md border bg-card p-1">
               <Button
                 type="button"
@@ -235,13 +235,13 @@ export default function TicketsPage() {
         </div>
       </div>
 
-      {metricsError && tab === "metricas" && isTechnician ? (
+      {metricsError && tab === "metricas" ? (
         <p className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {metricsError}
         </p>
       ) : null}
 
-      {tab === "metricas" && isTechnician ? (
+      {tab === "metricas" ? (
         <TiMetrics
           metrics={tiMetrics}
           loading={metricsLoading}
@@ -251,13 +251,11 @@ export default function TicketsPage() {
             if (preset) goToHistorialWithFilters(preset);
           }}
           onRefresh={() => void refreshMetrics()}
-        />
-      ) : null}
-
-      {tab === "metricas" && !isTechnician ? (
-        <EmptyState
-          title="Indicadores"
-          description="Las indicadores detalladas están disponibles para el rol de soporte TI."
+          openBySiteChartDescription={
+            isTechnician
+              ? undefined
+              : "Mis tickets abiertos por sede"
+          }
         />
       ) : null}
 

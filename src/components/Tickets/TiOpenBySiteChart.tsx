@@ -3,9 +3,13 @@ import type { OpenByLocationMetric } from "@/types/asistia";
 
 interface TiOpenBySiteChartProps {
   data: OpenByLocationMetric[];
+  description?: string;
 }
 
-export function TiOpenBySiteChart({ data }: TiOpenBySiteChartProps) {
+export function TiOpenBySiteChart({
+  data,
+  description = "Tickets abiertos totales por sede",
+}: TiOpenBySiteChartProps) {
   const sorted = [...data].sort((a, b) => b.open - a.open || a.name.localeCompare(b.name, "es"));
   const maxOpen = sorted.length > 0 ? Math.max(...sorted.map((row) => row.open)) : 0;
 
@@ -21,7 +25,7 @@ export function TiOpenBySiteChart({ data }: TiOpenBySiteChartProps) {
   return (
     <div className="rounded-md border bg-card p-4">
       <p className="text-sm font-medium">Indicadores</p>
-      <p className="mt-1 text-xs text-muted-foreground">Tickets abiertos totales por sede</p>
+      <p className="mt-1 text-xs text-muted-foreground">{description}</p>
       <ul
         className="scrollbar-brand mt-4 max-h-96 space-y-3 overflow-y-auto pr-2"
         role="list"

@@ -135,6 +135,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   );
 
   const role = resolveRole(user);
+  const isSuperAdmin = Boolean(user?.isSuperAdmin);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -143,11 +144,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       isAuthenticated: Boolean(user),
       isBootstrapping,
       isTechnician: isTechnicianRole(role),
+      isSuperAdmin,
       login,
       logout,
       clearSession
     }),
-    [user, role, isBootstrapping, login, logout, clearSession]
+    [user, role, isBootstrapping, isSuperAdmin, login, logout, clearSession]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
