@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { TicketActions } from "@/components/tickets/TicketActions";
+import { TicketAttachmentsList } from "@/components/tickets/TicketAttachmentsList";
 import { Badge } from "@/components/ui/badge";
 import { Dialog } from "@/components/ui/dialog";
 import { Loading } from "@/components/ui/loading";
@@ -137,6 +138,9 @@ export function TicketDetailModal({
               ) : (
                 "—"
               )}
+            </DetailRow>
+            <DetailRow label="Adjuntos">
+              <TicketAttachmentsList ticketId={displayTicket.id} enabled={open} />
             </DetailRow>
           </dl>
 

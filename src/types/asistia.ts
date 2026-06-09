@@ -120,6 +120,16 @@ export interface CreateTicketResponse {
   mail: { sent: boolean; error: string | null };
 }
 
+export interface TicketAttachment {
+  id: number;
+  ticketId: number;
+  filename: string;
+  mimeType: string;
+  size: number;
+  uploadedById?: number;
+  createdAt: string;
+}
+
 export interface UpdateTicketStatusResponse {
   id: number;
   status: AsistiaTicketStatus;

@@ -8,6 +8,8 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import type { SearchableSelectOption } from "@/components/ui/searchable-select";
 import { ServerSearchableSelect } from "@/components/ui/server-searchable-select";
 import { RichDescriptionEditor } from "@/components/tickets/RichDescriptionEditor";
+import { TicketAttachmentsField } from "@/components/tickets/TicketAttachmentsField";
+import { validateAttachmentSelection } from "@/lib/attachments";
 import {
   buildCategoryOptions,
   buildLocationOptions,
@@ -34,10 +36,11 @@ interface TicketFormProps {
     locationId?: number;
     assignedTechnicianId?: number;
     requesterId?: number;
+    attachments?: File[];
   }) => Promise<void>;
 }
 
-type FormErrors = Partial<Record<"category" | "description" | "technician", string>>;
+type FormErrors = Partial<Record<"category" | "description" | "technician" | "attachments", string>>;
 
 const DESCRIPTION_MIN_LENGTH = 12;
 const TECHNICIAN_EMPTY_OPTION = { value: "", label: "Seleccione un TI" };
@@ -60,6 +63,7 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
   const [technicianId, setTechnicianId] = useState(() => defaultTechnicianId(user, isTechnician));
   const [requesterId, setRequesterId] = useState(() => defaultRequesterId(user, isTechnician));
   const [locationId, setLocationId] = useState(user.locationId ? String(user.locationId) : "");
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
@@ -138,8 +142,12 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
     if (isTechnician && !technicianId) {
       nextErrors.technician = "Seleccione el técnico asignado.";
     }
+    const attachmentError = validateAttachmentSelection(attachments);
+    if (attachmentError) {
+      nextErrors.attachments = attachmentError;
+    }
     return nextErrors;
-  }, [categoryId, description, isTechnician, technicianId]);
+  }, [attachments, categoryId, description, isTechnician, technicianId]);
 
   const canSubmit = Object.keys(errors).length === 0 && !submitting;
 
@@ -150,6 +158,7 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
     setTechnicianId(defaultTechnicianId(user, isTechnician));
     setRequesterId(defaultRequesterId(user, isTechnician));
     setLocationId(user.locationId ? String(user.locationId) : "");
+    setAttachments([]);
     if (clearFeedback) {
       setSubmitError("");
     }
@@ -175,6 +184,7 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
         locationId: locationId ? Number(locationId) : undefined,
         assignedTechnicianId: technicianId ? Number(technicianId) : undefined,
         requesterId: requesterId ? Number(requesterId) : undefined,
+        attachments: attachments.length > 0 ? attachments : undefined,
       });
       resetForm(false);
     } catch (error) {
@@ -284,6 +294,13 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
           disabled={submitting}
         />
       </Field>
+
+      <TicketAttachmentsField
+        files={attachments}
+        onChange={setAttachments}
+        disabled={submitting}
+        error={errors.attachments}
+      />
 
       {submitError ? (
         <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">

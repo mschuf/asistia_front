@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+import { uploadTicketAttachment } from "../services/attachmentsService";
 import {
   assignTicketTechnician,
   createTicket,
@@ -382,9 +383,38 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
 
   const handleCreateTicket = useCallback(
     async (input: Parameters<UseTicketsResult["handleCreateTicket"]>[0]) => {
-      const created = await createTicket(input);
-      const mailNote = created.mail.sent ? "" : " (correo no enviado)";
-      toast.success(`Ticket #${created.id} creado${mailNote}.`);
+      const { attachments = [], ...ticketInput } = input;
+      const created = await createTicket(ticketInput);
+
+      let uploadedCount = 0;
+      if (attachments.length > 0) {
+        const results = await Promise.allSettled(
+          attachments.map((file) => uploadTicketAttachment(created.id, file)),
+        );
+        uploadedCount = results.filter((result) => result.status === "fulfilled").length;
+        const failedCount = attachments.length - uploadedCount;
+
+        if (failedCount === attachments.length) {
+          toast.info(
+            `Ticket #${created.id} creado, pero no se pudieron subir los adjuntos.`,
+            "Aviso",
+          );
+        } else if (failedCount > 0) {
+          toast.info(
+            `Ticket #${created.id} creado. No se subieron ${failedCount} de ${attachments.length} adjuntos.`,
+            "Aviso",
+          );
+        } else {
+          const mailNote = created.mail.sent ? "" : " (correo no enviado)";
+          toast.success(
+            `Ticket #${created.id} creado con ${uploadedCount} adjunto${uploadedCount === 1 ? "" : "s"}${mailNote}.`,
+          );
+        }
+      } else {
+        const mailNote = created.mail.sent ? "" : " (correo no enviado)";
+        toast.success(`Ticket #${created.id} creado${mailNote}.`);
+      }
+
       await onTicketCreatedRef.current?.(created.id);
       void refreshTickets();
     },

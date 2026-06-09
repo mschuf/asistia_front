@@ -59,6 +59,7 @@ export interface UseTicketsResult {
     locationId?: number;
     assignedTechnicianId?: number;
     requesterId?: number;
+    attachments?: File[];
   }) => Promise<void>;
   handleStatusChange: (
     ticketId: number,
