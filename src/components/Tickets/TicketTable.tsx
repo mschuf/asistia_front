@@ -52,6 +52,18 @@ export function TicketTable({
     });
   }, [tickets]);
 
+  const handleStatusChange = (ticketId: number, status: AsistiaTicketStatus) => {
+    if (status === "solved") {
+      setSelectedTicket(null);
+    }
+    onStatusChange?.(ticketId, status);
+  };
+
+  const handleAssignClick = (ticket: AsistiaTicket) => {
+    setSelectedTicket(null);
+    onAssignClick?.(ticket);
+  };
+
   if (!tickets.length) {
     return <EmptyState title="Sin tickets" description="No hay tickets para los filtros actuales." />;
   }
@@ -103,12 +115,12 @@ export function TicketTable({
                 <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
                   <TicketActions
                     ticket={ticket}
-                    onStatusChange={onStatusChange}
+                    onStatusChange={handleStatusChange}
                     pendingStatus={
                       statusChanging?.ticketId === Number(ticket.id) ? statusChanging.status : null
                     }
                     onAssignClick={
-                      onAssignClick ? () => onAssignClick(ticket) : undefined
+                      onAssignClick ? () => handleAssignClick(ticket) : undefined
                     }
                     assignPending={assigning?.ticketId === Number(ticket.id)}
                   />
@@ -126,13 +138,13 @@ export function TicketTable({
       onOpenChange={(open) => {
         if (!open) setSelectedTicket(null);
       }}
-      onStatusChange={onStatusChange}
+      onStatusChange={handleStatusChange}
       pendingStatus={
         selectedTicket && statusChanging?.ticketId === Number(selectedTicket.id)
           ? statusChanging.status
           : null
       }
-      onAssignClick={onAssignClick}
+      onAssignClick={onAssignClick ? handleAssignClick : undefined}
       assigning={assigning}
     />
     </>

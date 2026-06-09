@@ -3,6 +3,24 @@ import { useEffect, useId, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+let scrollLockCount = 0;
+let previousBodyOverflow = "";
+
+function lockBodyScroll(): void {
+  if (scrollLockCount === 0) {
+    previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+  }
+  scrollLockCount += 1;
+}
+
+function unlockBodyScroll(): void {
+  scrollLockCount = Math.max(0, scrollLockCount - 1);
+  if (scrollLockCount === 0) {
+    document.body.style.overflow = previousBodyOverflow;
+  }
+}
+
 interface DialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -31,8 +49,7 @@ export function Dialog({
   useEffect(() => {
     if (!open) return;
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    lockBodyScroll();
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -42,7 +59,7 @@ export function Dialog({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
+      unlockBodyScroll();
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [onOpenChange, open]);
