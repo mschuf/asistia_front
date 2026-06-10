@@ -543,7 +543,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
         }
 
         const results = await Promise.all(requests);
-        const updated = results.at(-1) ?? null;
+        const updated = results[results.length - 1] ?? null;
 
         if (updated) {
           setTickets((current) =>
