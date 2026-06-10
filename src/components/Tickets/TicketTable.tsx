@@ -3,6 +3,7 @@
  * @description Tabla de historial de tickets con modal de detalle.
  */
 import { useEffect, useState } from "react";
+import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { TicketActions } from "@/components/tickets/TicketActions";
 import { TicketDetailModal } from "@/components/tickets/TicketDetailModal";
 import { Badge } from "@/components/ui/badge";
@@ -11,11 +12,26 @@ import { formatDateParts, formatNameParts } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { statusBadgeVariant, statusLabel, typeLabel } from "@/lib/tickets";
 import type { AsistiaTicket, AsistiaTicketStatus } from "@/types/asistia";
+import type { HistorySortColumn, HistorySortOrder } from "@/types/pages/tickets-page.types";
 
 type TicketStatusActionId = "solved" | "closed" | "waiting";
 
+const SORTABLE_COLUMNS: Array<{ id: HistorySortColumn; label: string }> = [
+  { id: "id", label: "Ticket" },
+  { id: "createdAt", label: "Apertura" },
+  { id: "requester", label: "Solicitante" },
+  { id: "location", label: "Ubicación" },
+  { id: "type", label: "Tipo" },
+  { id: "subject", label: "Título" },
+  { id: "status", label: "Estado" },
+  { id: "technician", label: "Asignado a" },
+];
+
 interface TicketTableProps {
   tickets: AsistiaTicket[];
+  sortColumn?: HistorySortColumn | null;
+  sortOrder?: HistorySortOrder | null;
+  onSortColumnChange?: (column: HistorySortColumn) => void;
   onStatusChange?: (ticketId: number, status: AsistiaTicketStatus) => void;
   statusChanging?: { ticketId: number; status: AsistiaTicketStatus } | null;
   onAssignClick?: (ticket: AsistiaTicket) => void;
@@ -48,6 +64,55 @@ function NameCell({ value }: { value: string | null | undefined }) {
   );
 }
 
+/** @param props - Columna, sort activo y callback. @returns Celda de cabecera ordenable. */
+function SortableHeader({
+  column,
+  label,
+  sortColumn,
+  sortOrder,
+  onSortColumnChange,
+}: {
+  column: HistorySortColumn;
+  label: string;
+  sortColumn?: HistorySortColumn | null;
+  sortOrder?: HistorySortOrder | null;
+  onSortColumnChange?: (column: HistorySortColumn) => void;
+}) {
+  const isActive = sortColumn === column;
+  const ariaSort = isActive
+    ? sortOrder === "asc"
+      ? "ascending"
+      : "descending"
+    : "none";
+
+  if (!onSortColumnChange) {
+    return <th className="px-4 py-3 font-semibold">{label}</th>;
+  }
+
+  return (
+    <th className="px-4 py-3 font-semibold" aria-sort={ariaSort}>
+      <button
+        type="button"
+        className={cn(
+          "inline-flex items-center gap-1 rounded-sm text-left transition-colors",
+          "hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          isActive ? "text-foreground" : "text-muted-foreground"
+        )}
+        onClick={() => onSortColumnChange(column)}
+      >
+        <span>{label}</span>
+        {isActive && sortOrder === "asc" ? (
+          <ArrowUp className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        ) : isActive && sortOrder === "desc" ? (
+          <ArrowDown className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        ) : (
+          <ArrowUpDown className="h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden="true" />
+        )}
+      </button>
+    </th>
+  );
+}
+
 /**
  * Tabla clickeable de tickets con acciones inline y detalle modal.
  * @param props - Lista de tickets y callbacks de estado/asignación.
@@ -55,6 +120,9 @@ function NameCell({ value }: { value: string | null | undefined }) {
  */
 export function TicketTable({
   tickets,
+  sortColumn = null,
+  sortOrder = null,
+  onSortColumnChange,
   onStatusChange,
   statusChanging = null,
   onAssignClick,
@@ -101,14 +169,16 @@ export function TicketTable({
         <table className="w-full min-w-[860px] border-separate border-spacing-0 text-left text-sm">
           <thead className="bg-muted text-xs uppercase tracking-normal text-muted-foreground">
             <tr>
-              <th className="px-4 py-3 font-semibold">Ticket</th>
-              <th className="px-4 py-3 font-semibold">Apertura</th>
-              <th className="px-4 py-3 font-semibold">Solicitante</th>
-              <th className="px-4 py-3 font-semibold">Ubicación</th>
-              <th className="px-4 py-3 font-semibold">Tipo</th>
-              <th className="px-4 py-3 font-semibold">Título</th>
-              <th className="px-4 py-3 font-semibold">Estado</th>
-              <th className="px-4 py-3 font-semibold">Asignado a</th>
+              {SORTABLE_COLUMNS.map(({ id, label }) => (
+                <SortableHeader
+                  key={id}
+                  column={id}
+                  label={label}
+                  sortColumn={sortColumn}
+                  sortOrder={sortOrder}
+                  onSortColumnChange={onSortColumnChange}
+                />
+              ))}
               {showActionsColumn ? (
                 <th className={cn("px-4 py-3 font-semibold", actionsColumnClass, "bg-muted")}>
                   Acciones

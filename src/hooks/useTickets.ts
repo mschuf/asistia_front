@@ -19,7 +19,7 @@ import {
 } from "../services/ticketsService";
 import type { ListTicketsParams } from "../services/ticketsService";
 import type { AsistiaTicket, AsistiaTicketStatus, AsistiaUser } from "../types/asistia";
-import type { TicketFilterState, TicketsTab, UseTicketsOptions, UseTicketsResult } from "../types/pages/tickets-page.types";
+import type { HistorySortColumn, HistorySortState, TicketFilterState, TicketsTab, UseTicketsOptions, UseTicketsResult } from "../types/pages/tickets-page.types";
 import { ApiError } from "../api/apiClient";
 import { isAbortError } from "../lib/http";
 import {
@@ -43,7 +43,8 @@ function toListTicketParams(
   filters: TicketFilterState,
   page: number,
   limit: number,
-  search: string
+  search: string,
+  sort: HistorySortState | null
 ): ListTicketsParams {
   const trimmedSearch = search.trim();
   const useHistoryDefaultStatuses = !filters.status && !trimmedSearch;
@@ -57,7 +58,9 @@ function toListTicketParams(
     status: filters.status || undefined,
     statuses: useHistoryDefaultStatuses ? [...defaultStatuses] : undefined,
     type: filters.type || undefined,
-    search: trimmedSearch || undefined
+    search: trimmedSearch || undefined,
+    sortBy: sort?.column,
+    sortOrder: sort?.order,
   };
 }
 
@@ -93,6 +96,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
   );
   const [page, setPageState] = useState(1);
   const [pageLimit, setPageLimitState] = useState(TICKETS_PAGE_SIZE);
+  const [sort, setSortState] = useState<HistorySortState | null>(null);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [catalogsLoading, setCatalogsLoading] = useState(false);
@@ -109,8 +113,8 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
   const [assigning, setAssigning] = useState<{ ticketId: number } | null>(null);
 
   const listParams = useMemo(
-    () => toListTicketParams(appliedFilters, page, pageLimit, appliedFilters.search),
-    [appliedFilters, page, pageLimit]
+    () => toListTicketParams(appliedFilters, page, pageLimit, appliedFilters.search, sort),
+    [appliedFilters, page, pageLimit, sort]
   );
   const ticketsFetchKey = JSON.stringify(listParams);
   const loadedTicketsKeyRef = useRef<string | null>(null);
@@ -159,6 +163,20 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
   const setPageLimit = useCallback((limit: number) => {
     if (!(TICKETS_PAGE_SIZE_OPTIONS as readonly number[]).includes(limit)) return;
     setPageLimitState(limit);
+    setPageState(1);
+    loadedTicketsKeyRef.current = null;
+  }, []);
+
+  const setSortColumn = useCallback((column: HistorySortColumn) => {
+    setSortState((current) => {
+      if (!current || current.column !== column) {
+        return { column, order: "asc" };
+      }
+      if (current.order === "asc") {
+        return { column, order: "desc" };
+      }
+      return null;
+    });
     setPageState(1);
     loadedTicketsKeyRef.current = null;
   }, []);
@@ -600,6 +618,8 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
     },
     setPage,
     setPageLimit,
+    sort,
+    setSortColumn,
     filters,
     setFilters,
     applyFilters,

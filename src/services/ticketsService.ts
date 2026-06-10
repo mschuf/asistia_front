@@ -15,6 +15,7 @@ import type {
   CreateTicketResponse,
   TiMetricsResponse
 } from "../types/asistia";
+import type { HistorySortColumn, HistorySortOrder } from "../types/pages/tickets-page.types";
 
 type ReadRequestOptions = { signal?: AbortSignal; showBackdrop?: boolean };
 
@@ -83,6 +84,8 @@ export interface ListTicketsParams {
   statuses?: AsistiaTicket["status"][];
   type?: AsistiaTicket["type"];
   search?: string;
+  sortBy?: HistorySortColumn;
+  sortOrder?: HistorySortOrder;
 }
 
 /**
@@ -132,6 +135,8 @@ export async function listHistoryTickets(
       statuses: params?.statuses?.length ? params.statuses.join(",") : undefined,
       type: params?.type,
       search: params?.search,
+      sortBy: params?.sortBy,
+      sortOrder: params?.sortOrder,
     }
   });
 }

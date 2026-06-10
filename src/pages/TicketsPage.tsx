@@ -92,6 +92,10 @@ export default function TicketsPage() {
 
     setPageLimit,
 
+    sort,
+
+    setSortColumn,
+
     filters,
 
     setFilters,
@@ -347,6 +351,9 @@ export default function TicketsPage() {
             <>
               <TicketTable
                 tickets={tickets}
+                sortColumn={sort?.column ?? null}
+                sortOrder={sort?.order ?? null}
+                onSortColumnChange={setSortColumn}
                 onStatusChange={handleTicketStatusChange}
                 statusChanging={statusChanging}
                 onAssignClick={isTechnician ? setAssignTarget : undefined}

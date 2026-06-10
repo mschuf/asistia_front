@@ -33,6 +33,26 @@ export interface TicketPaginationState {
   totalPages: number;
 }
 
+/** Columnas ordenables del historial de tickets. */
+export type HistorySortColumn =
+  | "id"
+  | "createdAt"
+  | "requester"
+  | "location"
+  | "type"
+  | "subject"
+  | "status"
+  | "technician";
+
+/** Dirección de ordenación del historial. */
+export type HistorySortOrder = "asc" | "desc";
+
+/** Estado de ordenación activa del historial (`null` = más recientes primero). */
+export interface HistorySortState {
+  column: HistorySortColumn;
+  order: HistorySortOrder;
+}
+
 /** Opciones de configuración del hook useTickets. */
 export interface UseTicketsOptions {
   onTicketCreated?: (ticketId: number) => void | Promise<void>;
@@ -51,6 +71,8 @@ export interface UseTicketsResult {
   pagination: TicketPaginationState;
   setPage: (page: number) => void;
   setPageLimit: (limit: number) => void;
+  sort: HistorySortState | null;
+  setSortColumn: (column: HistorySortColumn) => void;
   filters: TicketFilterState;
   setFilters: (value: TicketFilterState) => void;
   applyFilters: (filters?: TicketFilterState) => void;
