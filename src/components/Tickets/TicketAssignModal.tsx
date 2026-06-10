@@ -6,10 +6,17 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import type { SearchableSelectOption } from "@/components/ui/searchable-select";
 import { ServerSearchableSelect } from "@/components/ui/server-searchable-select";
-import { buildLocationOptions } from "@/lib/tickets";
+import {
+  buildLocationOptions,
+  buildRequesterDisplayLabel,
+  buildTechnicianSelectOptions,
+  findLocationById,
+  locationDisplayName,
+} from "@/lib/tickets";
 import { getUserById, searchTechnicians } from "@/services/ticketsService";
 import type { AsistiaLocation, AsistiaTicket } from "@/types/asistia";
 
@@ -68,31 +75,35 @@ export function TicketAssignModal({
   }, [open, ticket]);
 
   /** @param query - Texto de búsqueda. @param _signal - Señal de aborto. @returns Opciones de técnico. */
-  const loadTechnicianOptions = useCallback(async (query: string, _signal: AbortSignal) => {
-    const result = await searchTechnicians(query);
-    return result.items.map(
-      (technician): SearchableSelectOption => ({
-        value: String(technician.id),
-        label: technician.fullName || technician.login,
-        searchText: `${technician.fullName} ${technician.login} ${technician.email ?? ""}`.toLowerCase(),
-      }),
-    );
-  }, []);
+  const loadTechnicianOptions = useCallback(
+    async (query: string, _signal: AbortSignal) => {
+      const result = await searchTechnicians(query);
+      return buildTechnicianSelectOptions(result.items, locations);
+    },
+    [locations],
+  );
 
   /** @param value - ID del técnico. @param signal - Señal de aborto. @returns Opción resuelta. */
-  const resolveTechnicianOption = useCallback(async (value: string, signal: AbortSignal) => {
-    const technician = await getUserById(Number(value), { signal });
-    return {
-      value: String(technician.id),
-      label: technician.fullName || technician.login,
-      searchText: `${technician.fullName} ${technician.login}`.toLowerCase(),
-    };
-  }, []);
+  const resolveTechnicianOption = useCallback(
+    async (value: string, signal: AbortSignal) => {
+      const technician = await getUserById(Number(value), { signal });
+      const location = findLocationById(locations, technician.locationId);
+      const locationName = location ? locationDisplayName(location) : "";
+      return {
+        value: String(technician.id),
+        label: buildRequesterDisplayLabel(technician, locations),
+        searchText: `${technician.fullName} ${technician.login} ${locationName}`.toLowerCase(),
+      };
+    },
+    [locations],
+  );
 
   if (!ticket) return null;
 
   const currentTechnicianId = ticket.technician?.id ? String(ticket.technician.id) : "";
   const currentLocationId = ticket.location?.id ? String(ticket.location.id) : "";
+  const currentTechnicianName = ticket.technician?.name?.trim() || "Sin asignar";
+  const currentLocationName = ticket.location?.name?.trim() || "Sin sede";
 
   /** Valida cambios y delega en onConfirm. @returns void */
   const handleConfirm = () => {
@@ -128,11 +139,20 @@ export function TicketAssignModal({
       title={`Asignar ticket #${ticket.id}`}
       description="Puede reasignar el técnico y/o cambiar la sede del ticket."
       allowOverflow
-      className="w-full max-w-lg"
+      className="w-full max-w-2xl"
       contentClassName="min-h-[min(20rem,50vh)] sm:px-6 sm:py-6"
     >
-      <div className="space-y-6">
-        <Field id="ticket-assign-technician" label="Técnico (TI)">
+      <div className="grid gap-6 sm:grid-cols-2">
+        <Field id="ticket-assign-current-technician" label="Técnico actual">
+          <Input
+            id="ticket-assign-current-technician"
+            value={currentTechnicianName}
+            readOnly
+            disabled
+          />
+        </Field>
+
+        <Field id="ticket-assign-technician" label="Nuevo técnico (TI)">
           <ServerSearchableSelect
             id="ticket-assign-technician"
             value={technicianId}
@@ -150,7 +170,16 @@ export function TicketAssignModal({
           />
         </Field>
 
-        <Field id="ticket-assign-location" label="Sede">
+        <Field id="ticket-assign-current-location" label="Sede actual">
+          <Input
+            id="ticket-assign-current-location"
+            value={currentLocationName}
+            readOnly
+            disabled
+          />
+        </Field>
+
+        <Field id="ticket-assign-location" label="Nueva sede">
           <SearchableSelect
             id="ticket-assign-location"
             value={locationId}
@@ -167,7 +196,7 @@ export function TicketAssignModal({
         </Field>
 
         {error ? (
-          <p className="text-sm text-destructive" role="alert">
+          <p className="text-sm text-destructive sm:col-span-2" role="alert">
             {error}
           </p>
         ) : null}

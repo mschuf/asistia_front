@@ -59,8 +59,8 @@ export function TicketFilters({
 
   const locationOptions = useMemo(() => buildLocationFilterOptions(locations), [locations]);
   const technicianOptions = useMemo(
-    () => buildTechnicianFilterOptions(technicians, user),
-    [technicians, user]
+    () => buildTechnicianFilterOptions(technicians, user, locations),
+    [technicians, user, locations]
   );
 
   return (

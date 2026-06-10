@@ -338,7 +338,7 @@ export default function TicketsPage() {
             <>
               <TicketTable
                 tickets={tickets}
-                onStatusChange={handleTicketStatusChange}
+                onStatusChange={isTechnician ? handleTicketStatusChange : undefined}
                 statusChanging={statusChanging}
                 onAssignClick={isTechnician ? setAssignTarget : undefined}
                 assigning={assigning}

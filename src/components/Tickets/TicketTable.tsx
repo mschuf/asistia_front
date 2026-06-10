@@ -31,6 +31,9 @@ function AperturaCell({ value }: { value: string | null }) {
   );
 }
 
+const actionsColumnClass =
+  "sticky right-0 z-10 min-w-[7rem] border-l border-border/60 bg-card shadow-[-4px_0_8px_-2px_hsl(var(--border)/0.35)] md:static md:z-auto md:min-w-0 md:border-l-0 md:bg-transparent md:shadow-none";
+
 /** @param props - Nombre completo. @returns Celda con nombre partido en dos líneas. */
 function NameCell({ value }: { value: string | null | undefined }) {
   const { firstLine, secondLine } = formatNameParts(value);
@@ -54,6 +57,7 @@ export function TicketTable({
   onAssignClick,
   assigning = null,
 }: TicketTableProps) {
+  const showActionsColumn = Boolean(onStatusChange || onAssignClick);
   const [selectedTicket, setSelectedTicket] = useState<AsistiaTicket | null>(null);
 
   useEffect(() => {
@@ -90,7 +94,7 @@ export function TicketTable({
     <>
     <div className="overflow-hidden rounded-md border bg-card shadow-soft">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[860px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[860px] border-separate border-spacing-0 text-left text-sm">
           <thead className="bg-muted text-xs uppercase tracking-normal text-muted-foreground">
             <tr>
               <th className="px-4 py-3 font-semibold">Ticket</th>
@@ -101,7 +105,11 @@ export function TicketTable({
               <th className="px-4 py-3 font-semibold">Título</th>
               <th className="px-4 py-3 font-semibold">Estado</th>
               <th className="px-4 py-3 font-semibold">Asignado a</th>
-              <th className="px-4 py-3 font-semibold">Acciones</th>
+              {showActionsColumn ? (
+                <th className={cn("px-4 py-3 font-semibold", actionsColumnClass, "bg-muted")}>
+                  Acciones
+                </th>
+              ) : null}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -109,7 +117,7 @@ export function TicketTable({
               <tr
                 key={ticket.id}
                 className={cn(
-                  "cursor-pointer hover:bg-muted/50",
+                  "group cursor-pointer hover:bg-muted/50",
                   selectedTicket?.id === ticket.id && "bg-muted/40"
                 )}
                 onClick={() => setSelectedTicket(ticket)}
@@ -130,19 +138,29 @@ export function TicketTable({
                 <td className="px-4 py-3">
                   <NameCell value={ticket.technician?.name} />
                 </td>
-                <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
-                  <TicketActions
-                    ticket={ticket}
-                    onStatusChange={handleStatusChange}
-                    pendingStatus={
-                      statusChanging?.ticketId === Number(ticket.id) ? statusChanging.status : null
-                    }
-                    onAssignClick={
-                      onAssignClick ? () => handleAssignClick(ticket) : undefined
-                    }
-                    assignPending={assigning?.ticketId === Number(ticket.id)}
-                  />
-                </td>
+                {showActionsColumn ? (
+                  <td
+                    className={cn(
+                      "px-4 py-3",
+                      actionsColumnClass,
+                      "group-hover:bg-muted/50",
+                      selectedTicket?.id === ticket.id && "bg-muted/40"
+                    )}
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <TicketActions
+                      ticket={ticket}
+                      onStatusChange={handleStatusChange}
+                      pendingStatus={
+                        statusChanging?.ticketId === Number(ticket.id) ? statusChanging.status : null
+                      }
+                      onAssignClick={
+                        onAssignClick ? () => handleAssignClick(ticket) : undefined
+                      }
+                      assignPending={assigning?.ticketId === Number(ticket.id)}
+                    />
+                  </td>
+                ) : null}
               </tr>
             ))}
           </tbody>
@@ -156,13 +174,15 @@ export function TicketTable({
       onOpenChange={(open) => {
         if (!open) setSelectedTicket(null);
       }}
-      onStatusChange={handleStatusChange}
+      onStatusChange={showActionsColumn ? handleStatusChange : undefined}
       pendingStatus={
-        selectedTicket && statusChanging?.ticketId === Number(selectedTicket.id)
+        showActionsColumn &&
+        selectedTicket &&
+        statusChanging?.ticketId === Number(selectedTicket.id)
           ? statusChanging.status
           : null
       }
-      onAssignClick={onAssignClick ? handleAssignClick : undefined}
+      onAssignClick={showActionsColumn && onAssignClick ? handleAssignClick : undefined}
       assigning={assigning}
     />
     </>

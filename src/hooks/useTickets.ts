@@ -533,14 +533,17 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
       setAssigning({ ticketId: normalizedTicketId });
 
       try {
-        let updated: AsistiaTicket | null = null;
+        const requests: Promise<AsistiaTicket>[] = [];
 
         if (wantsTechnicianChange && input.technicianId) {
-          updated = await assignTicketTechnician(normalizedTicketId, input.technicianId);
+          requests.push(assignTicketTechnician(normalizedTicketId, input.technicianId));
         }
         if (wantsLocationChange && input.locationId) {
-          updated = await updateTicketLocation(normalizedTicketId, input.locationId);
+          requests.push(updateTicketLocation(normalizedTicketId, input.locationId));
         }
+
+        const results = await Promise.all(requests);
+        const updated = results.at(-1) ?? null;
 
         if (updated) {
           setTickets((current) =>

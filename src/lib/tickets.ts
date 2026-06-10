@@ -165,8 +165,8 @@ export function categoryFirstWord(fullPath: string): string {
 
 const TICKET_DESCRIPTION_PREFIX_PATTERN = /^<p>(?:Incidente|Solicitud)(?: [^<]*)?<\/p>/;
 
-/** @param type - Tipo de ticket. @param category - Categoría seleccionada. @returns Prefijo HTML para la descripción. */
-export function buildTicketDescriptionPrefix(
+/** @param type - Tipo de ticket. @param category - Categoría seleccionada. @returns Texto plano del prefijo. */
+export function buildTicketDescriptionPrefixText(
   type: AsistiaTicketType,
   category: { fullPath?: string; name?: string } | null | undefined,
 ): string {
@@ -174,8 +174,16 @@ export function buildTicketDescriptionPrefix(
   if (!typeText) return "";
 
   const firstWord = categoryFirstWord(category?.fullPath ?? "");
-  const prefixText = firstWord ? `${typeText} ${firstWord}` : typeText;
-  return `<p>${prefixText}</p>`;
+  return firstWord ? `${typeText} ${firstWord}` : typeText;
+}
+
+/** @param type - Tipo de ticket. @param category - Categoría seleccionada. @returns Prefijo HTML para la descripción. */
+export function buildTicketDescriptionPrefix(
+  type: AsistiaTicketType,
+  category: { fullPath?: string; name?: string } | null | undefined,
+): string {
+  const prefixText = buildTicketDescriptionPrefixText(type, category);
+  return prefixText ? `<p>${prefixText}</p>` : "";
 }
 
 /** @param body - Texto libre de la descripción. @param type - Tipo de ticket. @param category - Categoría. @returns Descripción con prefijo visible. */
@@ -259,18 +267,45 @@ export function buildSiteHistorialFilters(user: AuthUser | null): TicketFilterSt
   };
 }
 
-/** @param technicians - Lista de técnicos. @param currentUser - Usuario actual. @returns Opciones de filtro por técnico. */
-export function buildTechnicianFilterOptions(
-  technicians: AsistiaUser[],
-  currentUser: AuthUser | null
-) {
+/** @param technicians - Lista de técnicos. @returns Técnicos activos ordenados por nombre. */
+export function listActiveTechnicians(technicians: AsistiaUser[]): AsistiaUser[] {
   return [...technicians]
     .filter((technician) => technician.isActive)
-    .sort((left, right) => left.fullName.localeCompare(right.fullName, "es"))
-    .map((technician) => ({
+    .sort((left, right) => left.fullName.localeCompare(right.fullName, "es"));
+}
+
+/** @param technicians - Lista de técnicos. @param locations - Catálogo de sedes. @returns Opciones del selector excluyendo inactivos. */
+export function buildTechnicianSelectOptions(
+  technicians: AsistiaUser[],
+  locations: Array<{ id: number; name: string; fullPath: string }> = [],
+) {
+  return listActiveTechnicians(technicians).map((technician) => {
+    const location = findLocationById(locations, technician.locationId);
+    const locationName = location ? locationDisplayName(location) : "";
+    return {
       value: String(technician.id),
-      label:
-        currentUser?.id === technician.id ? `${technician.fullName} (yo)` : technician.fullName,
-      searchText: `${technician.fullName} ${technician.login}`.toLowerCase(),
-    }));
+      label: buildRequesterDisplayLabel(technician, locations),
+      searchText:
+        `${technician.fullName} ${technician.login} ${technician.email ?? ""} ${locationName}`.toLowerCase(),
+    };
+  });
+}
+
+/** @param technicians - Lista de técnicos. @param currentUser - Usuario actual. @param locations - Catálogo de sedes. @returns Opciones de filtro por técnico. */
+export function buildTechnicianFilterOptions(
+  technicians: AsistiaUser[],
+  currentUser: AuthUser | null,
+  locations: Array<{ id: number; name: string; fullPath: string }> = [],
+) {
+  return listActiveTechnicians(technicians).map((technician) => {
+    const location = findLocationById(locations, technician.locationId);
+    const locationName = location ? locationDisplayName(location) : "";
+    const baseLabel = buildRequesterDisplayLabel(technician, locations);
+    const label = currentUser?.id === technician.id ? `${baseLabel} (yo)` : baseLabel;
+    return {
+      value: String(technician.id),
+      label,
+      searchText: `${technician.fullName} ${technician.login} ${locationName}`.toLowerCase(),
+    };
+  });
 }

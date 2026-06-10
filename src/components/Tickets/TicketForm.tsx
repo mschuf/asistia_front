@@ -19,7 +19,8 @@ import {
   buildCategoryOptions,
   buildLocationOptions,
   buildRequesterDisplayLabel,
-  extractTicketDescriptionBody,
+  buildTechnicianSelectOptions,
+  buildTicketDescriptionPrefixText,
   findLocationById,
   locationDisplayName,
 } from "@/lib/tickets";
@@ -87,41 +88,55 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
     () => categories.find((category) => String(category.id) === categoryId) ?? null,
     [categories, categoryId],
   );
+  const descriptionPrefixText = useMemo(
+    () => buildTicketDescriptionPrefixText(effectiveType, selectedCategory),
+    [effectiveType, selectedCategory],
+  );
   const description = useMemo(
     () => applyTicketDescriptionPrefix(descriptionBody, effectiveType, selectedCategory),
     [descriptionBody, effectiveType, selectedCategory],
   );
   const defaultTechnicianOption = useMemo<SearchableSelectOption | null>(() => {
     if (!isTechnician || !user.id) return null;
-    const label = user.name || user.login;
+    const location = findLocationById(locations, user.locationId);
+    const locationName = location ? locationDisplayName(location) : "";
+    const label = buildRequesterDisplayLabel(
+      { fullName: user.name, login: user.login, locationId: user.locationId },
+      locations,
+    );
     return {
       value: String(user.id),
       label,
-      searchText: `${user.name} ${user.login} ${user.email ?? ""}`.toLowerCase(),
+      searchText: `${user.name} ${user.login} ${user.email ?? ""} ${locationName}`.toLowerCase(),
     };
-  }, [isTechnician, user.id, user.name, user.login, user.email]);
+  }, [isTechnician, locations, user.email, user.id, user.locationId, user.login, user.name]);
 
   /** @param query - Texto de búsqueda. @param _signal - Señal de aborto. @returns Opciones de técnico. */
-  const loadTechnicianOptions = useCallback(async (query: string, _signal: AbortSignal) => {
-    const result = await searchTechnicians(query);
-    return result.items.map(
-      (technician): SearchableSelectOption => ({
-        value: String(technician.id),
-        label: technician.fullName || technician.login,
-        searchText: `${technician.fullName} ${technician.login} ${technician.email ?? ""}`.toLowerCase(),
-      }),
-    );
-  }, []);
+  const loadTechnicianOptions = useCallback(
+    async (query: string, _signal: AbortSignal) => {
+      const result = await searchTechnicians(query);
+      return buildTechnicianSelectOptions(result.items, locations);
+    },
+    [locations],
+  );
 
   /** @param value - ID del técnico. @param signal - Señal de aborto. @returns Opción resuelta. */
-  const resolveTechnicianOption = useCallback(async (value: string, signal: AbortSignal) => {
-    const technician = await getUserById(Number(value), { signal });
-    return {
-      value: String(technician.id),
-      label: technician.fullName || technician.login,
-      searchText: `${technician.fullName} ${technician.login}`.toLowerCase(),
-    };
-  }, []);
+  const resolveTechnicianOption = useCallback(
+    async (value: string, signal: AbortSignal) => {
+      const technician = await getUserById(Number(value), { signal });
+      if (!technician.isActive) {
+        return null;
+      }
+      const location = findLocationById(locations, technician.locationId);
+      const locationName = location ? locationDisplayName(location) : "";
+      return {
+        value: String(technician.id),
+        label: buildRequesterDisplayLabel(technician, locations),
+        searchText: `${technician.fullName} ${technician.login} ${locationName}`.toLowerCase(),
+      };
+    },
+    [locations],
+  );
 
   /** @param query - Texto de búsqueda. @param signal - Señal de aborto. @returns Opciones de solicitante. */
   const loadRequesterOptions = useCallback(
@@ -312,10 +327,9 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
       <Field id="ticket-description" label="Descripción" error={errors.description}>
         <RichDescriptionEditor
           id="ticket-description"
-          value={description}
-          onChange={(value) =>
-            setDescriptionBody(extractTicketDescriptionBody(value, effectiveType, selectedCategory))
-          }
+          prefix={descriptionPrefixText}
+          value={descriptionBody}
+          onChange={setDescriptionBody}
           describedBy={errors.description ? "ticket-description-error" : undefined}
           disabled={submitting}
         />

@@ -42,10 +42,14 @@ const actions = [
   }
 ] as const;
 
+const actionButtonClass =
+  "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-colors";
+const actionIconClass = "h-4 w-4";
+
 /**
  * Iconos de acción de ticket con estados pending y transiciones válidas.
  * @param props - Ticket, callbacks y estados de carga.
- * @returns Fila de botones de acción.
+ * @returns Botones en fila en escritorio y cuadrícula 2×2 en móvil.
  */
 export function TicketActions({
   ticket,
@@ -59,7 +63,7 @@ export function TicketActions({
   const assignDisabled = finalized || !onAssignClick || (hasPendingAction && !assignPending);
 
   return (
-    <div className="flex flex-nowrap items-center gap-1.5">
+    <div className="grid w-fit grid-cols-2 gap-3 md:flex md:flex-nowrap md:items-center">
       {onAssignClick ? (
         <button
           type="button"
@@ -73,7 +77,7 @@ export function TicketActions({
           }
           onClick={onAssignClick}
           className={cn(
-            "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition-colors",
+            actionButtonClass,
             "border-violet-200/80 bg-violet-50/60 text-violet-700 hover:border-violet-300 hover:bg-violet-100/80",
             "dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300 dark:hover:border-violet-800 dark:hover:bg-violet-950/50",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
@@ -81,9 +85,9 @@ export function TicketActions({
           )}
         >
           {assignPending ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+            <Loader2 className={cn(actionIconClass, "animate-spin")} aria-hidden="true" />
           ) : (
-            <UserPlus className="h-3.5 w-3.5" aria-hidden="true" />
+            <UserPlus className={actionIconClass} aria-hidden="true" />
           )}
         </button>
       ) : null}
@@ -113,16 +117,16 @@ export function TicketActions({
             }
             onClick={() => onStatusChange?.(ticket.id, status)}
             className={cn(
-              "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition-colors",
+              actionButtonClass,
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
               "disabled:cursor-not-allowed disabled:opacity-40",
               className
             )}
           >
             {isPending ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+              <Loader2 className={cn(actionIconClass, "animate-spin")} aria-hidden="true" />
             ) : (
-              <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+              <Icon className={actionIconClass} aria-hidden="true" />
             )}
           </button>
         );

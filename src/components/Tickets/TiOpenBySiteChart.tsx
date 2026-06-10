@@ -19,14 +19,17 @@ export function TiOpenBySiteChart({
   data,
   description = "Tickets abiertos totales por sede",
 }: TiOpenBySiteChartProps) {
-  const sorted = [...data].sort((a, b) => b.open - a.open || a.name.localeCompare(b.name, "es"));
+  const sorted = [...data]
+    .filter((row) => row.open > 0)
+    .sort((a, b) => b.open - a.open || a.name.localeCompare(b.name, "es"));
   const maxOpen = sorted.length > 0 ? Math.max(...sorted.map((row) => row.open)) : 0;
 
   if (sorted.length === 0) {
     return (
       <div className="rounded-md border bg-card p-4">
         <p className="text-sm font-medium">Indicadores</p>
-        <p className="mt-2 text-sm text-muted-foreground">No hay sedes registradas.</p>
+        <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+        <p className="mt-2 text-sm text-muted-foreground">No hay tickets abiertos por sede.</p>
       </div>
     );
   }

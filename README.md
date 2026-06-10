@@ -25,4 +25,5 @@ Por defecto la app corre en `http://localhost:5173` y consume `http://localhost:
 
 ## Documentación
 
+- [Cómo se usa React en el proyecto](./REACT_EN_ASISTIA.md)
 - [Buenas prácticas](./FRONT_BEST_PRACTICES.md)

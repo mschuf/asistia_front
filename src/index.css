@@ -115,6 +115,10 @@
     min-height: 11rem;
   }
 
+  .rich-description-body {
+    min-height: 9.5rem;
+  }
+
   .rich-description:empty::before {
     content: attr(data-placeholder);
     color: hsl(var(--muted-foreground));
