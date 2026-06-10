@@ -396,16 +396,12 @@ export default function TicketsPage() {
 
               {pagination.total > 0 ? (
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-sm text-muted-foreground">
-                    Mostrando {paginationFrom}-{paginationTo} de{" "}
-                    {pagination.total} tickets
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                     <label className="flex items-center gap-2 text-sm text-muted-foreground">
                       <span className="whitespace-nowrap">Mostrar por página</span>
                       <Select
                         aria-label="Mostrar por página"
-                        className="h-8 w-auto min-w-20"
+                        className="h-9 w-24 shrink-0 px-2 py-1 text-center text-sm font-medium tabular-nums text-foreground"
                         value={String(pagination.limit)}
                         onChange={(event) => setPageLimit(Number(event.target.value))}
                       >
@@ -416,6 +412,12 @@ export default function TicketsPage() {
                         ))}
                       </Select>
                     </label>
+                    <p className="text-sm text-muted-foreground">
+                      Mostrando {paginationFrom}-{paginationTo} de{" "}
+                      {pagination.total} tickets
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <Button
                       type="button"
                       variant="outline"
