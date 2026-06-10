@@ -50,6 +50,7 @@ export interface UseTicketsResult {
   tickets: AsistiaTicket[];
   pagination: TicketPaginationState;
   setPage: (page: number) => void;
+  setPageLimit: (limit: number) => void;
   filters: TicketFilterState;
   setFilters: (value: TicketFilterState) => void;
   applyFilters: (filters?: TicketFilterState) => void;

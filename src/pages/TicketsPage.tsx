@@ -24,6 +24,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 
 import { Loading } from "@/components/ui/loading";
 
+import { Select } from "@/components/ui/select";
+
 import { cn } from "@/lib/utils";
 
 import { useAuth } from "@/context/AuthContext";
@@ -37,6 +39,7 @@ import {
   findLocationById,
   locationCompanyName,
   locationDisplayName,
+  TICKETS_PAGE_SIZE_OPTIONS,
 } from "@/lib/tickets";
 
 import { roleLabel } from "@/utils/role";
@@ -86,6 +89,8 @@ export default function TicketsPage() {
     pagination,
 
     setPage,
+
+    setPageLimit,
 
     filters,
 
@@ -144,6 +149,10 @@ export default function TicketsPage() {
    * @returns void
    */
   const handleTicketStatusChange = (ticketId: number, status: AsistiaTicketStatus) => {
+    if (!isTechnician && status !== "closed") {
+      return;
+    }
+
     if (status === "solved" && isTechnician) {
       const ticket = tickets.find((item) => Number(item.id) === Number(ticketId));
       if (ticket) {
@@ -338,10 +347,11 @@ export default function TicketsPage() {
             <>
               <TicketTable
                 tickets={tickets}
-                onStatusChange={isTechnician ? handleTicketStatusChange : undefined}
+                onStatusChange={handleTicketStatusChange}
                 statusChanging={statusChanging}
                 onAssignClick={isTechnician ? setAssignTarget : undefined}
                 assigning={assigning}
+                statusActionIds={isTechnician ? undefined : ["closed"]}
               />
 
               <TicketResolveModal
@@ -390,7 +400,22 @@ export default function TicketsPage() {
                     Mostrando {paginationFrom}-{paginationTo} de{" "}
                     {pagination.total} tickets
                   </p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span className="whitespace-nowrap">Mostrar por página</span>
+                      <Select
+                        aria-label="Mostrar por página"
+                        className="h-8 w-auto min-w-20"
+                        value={String(pagination.limit)}
+                        onChange={(event) => setPageLimit(Number(event.target.value))}
+                      >
+                        {TICKETS_PAGE_SIZE_OPTIONS.map((size) => (
+                          <option key={size} value={size}>
+                            {size}
+                          </option>
+                        ))}
+                      </Select>
+                    </label>
                     <Button
                       type="button"
                       variant="outline"

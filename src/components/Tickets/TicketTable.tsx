@@ -12,12 +12,15 @@ import { cn } from "@/lib/utils";
 import { statusBadgeVariant, statusLabel, typeLabel } from "@/lib/tickets";
 import type { AsistiaTicket, AsistiaTicketStatus } from "@/types/asistia";
 
+type TicketStatusActionId = "solved" | "closed" | "waiting";
+
 interface TicketTableProps {
   tickets: AsistiaTicket[];
   onStatusChange?: (ticketId: number, status: AsistiaTicketStatus) => void;
   statusChanging?: { ticketId: number; status: AsistiaTicketStatus } | null;
   onAssignClick?: (ticket: AsistiaTicket) => void;
   assigning?: { ticketId: number } | null;
+  statusActionIds?: TicketStatusActionId[];
 }
 
 /** @param props - Fecha ISO de apertura. @returns Celda con fecha y hora en dos líneas. */
@@ -56,6 +59,7 @@ export function TicketTable({
   statusChanging = null,
   onAssignClick,
   assigning = null,
+  statusActionIds,
 }: TicketTableProps) {
   const showActionsColumn = Boolean(onStatusChange || onAssignClick);
   const [selectedTicket, setSelectedTicket] = useState<AsistiaTicket | null>(null);
@@ -112,7 +116,7 @@ export function TicketTable({
               ) : null}
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody className="[&>tr:not(:last-child)>td]:border-b [&>tr:not(:last-child)>td]:border-muted-foreground/25">
             {tickets.map((ticket) => (
               <tr
                 key={ticket.id}
@@ -158,6 +162,7 @@ export function TicketTable({
                         onAssignClick ? () => handleAssignClick(ticket) : undefined
                       }
                       assignPending={assigning?.ticketId === Number(ticket.id)}
+                      statusActionIds={statusActionIds}
                     />
                   </td>
                 ) : null}
@@ -184,6 +189,7 @@ export function TicketTable({
       }
       onAssignClick={showActionsColumn && onAssignClick ? handleAssignClick : undefined}
       assigning={assigning}
+      statusActionIds={statusActionIds}
     />
     </>
   );

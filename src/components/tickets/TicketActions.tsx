@@ -4,16 +4,8 @@
  */
 import { ArrowUpRight, Check, Loader2, Lock, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { canTransitionTicketStatus, isTicketFinalized } from "@/lib/tickets";
+import { canTransitionTicketStatus, isTicketClosed, isTicketFinalized } from "@/lib/tickets";
 import type { AsistiaTicket, AsistiaTicketStatus } from "@/types/asistia";
-
-interface TicketActionsProps {
-  ticket: AsistiaTicket;
-  onStatusChange?: (ticketId: number, status: AsistiaTicketStatus) => void;
-  pendingStatus?: AsistiaTicketStatus | null;
-  onAssignClick?: () => void;
-  assignPending?: boolean;
-}
 
 const actions = [
   {
@@ -42,6 +34,18 @@ const actions = [
   }
 ] as const;
 
+type TicketStatusActionId = (typeof actions)[number]["id"];
+
+interface TicketActionsProps {
+  ticket: AsistiaTicket;
+  onStatusChange?: (ticketId: number, status: AsistiaTicketStatus) => void;
+  pendingStatus?: AsistiaTicketStatus | null;
+  onAssignClick?: () => void;
+  assignPending?: boolean;
+  /** Si se define, limita qué botones de estado se muestran (p. ej. solo `closed` para solicitantes). */
+  statusActionIds?: TicketStatusActionId[];
+}
+
 const actionButtonClass =
   "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-colors";
 const actionIconClass = "h-4 w-4";
@@ -57,10 +61,15 @@ export function TicketActions({
   pendingStatus = null,
   onAssignClick,
   assignPending = false,
+  statusActionIds,
 }: TicketActionsProps) {
   const hasPendingAction = pendingStatus != null || assignPending;
   const finalized = isTicketFinalized(ticket);
+  const closed = isTicketClosed(ticket);
   const assignDisabled = finalized || !onAssignClick || (hasPendingAction && !assignPending);
+  const visibleStatusActions = statusActionIds
+    ? actions.filter((action) => statusActionIds.includes(action.id))
+    : actions;
 
   return (
     <div className="grid w-fit grid-cols-2 gap-3 md:flex md:flex-nowrap md:items-center">
@@ -91,12 +100,13 @@ export function TicketActions({
           )}
         </button>
       ) : null}
-      {actions.map(({ id, label, icon: Icon, status, className }) => {
+      {visibleStatusActions.map(({ id, label, icon: Icon, status, className }) => {
         const isPending = pendingStatus === status;
         const canTransition = canTransitionTicketStatus(ticket.status, status);
+        const actionBlocked = id === "closed" ? closed : finalized;
         const disabled =
           id === "waiting" ||
-          finalized ||
+          actionBlocked ||
           !onStatusChange ||
           !canTransition ||
           (hasPendingAction && !isPending);
@@ -109,8 +119,10 @@ export function TicketActions({
             aria-label={label}
             aria-busy={isPending}
             title={
-              finalized
-                ? "No hay acciones disponibles para tickets resueltos o cerrados"
+              actionBlocked
+                ? id === "closed"
+                  ? "El ticket ya está cerrado"
+                  : "No hay acciones disponibles para tickets resueltos o cerrados"
                 : !canTransition
                   ? `No se puede cambiar a ${label.toLowerCase()} desde ${ticket.status}`
                   : label

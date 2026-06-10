@@ -14,8 +14,11 @@ export const IN_PROGRESS_STATUSES: AsistiaTicketStatus[] = ["assigned", "planned
 /** Estados mostrados por defecto en la tabla de historial. */
 export const HISTORY_TABLE_STATUSES: AsistiaTicketStatus[] = ["assigned", "planned"];
 
-/** Tamaño de página del historial (alineado con el máximo del backend). */
+/** Tamaño de página por defecto del historial. */
 export const TICKETS_PAGE_SIZE = 15;
+
+/** Opciones de tamaño de página disponibles en la tabla de historial. */
+export const TICKETS_PAGE_SIZE_OPTIONS = [15, 50, 100, 500, 1000] as const;
 
 /** @param status - Estado del ticket. @returns Etiqueta legible en español. */
 export function statusLabel(status: AsistiaTicketStatus): string {

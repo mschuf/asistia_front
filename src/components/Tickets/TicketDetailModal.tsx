@@ -14,6 +14,8 @@ import { statusBadgeVariant, statusLabel, typeLabel, urgencyLabel } from "@/lib/
 import { getTicketById } from "@/services/ticketsService";
 import type { AsistiaTicket, AsistiaTicketStatus } from "@/types/asistia";
 
+type TicketStatusActionId = "solved" | "closed" | "waiting";
+
 interface TicketDetailModalProps {
   ticket: AsistiaTicket | null;
   open: boolean;
@@ -22,6 +24,7 @@ interface TicketDetailModalProps {
   pendingStatus?: AsistiaTicketStatus | null;
   onAssignClick?: (ticket: AsistiaTicket) => void;
   assigning?: { ticketId: number } | null;
+  statusActionIds?: TicketStatusActionId[];
 }
 
 /**
@@ -51,6 +54,7 @@ export function TicketDetailModal({
   pendingStatus = null,
   onAssignClick,
   assigning = null,
+  statusActionIds,
 }: TicketDetailModalProps) {
   const [detail, setDetail] = useState<AsistiaTicket | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -169,6 +173,7 @@ export function TicketDetailModal({
                   onAssignClick ? () => onAssignClick(displayTicket) : undefined
                 }
                 assignPending={assigning?.ticketId === Number(displayTicket.id)}
+                statusActionIds={statusActionIds}
               />
             </div>
           ) : null}

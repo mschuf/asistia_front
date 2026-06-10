@@ -27,7 +27,8 @@ import {
   canTransitionTicketStatus,
   HISTORY_TABLE_STATUSES,
   statusLabel,
-  TICKETS_PAGE_SIZE
+  TICKETS_PAGE_SIZE,
+  TICKETS_PAGE_SIZE_OPTIONS
 } from "../lib/tickets";
 
 /** @param value - Valor del query `tab`. @returns Pestaña normalizada. */
@@ -41,6 +42,7 @@ function readTab(value: string | null): TicketsTab {
 function toListTicketParams(
   filters: TicketFilterState,
   page: number,
+  limit: number,
   search: string
 ): ListTicketsParams {
   const trimmedSearch = search.trim();
@@ -49,7 +51,7 @@ function toListTicketParams(
 
   return {
     page,
-    limit: TICKETS_PAGE_SIZE,
+    limit,
     technicianId: filters.assignedToId ? Number(filters.assignedToId) : undefined,
     locationId: filters.locationId ? Number(filters.locationId) : undefined,
     status: filters.status || undefined,
@@ -90,6 +92,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
     buildInitialTicketFilters(user)
   );
   const [page, setPageState] = useState(1);
+  const [pageLimit, setPageLimitState] = useState(TICKETS_PAGE_SIZE);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [catalogsLoading, setCatalogsLoading] = useState(false);
@@ -106,8 +109,8 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
   const [assigning, setAssigning] = useState<{ ticketId: number } | null>(null);
 
   const listParams = useMemo(
-    () => toListTicketParams(appliedFilters, page, appliedFilters.search),
-    [appliedFilters, page]
+    () => toListTicketParams(appliedFilters, page, pageLimit, appliedFilters.search),
+    [appliedFilters, page, pageLimit]
   );
   const ticketsFetchKey = JSON.stringify(listParams);
   const loadedTicketsKeyRef = useRef<string | null>(null);
@@ -117,7 +120,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
 
   ticketsRef.current = tickets;
 
-  const totalPages = Math.max(1, Math.ceil(total / TICKETS_PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(total / pageLimit));
 
   const needsCategories = tab === "crear" || visitedTabs.has("crear");
   const needsLocationsForCrear = tab === "crear" || visitedTabs.has("crear");
@@ -151,6 +154,13 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
 
   const setPage = useCallback((nextPage: number) => {
     setPageState(Math.max(1, nextPage));
+  }, []);
+
+  const setPageLimit = useCallback((limit: number) => {
+    if (!(TICKETS_PAGE_SIZE_OPTIONS as readonly number[]).includes(limit)) return;
+    setPageLimitState(limit);
+    setPageState(1);
+    loadedTicketsKeyRef.current = null;
   }, []);
 
   const setFilters = useCallback((value: TicketFilterState) => {
@@ -584,11 +594,12 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
     tickets,
     pagination: {
       page,
-      limit: TICKETS_PAGE_SIZE,
+      limit: pageLimit,
       total,
       totalPages
     },
     setPage,
+    setPageLimit,
     filters,
     setFilters,
     applyFilters,
