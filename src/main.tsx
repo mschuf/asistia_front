@@ -1,3 +1,7 @@
+/**
+ * @file main.tsx
+ * @description Punto de entrada de la SPA: proveedores globales, tema inicial y montaje en DOM.
+ */
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";

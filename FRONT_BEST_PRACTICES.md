@@ -34,3 +34,10 @@ types/pages/mi-feature.types.ts
 
 - Lógica en `useTickets.ts`.
 - Componentes puros en `components/Tickets/`.
+
+## Documentación en código
+
+- Todo archivo `.ts`/`.tsx` de lógica debe iniciar con cabecera `@file` y `@description` en español.
+- Toda función, método, hook y helper interno debe tener JSDoc en español con `@param`, `@returns` y `@throws` cuando aplique.
+- Props de componentes no obvias: JSDoc en la propiedad (ver `components/ui/dialog.tsx`).
+- Referencia de estilo: `src/api/apiClient.ts`.

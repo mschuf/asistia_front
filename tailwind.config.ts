@@ -1,3 +1,7 @@
+/**
+ * @file tailwind.config.ts
+ * @description Configuración de Tailwind CSS con tokens de diseño, dark mode y colores de marca.
+ */
 import type { Config } from "tailwindcss";
 
 const config = {

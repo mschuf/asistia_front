@@ -1,3 +1,7 @@
+/**
+ * @file usePwaInstall.ts
+ * @description Hook para detectar e instalar la PWA (nativo, iOS o manual).
+ */
 import { useCallback, useEffect, useState } from "react";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -8,6 +12,7 @@ interface BeforeInstallPromptEvent extends Event {
 export type PwaInstallMode = "native" | "ios-instructions" | "manual" | null;
 export type ManualInstallPlatform = "desktop-chromium" | "android";
 
+/** @returns `true` si la app ya está en modo standalone. */
 function isStandaloneMode(): boolean {
   if (typeof window === "undefined") return false;
   return (
@@ -16,12 +21,14 @@ function isStandaloneMode(): boolean {
   );
 }
 
+/** @returns `true` si el dispositivo es iOS/iPadOS. */
 function isIosDevice(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent;
   return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 }
 
+/** @returns Plataforma para instrucciones manuales o null. */
 function getManualInstallPlatform(): ManualInstallPlatform | null {
   if (typeof navigator === "undefined") return null;
   const ua = navigator.userAgent;
@@ -55,6 +62,10 @@ export interface UsePwaInstallResult {
   install: () => Promise<boolean>;
 }
 
+/**
+ * Detecta si la PWA puede instalarse y expone el flujo correspondiente.
+ * @returns Estado de instalación, modo y función `install`.
+ */
 export function usePwaInstall(): UsePwaInstallResult {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(
     () => globalDeferredPrompt,

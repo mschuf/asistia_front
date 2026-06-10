@@ -1,8 +1,16 @@
-﻿import * as React from "react";
+﻿/**
+ * @file textarea.tsx
+ * @description Área de texto multilínea estilizada con soporte de ref y atributos HTML estándar.
+ */
+import * as React from "react";
 import { cn } from "@/lib/utils";
 
+/** Props del componente Textarea; extiende los atributos nativos de `<textarea>`. */
 export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {}
 
+/**
+ * Textarea de formulario con altura mínima y estilos del sistema de diseño.
+ */
 const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ className, ...props }, ref) => (
   <textarea
     className={cn(

@@ -1,3 +1,7 @@
+/**
+ * @file AuthContext.tsx
+ * @description Contexto de autenticación: sesión por cookies, login cifrado, bootstrap y expiración de token.
+ */
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiClient, configureApiClient } from "../api/apiClient";
@@ -18,12 +22,21 @@ const LEGACY_STORAGE_KEYS = ["asistia_token", "asistia_user", "asistia_expires_a
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+/**
+ * Elimina claves de almacenamiento local de sesiones anteriores basadas en token.
+ * @returns void
+ */
 function clearLegacyStorage(): void {
   for (const key of LEGACY_STORAGE_KEYS) {
     localStorage.removeItem(key);
   }
 }
 
+/**
+ * Proveedor del contexto de autenticación y ciclo de vida de la sesión.
+ * @param props - Propiedades del proveedor, incluye `children`.
+ * @returns Elemento React con el valor de autenticación disponible para descendientes.
+ */
 export function AuthProvider({ children }: AuthProviderProps) {
   const navigate = useNavigate();
   const { startLoading, stopLoading } = useLoading();
@@ -65,6 +78,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     let cancelled = false;
 
+    /**
+     * Restaura la sesión actual consultando `/auth/me` al montar la aplicación.
+     * @returns Promesa que resuelve cuando termina el bootstrap de sesión.
+     */
     async function bootstrapSession(): Promise<void> {
       try {
         const session = await apiClient.get<SessionResponse>("/auth/me", {
@@ -92,6 +109,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, [applySession, clearSession]);
 
+  /**
+   * Autentica al usuario con contraseña cifrada RSA y establece la sesión local.
+   * @param credentials - Usuario y contraseña en texto plano (se cifra antes del envío).
+   * @returns Respuesta del backend con datos del usuario y tiempo de expiración.
+   * @throws Propaga errores de red, cifrado o respuestas fallidas de la API.
+   */
   const login = useCallback(
     async ({ username, password }: LoginPayload): Promise<LoginResponse> => {
       await loadAuthPublicKey(async () => {
@@ -117,6 +140,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     [applySession]
   );
 
+  /**
+   * Cierra la sesión en el servidor y limpia el estado local de autenticación.
+   * @param options - Opciones como mostrar toast de confirmación.
+   * @returns Promesa que resuelve tras redirigir a login.
+   */
   const logout = useCallback(
     async ({ showToast = false }: LogoutOptions = {}) => {
       try {
@@ -155,6 +183,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+/**
+ * Hook para acceder al estado y acciones de autenticación.
+ * @returns Valor del contexto con usuario, rol, flags y métodos de sesión.
+ * @throws {Error} Si se usa fuera de `AuthProvider`.
+ */
 export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext);
   if (!context) {

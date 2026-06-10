@@ -1,4 +1,8 @@
-﻿import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
+﻿/**
+ * @file AppShell.tsx
+ * @description Layout principal con header, menú lateral y barra inferior móvil.
+ */
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { BarChart3, Building2, FilePlus2, History, LogOut, Menu, MessageSquareText, Moon, Sun, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -32,6 +36,11 @@ const superAdminNavItems: Array<{
   { label: "Prompts", icon: MessageSquareText, path: "/admin/prompts", enabled: true },
 ];
 
+/**
+ * Shell de la aplicación con navegación, tema y cierre de sesión.
+ * @param props - Contenido hijo, tema y toggle de tema.
+ * @returns Layout con header, aside y main.
+ */
 export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   const [open, setOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -42,6 +51,7 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   const currentTab = readNavTab(searchParams.get("tab"));
   const onTicketsRoute = location.pathname.startsWith("/tickets");
 
+  /** Cierra sesión con toast y cierra el menú. @returns void */
   function handleLogout() {
     setLoggingOut(true);
     void logout({ showToast: true })
@@ -51,12 +61,14 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
       });
   }
 
+  /** @param tab - Pestaña de tickets destino. @returns void */
   function goToTab(tab: NavTab) {
     const search = tab === "metricas" ? "" : `?tab=${tab}`;
     navigate(`/tickets${search}`);
     setOpen(false);
   }
 
+  /** @param path - Ruta super-admin. @returns void */
   function goToSuperAdmin(path: string) {
     navigate(path);
     setOpen(false);
@@ -227,6 +239,7 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   );
 }
 
+/** @param value - Query `tab`. @returns Pestaña de navegación normalizada. */
 function readNavTab(value: string | null): NavTab {
   if (value === "crear" || value === "create") return "crear";
   if (value === "historial" || value === "history") return "historial";

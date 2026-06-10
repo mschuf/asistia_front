@@ -1,8 +1,16 @@
-﻿import * as React from "react";
+﻿/**
+ * @file select.tsx
+ * @description Selector nativo estilizado con soporte de ref y atributos HTML estándar.
+ */
+import * as React from "react";
 import { cn } from "@/lib/utils";
 
+/** Props del componente Select; extiende los atributos nativos de `<select>`. */
 export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {}
 
+/**
+ * Select de formulario con estilos del sistema de diseño.
+ */
 const Select = React.forwardRef<HTMLSelectElement, SelectProps>(({ className, children, ...props }, ref) => (
   <select
     className={cn(

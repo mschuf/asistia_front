@@ -1,3 +1,13 @@
+/**
+ * @file format.ts
+ * @description Formateo de fechas y nombres para presentación en la interfaz (locale es-PY).
+ */
+
+/**
+ * Formatea una fecha ISO o timestamp como fecha y hora local legible.
+ * @param value - Fecha en cadena o `null`/`undefined`.
+ * @returns Fecha formateada, el valor original si no es parseable, o "—" si está vacío.
+ */
 export function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
   const date = new Date(value);
@@ -11,6 +21,11 @@ export function formatDate(value: string | null | undefined): string {
   });
 }
 
+/**
+ * Separa una fecha en componentes de día y hora para layouts de dos líneas.
+ * @param value - Fecha en cadena o `null`/`undefined`.
+ * @returns Objeto con `date` formateada y `time` separada, o valores de fallback.
+ */
 export function formatDateParts(
   value: string | null | undefined
 ): { date: string; time: string | null } {
@@ -30,6 +45,11 @@ export function formatDateParts(
   };
 }
 
+/**
+ * Divide un nombre completo en dos líneas para tablas o tarjetas compactas.
+ * @param value - Nombre completo o `null`/`undefined`.
+ * @returns Primera línea con hasta dos palabras y segunda línea con el resto, si aplica.
+ */
 export function formatNameParts(
   value: string | null | undefined
 ): { firstLine: string; secondLine: string | null } {

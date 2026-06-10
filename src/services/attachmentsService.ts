@@ -1,3 +1,7 @@
+/**
+ * @file attachmentsService.ts
+ * @description Servicio HTTP para adjuntos de tickets: subida, listado y descarga.
+ */
 import { apiClient } from "@/api/apiClient";
 import type { TicketAttachment } from "@/types/asistia";
 
@@ -6,6 +10,13 @@ const API_URL = configuredApiUrl || (import.meta.env.DEV ? "/api/v1" : "");
 
 const UPLOAD_TIMEOUT_MS = 180_000;
 
+/**
+ * Sube un archivo adjunto a un ticket.
+ * @param ticketId - ID del ticket destino.
+ * @param file - Archivo a subir.
+ * @param options - Señal de aborto opcional.
+ * @returns Metadatos del adjunto creado.
+ */
 export async function uploadTicketAttachment(
   ticketId: number,
   file: File,
@@ -19,6 +30,12 @@ export async function uploadTicketAttachment(
   });
 }
 
+/**
+ * Lista los adjuntos de un ticket.
+ * @param ticketId - ID del ticket.
+ * @param options - Señal de aborto opcional.
+ * @returns Array de adjuntos.
+ */
 export async function listTicketAttachments(
   ticketId: number,
   options?: { signal?: AbortSignal },
@@ -29,6 +46,12 @@ export async function listTicketAttachments(
   });
 }
 
+/**
+ * Construye la URL de descarga de un adjunto con credenciales de cookie.
+ * @param ticketId - ID del ticket.
+ * @param attachmentId - ID del adjunto.
+ * @returns URL absoluta del endpoint de descarga.
+ */
 export function buildTicketAttachmentDownloadUrl(ticketId: number, attachmentId: number): string {
   if (!API_URL) {
     throw new Error("VITE_API_URL no está configurado.");
@@ -38,6 +61,13 @@ export function buildTicketAttachmentDownloadUrl(ticketId: number, attachmentId:
   return `${base}/tickets/${ticketId}/attachments/${attachmentId}/download`;
 }
 
+/**
+ * Obtiene el blob de un adjunto autenticado por cookie.
+ * @param ticketId - ID del ticket.
+ * @param attachmentId - ID del adjunto.
+ * @param options - Señal de aborto opcional.
+ * @returns Blob del archivo.
+ */
 export async function fetchTicketAttachmentBlob(
   ticketId: number,
   attachmentId: number,
@@ -55,6 +85,13 @@ export async function fetchTicketAttachmentBlob(
   return response.blob();
 }
 
+/**
+ * Descarga un adjunto disparando un enlace temporal en el navegador.
+ * @param ticketId - ID del ticket.
+ * @param attachmentId - ID del adjunto.
+ * @param filename - Nombre sugerido para el archivo descargado.
+ * @returns void
+ */
 export async function downloadTicketAttachment(
   ticketId: number,
   attachmentId: number,

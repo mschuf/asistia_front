@@ -1,3 +1,7 @@
+/**
+ * @file TicketAssignModal.tsx
+ * @description Modal para reasignar técnico y/o sede de un ticket.
+ */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -21,6 +25,11 @@ interface TicketAssignModalProps {
   submitting?: boolean;
 }
 
+/**
+ * Diálogo de reasignación de técnico y sede con validación de cambios.
+ * @param props - Ticket, sedes, visibilidad y callback onConfirm.
+ * @returns Modal de asignación o null.
+ */
 export function TicketAssignModal({
   ticket,
   locations,
@@ -58,6 +67,7 @@ export function TicketAssignModal({
     setError("");
   }, [open, ticket]);
 
+  /** @param query - Texto de búsqueda. @param _signal - Señal de aborto. @returns Opciones de técnico. */
   const loadTechnicianOptions = useCallback(async (query: string, _signal: AbortSignal) => {
     const result = await searchTechnicians(query);
     return result.items.map(
@@ -69,6 +79,7 @@ export function TicketAssignModal({
     );
   }, []);
 
+  /** @param value - ID del técnico. @param signal - Señal de aborto. @returns Opción resuelta. */
   const resolveTechnicianOption = useCallback(async (value: string, signal: AbortSignal) => {
     const technician = await getUserById(Number(value), { signal });
     return {
@@ -83,6 +94,7 @@ export function TicketAssignModal({
   const currentTechnicianId = ticket.technician?.id ? String(ticket.technician.id) : "";
   const currentLocationId = ticket.location?.id ? String(ticket.location.id) : "";
 
+  /** Valida cambios y delega en onConfirm. @returns void */
   const handleConfirm = () => {
     const technicianChanged = technicianId !== currentTechnicianId;
     const locationChanged = locationId !== currentLocationId;

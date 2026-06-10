@@ -1,3 +1,7 @@
+/**
+ * @file App.tsx
+ * @description Enrutamiento principal de la aplicación con rutas públicas, protegidas y lazy loading.
+ */
 import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -12,6 +16,11 @@ const TicketsPage = lazy(() => import("./pages/TicketsPage"));
 const AssistantPage = lazy(() => import("./pages/AssistantPage"));
 const EmpresasPage = lazy(() => import("./pages/EmpresasPage"));
 const PromptsPage = lazy(() => import("./pages/PromptsPage"));
+
+/**
+ * Componente raíz con definición de rutas y guards de autenticación.
+ * @returns Árbol de rutas de React Router con carga diferida por página.
+ */
 export default function App() {
   const { isAuthenticated } = useAuth();
 
@@ -60,6 +69,10 @@ export default function App() {
   );
 }
 
+/**
+ * Pantalla de espera mostrada mientras se cargan módulos con `React.lazy`.
+ * @returns Contenedor centrado con indicador de carga.
+ */
 function RouteFallback() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">

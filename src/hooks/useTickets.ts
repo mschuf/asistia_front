@@ -1,3 +1,7 @@
+/**
+ * @file useTickets.ts
+ * @description Hook central de la página de tickets: pestañas, catálogos, historial y acciones.
+ */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -26,12 +30,14 @@ import {
   TICKETS_PAGE_SIZE
 } from "../lib/tickets";
 
+/** @param value - Valor del query `tab`. @returns Pestaña normalizada. */
 function readTab(value: string | null): TicketsTab {
   if (value === "crear" || value === "create") return "crear";
   if (value === "historial" || value === "history") return "historial";
   return "metricas";
 }
 
+/** Convierte filtros UI en parámetros de listado del backend. */
 function toListTicketParams(
   filters: TicketFilterState,
   page: number,
@@ -53,6 +59,11 @@ function toListTicketParams(
   };
 }
 
+/**
+ * Orquesta estado, catálogos, historial y mutaciones de tickets.
+ * @param options - Callback opcional `onTicketCreated`.
+ * @returns Estado y handlers expuestos a la página de tickets.
+ */
 export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
   const { user } = useAuth();
   const toast = useToast();

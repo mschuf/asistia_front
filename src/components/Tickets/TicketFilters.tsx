@@ -1,4 +1,8 @@
-﻿import { useCallback, useMemo, useState } from "react";
+﻿/**
+ * @file TicketFilters.tsx
+ * @description Barra de búsqueda y filtros avanzados del historial de tickets.
+ */
+import { useCallback, useMemo, useState } from "react";
 import { ChevronDown, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -22,6 +26,11 @@ interface TicketFiltersProps {
   techniciansLoading?: boolean;
 }
 
+/**
+ * Filtros de historial con búsqueda rápida y panel expandible.
+ * @param props - Estado de filtros, catálogos y callbacks apply/change.
+ * @returns Panel de filtros colapsable.
+ */
 export function TicketFilters({
   filters,
   onChange,
@@ -34,6 +43,12 @@ export function TicketFilters({
 }: TicketFiltersProps) {
   const [expanded, setExpanded] = useState(false);
 
+  /**
+   * Actualiza un campo del filtro preservando el resto del estado.
+   * @param key - Clave del filtro.
+   * @param value - Nuevo valor.
+   * @returns void
+   */
   const update = useCallback(
     (key: keyof TicketFilterState, value: string) => {
       const { statusesPreset: _, ...rest } = filters;

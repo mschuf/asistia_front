@@ -1,3 +1,7 @@
+/**
+ * @file dialog.tsx
+ * @description Modal accesible con bloqueo de scroll del body y soporte para contenido desbordante.
+ */
 import { X } from "lucide-react";
 import { useEffect, useId, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -6,6 +10,9 @@ import { cn } from "@/lib/utils";
 let scrollLockCount = 0;
 let previousBodyOverflow = "";
 
+/**
+ * Bloquea el scroll del documento mientras hay al menos un diálogo abierto.
+ */
 function lockBodyScroll(): void {
   if (scrollLockCount === 0) {
     previousBodyOverflow = document.body.style.overflow;
@@ -14,6 +21,9 @@ function lockBodyScroll(): void {
   scrollLockCount += 1;
 }
 
+/**
+ * Libera el bloqueo de scroll si no quedan diálogos abiertos.
+ */
 function unlockBodyScroll(): void {
   scrollLockCount = Math.max(0, scrollLockCount - 1);
   if (scrollLockCount === 0) {
@@ -21,6 +31,7 @@ function unlockBodyScroll(): void {
   }
 }
 
+/** Props del componente Dialog. */
 interface DialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -33,6 +44,10 @@ interface DialogProps {
   allowOverflow?: boolean;
 }
 
+/**
+ * Modal centrado con overlay, cierre por Escape o clic fuera y etiquetas ARIA.
+ * @param props - Configuración de apertura, contenido y estilos del diálogo.
+ */
 export function Dialog({
   open,
   onOpenChange,

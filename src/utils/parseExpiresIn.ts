@@ -1,3 +1,13 @@
+/**
+ * @file parseExpiresIn.ts
+ * @description Convierte valores de expiración de token (número o cadena con unidad) a segundos.
+ */
+
+/**
+ * Normaliza `expiresIn` del backend a segundos enteros.
+ * @param value - Duración como número, cadena numérica o con sufijo `s`, `m`, `h`, `d`.
+ * @returns Segundos equivalentes; usa 3600 como valor por defecto si el formato es inválido.
+ */
 export function parseExpiresInSeconds(value: string | number): number {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value;

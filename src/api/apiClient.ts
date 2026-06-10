@@ -1,3 +1,7 @@
+/**
+ * @file apiClient.ts
+ * @description Cliente HTTP centralizado con cookies, backdrop global, timeouts y manejo de JWT expirado.
+ */
 const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
 const API_URL =
   configuredApiUrl ||
@@ -47,11 +51,19 @@ interface ConfigureApiClientOptions {
   onRequestEndFn?: RequestHook;
 }
 
+/**
+ * Error tipado para respuestas fallidas de la API.
+ */
 export class ApiError extends Error {
   status?: number;
   code?: string;
   details?: unknown;
 
+  /**
+   * Crea un error de API con metadatos HTTP opcionales.
+   * @param message - Mensaje legible para el usuario.
+   * @param options - Estado HTTP, código de error y detalles del payload.
+   */
   constructor(message: string, { status, code, details }: ApiErrorOptions = {}) {
     super(message);
     this.name = "ApiError";
@@ -61,6 +73,10 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Registra callbacks globales para inicio/fin de petición y sesión expirada.
+ * @param options - Hooks de unauthorized, request start y request end.
+ */
 export function configureApiClient({
   onUnauthorizedFn,
   onRequestStartFn,
@@ -71,6 +87,12 @@ export function configureApiClient({
   if (typeof onRequestEndFn === "function") onRequestEnd = onRequestEndFn;
 }
 
+/**
+ * Construye la URL absoluta con query string opcional.
+ * @param path - Ruta relativa del endpoint.
+ * @param query - Parámetros de consulta a serializar.
+ * @returns URL completa contra el origen actual.
+ */
 function buildUrl(path: string, query?: RequestOptions["query"]): string {
   const base = API_URL.endsWith("/") ? API_URL.slice(0, -1) : API_URL;
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
@@ -84,6 +106,12 @@ function buildUrl(path: string, query?: RequestOptions["query"]): string {
   return url.toString();
 }
 
+/**
+ * Extrae un mensaje legible del payload de error de la API.
+ * @param payload - Cuerpo parseado de la respuesta.
+ * @param fallback - Mensaje por defecto si no hay mensaje en el payload.
+ * @returns Mensaje de error para mostrar al usuario.
+ */
 function extractMessage(payload: ApiPayload | null, fallback: string): string {
   if (!payload) return fallback;
   if (Array.isArray(payload.message)) return payload.message.join(". ");
@@ -91,11 +119,23 @@ function extractMessage(payload: ApiPayload | null, fallback: string): string {
   return fallback;
 }
 
+/**
+ * Detecta si la respuesta 401 corresponde a un token JWT expirado.
+ * @param payload - Cuerpo de la respuesta de error.
+ * @returns `true` si el token expiró o es inválido por antigüedad.
+ */
 function isExpiredToken(payload: ApiPayload | null): boolean {
   const message = String(payload?.message ?? "").toLowerCase();
   return payload?.code === "TOKEN_EXPIRED" || (message.includes("token") && message.includes("expir"));
 }
 
+/**
+ * Ejecuta una petición HTTP con credenciales, timeout y normalización del envelope `{ success, data }`.
+ * @param path - Ruta del endpoint.
+ * @param options - Método, cuerpo, headers, backdrop y señal de aborto.
+ * @returns Datos tipados del campo `data` o el payload completo.
+ * @throws {ApiError} Si la respuesta no es OK, fue cancelada o excedió el timeout.
+ */
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const {
     method = "GET",
@@ -181,19 +221,55 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   }
 }
 
+/**
+ * Cliente HTTP con métodos REST que delegan en `request`.
+ */
 export const apiClient = {
+  /**
+   * Realiza una petición GET.
+   * @param path - Ruta del endpoint.
+   * @param options - Opciones de autenticación, query y timeout.
+   * @returns Datos tipados de la respuesta.
+   */
   get<T>(path: string, options?: Omit<RequestOptions, "method">): Promise<T> {
     return request<T>(path, { ...options, method: "GET" });
   },
+  /**
+   * Realiza una petición POST con cuerpo opcional.
+   * @param path - Ruta del endpoint.
+   * @param data - Cuerpo JSON o FormData.
+   * @param options - Opciones adicionales de la petición.
+   * @returns Datos tipados de la respuesta.
+   */
   post<T>(path: string, data?: unknown, options?: Omit<RequestOptions, "method" | "data">): Promise<T> {
     return request<T>(path, { ...options, method: "POST", data });
   },
+  /**
+   * Realiza una petición PUT con cuerpo opcional.
+   * @param path - Ruta del endpoint.
+   * @param data - Cuerpo de la petición.
+   * @param options - Opciones adicionales de la petición.
+   * @returns Datos tipados de la respuesta.
+   */
   put<T>(path: string, data?: unknown, options?: Omit<RequestOptions, "method" | "data">): Promise<T> {
     return request<T>(path, { ...options, method: "PUT", data });
   },
+  /**
+   * Realiza una petición PATCH con cuerpo opcional.
+   * @param path - Ruta del endpoint.
+   * @param data - Cuerpo parcial a actualizar.
+   * @param options - Opciones adicionales de la petición.
+   * @returns Datos tipados de la respuesta.
+   */
   patch<T>(path: string, data?: unknown, options?: Omit<RequestOptions, "method" | "data">): Promise<T> {
     return request<T>(path, { ...options, method: "PATCH", data });
   },
+  /**
+   * Realiza una petición DELETE.
+   * @param path - Ruta del endpoint.
+   * @param options - Opciones adicionales de la petición.
+   * @returns Datos tipados de la respuesta.
+   */
   delete<T>(path: string, options?: Omit<RequestOptions, "method">): Promise<T> {
     return request<T>(path, { ...options, method: "DELETE" });
   }

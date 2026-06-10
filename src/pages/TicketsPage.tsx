@@ -1,3 +1,7 @@
+/**
+ * @file TicketsPage.tsx
+ * @description Página principal de tickets con pestañas indicadores, crear e historial.
+ */
 import { BarChart3, FilePlus2, History, RefreshCw } from "lucide-react";
 import { useRef, useState } from "react";
 
@@ -52,6 +56,10 @@ const desktopTabs: Array<{
   { tab: "historial", label: "Historial", icon: History },
 ];
 
+/**
+ * Orquesta pestañas, métricas, formulario de creación e historial de tickets.
+ * @returns Vista completa de gestión de tickets.
+ */
 export default function TicketsPage() {
   const { user, role, isTechnician } = useAuth();
   const refreshMetricsRef = useRef<(() => Promise<void>) | undefined>(
@@ -129,6 +137,12 @@ export default function TicketsPage() {
   const [resolveTarget, setResolveTarget] = useState<AsistiaTicket | null>(null);
   const [assignTarget, setAssignTarget] = useState<AsistiaTicket | null>(null);
 
+  /**
+   * Intercepta resolución de técnicos para abrir modal con nota obligatoria.
+   * @param ticketId - ID del ticket.
+   * @param status - Estado destino.
+   * @returns void
+   */
   const handleTicketStatusChange = (ticketId: number, status: AsistiaTicketStatus) => {
     if (status === "solved" && isTechnician) {
       const ticket = tickets.find((item) => Number(item.id) === Number(ticketId));
@@ -157,6 +171,7 @@ export default function TicketsPage() {
     pagination.total,
   );
 
+  /** Recarga historial o métricas según la pestaña activa. @returns void */
   async function handleRefresh() {
     if (tab === "historial") {
       await refreshTickets();

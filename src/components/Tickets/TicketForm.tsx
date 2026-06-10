@@ -1,4 +1,8 @@
-﻿import { Eraser, SendHorizontal } from "lucide-react";
+﻿/**
+ * @file TicketForm.tsx
+ * @description Formulario de creación de tickets con catálogos y adjuntos.
+ */
+import { Eraser, SendHorizontal } from "lucide-react";
 import { FormEvent, useCallback, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,12 +15,13 @@ import { RichDescriptionEditor } from "@/components/tickets/RichDescriptionEdito
 import { TicketAttachmentsField } from "@/components/tickets/TicketAttachmentsField";
 import { validateAttachmentSelection } from "@/lib/attachments";
 import {
+  applyTicketDescriptionPrefix,
   buildCategoryOptions,
   buildLocationOptions,
   buildRequesterDisplayLabel,
+  extractTicketDescriptionBody,
   findLocationById,
   locationDisplayName,
-  prependTicketDescriptionPrefix,
 } from "@/lib/tickets";
 import { stripHtml } from "@/lib/utils";
 import { getUserById, searchTechnicians, searchUsers } from "@/services/ticketsService";
@@ -46,20 +51,27 @@ const DESCRIPTION_MIN_LENGTH = 12;
 const TECHNICIAN_EMPTY_OPTION = { value: "", label: "Seleccione un TI" };
 const REQUESTER_EMPTY_OPTION = { value: "", label: "Seleccione solicitante" };
 
+/** @param user - Usuario autenticado. @param isTechnician - Si es técnico. @returns ID solicitante por defecto. */
 function defaultRequesterId(user: AuthUser, isTechnician: boolean): string {
   if (isTechnician) return "";
   return user.id ? String(user.id) : "";
 }
 
+/** @param user - Usuario autenticado. @param isTechnician - Si es técnico. @returns ID técnico por defecto. */
 function defaultTechnicianId(user: AuthUser, isTechnician: boolean): string {
   if (isTechnician && user.id) return String(user.id);
   return "";
 }
 
+/**
+ * Formulario controlado para crear tickets con validación y adjuntos.
+ * @param props - Catálogos, rol de usuario y callback onSubmit.
+ * @returns Formulario de creación de ticket.
+ */
 export function TicketForm({ categories, locations, isTechnician, user, onSubmit }: TicketFormProps) {
   const [ticketType, setTicketType] = useState<AsistiaTicketType>("request");
   const [categoryId, setCategoryId] = useState("");
-  const [description, setDescription] = useState("");
+  const [descriptionBody, setDescriptionBody] = useState("");
   const [technicianId, setTechnicianId] = useState(() => defaultTechnicianId(user, isTechnician));
   const [requesterId, setRequesterId] = useState(() => defaultRequesterId(user, isTechnician));
   const [locationId, setLocationId] = useState(user.locationId ? String(user.locationId) : "");
@@ -70,6 +82,15 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
   const categoryOptions = useMemo(() => buildCategoryOptions(categories), [categories]);
   const locationOptions = useMemo(() => buildLocationOptions(locations), [locations]);
   const showLocationField = locations.length > 0 && (isTechnician || !user.locationId);
+  const effectiveType = isTechnician ? ticketType : "request";
+  const selectedCategory = useMemo(
+    () => categories.find((category) => String(category.id) === categoryId) ?? null,
+    [categories, categoryId],
+  );
+  const description = useMemo(
+    () => applyTicketDescriptionPrefix(descriptionBody, effectiveType, selectedCategory),
+    [descriptionBody, effectiveType, selectedCategory],
+  );
   const defaultTechnicianOption = useMemo<SearchableSelectOption | null>(() => {
     if (!isTechnician || !user.id) return null;
     const label = user.name || user.login;
@@ -80,6 +101,7 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
     };
   }, [isTechnician, user.id, user.name, user.login, user.email]);
 
+  /** @param query - Texto de búsqueda. @param _signal - Señal de aborto. @returns Opciones de técnico. */
   const loadTechnicianOptions = useCallback(async (query: string, _signal: AbortSignal) => {
     const result = await searchTechnicians(query);
     return result.items.map(
@@ -91,6 +113,7 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
     );
   }, []);
 
+  /** @param value - ID del técnico. @param signal - Señal de aborto. @returns Opción resuelta. */
   const resolveTechnicianOption = useCallback(async (value: string, signal: AbortSignal) => {
     const technician = await getUserById(Number(value), { signal });
     return {
@@ -100,6 +123,7 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
     };
   }, []);
 
+  /** @param query - Texto de búsqueda. @param signal - Señal de aborto. @returns Opciones de solicitante. */
   const loadRequesterOptions = useCallback(
     async (query: string, signal: AbortSignal) => {
       const result = await searchUsers(query, undefined, { signal });
@@ -117,6 +141,7 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
     [locations],
   );
 
+  /** @param value - ID del solicitante. @param signal - Señal de aborto. @returns Opción resuelta. */
   const resolveRequesterOption = useCallback(
     async (value: string, signal: AbortSignal) => {
       const requester = await getUserById(Number(value), { signal });
@@ -136,7 +161,7 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
     if (!categoryId) {
       nextErrors.category = "Seleccione una categoría.";
     }
-    if (stripHtml(description).length < DESCRIPTION_MIN_LENGTH) {
+    if (stripHtml(descriptionBody).length < DESCRIPTION_MIN_LENGTH) {
       nextErrors.description = `La descripción debe tener al menos ${DESCRIPTION_MIN_LENGTH} caracteres.`;
     }
     if (isTechnician && !technicianId) {
@@ -147,14 +172,15 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
       nextErrors.attachments = attachmentError;
     }
     return nextErrors;
-  }, [attachments, categoryId, description, isTechnician, technicianId]);
+  }, [attachments, categoryId, descriptionBody, isTechnician, technicianId]);
 
   const canSubmit = Object.keys(errors).length === 0 && !submitting;
 
+  /** @param clearFeedback - Si limpia errores de submit. @returns void */
   const resetForm = (clearFeedback = true) => {
     setTicketType("request");
     setCategoryId("");
-    setDescription("");
+    setDescriptionBody("");
     setTechnicianId(defaultTechnicianId(user, isTechnician));
     setRequesterId(defaultRequesterId(user, isTechnician));
     setLocationId(user.locationId ? String(user.locationId) : "");
@@ -164,6 +190,7 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
     }
   };
 
+  /** @param event - Submit del formulario. @returns void */
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canSubmit) return;
@@ -172,14 +199,11 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
     setSubmitError("");
 
     try {
-      const selectedCategory = categories.find((category) => String(category.id) === categoryId);
       const subject = selectedCategory?.fullPath || selectedCategory?.name || "";
-      const effectiveType = isTechnician ? ticketType : "request";
-
       await onSubmit({
         type: effectiveType,
         subject,
-        description: prependTicketDescriptionPrefix(description, effectiveType, selectedCategory),
+        description,
         categoryId: Number(categoryId),
         locationId: locationId ? Number(locationId) : undefined,
         assignedTechnicianId: technicianId ? Number(technicianId) : undefined,
@@ -289,7 +313,9 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
         <RichDescriptionEditor
           id="ticket-description"
           value={description}
-          onChange={setDescription}
+          onChange={(value) =>
+            setDescriptionBody(extractTicketDescriptionBody(value, effectiveType, selectedCategory))
+          }
           describedBy={errors.description ? "ticket-description-error" : undefined}
           disabled={submitting}
         />

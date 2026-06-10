@@ -1,3 +1,7 @@
+/**
+ * @file InstallAppButton.tsx
+ * @description Botón de instalación PWA con instrucciones por plataforma.
+ */
 import { Download, MoreVertical, Share } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -5,6 +9,10 @@ import { Dialog } from "@/components/ui/dialog";
 import { useToast } from "@/context/ToastContext";
 import { usePwaInstall } from "@/hooks/usePwaInstall";
 
+/**
+ * Muestra instalación nativa o diálogo con pasos manuales según plataforma.
+ * @returns Botón de instalar o null si no aplica.
+ */
 export function InstallAppButton() {
   const { canInstall, mode, manualPlatform, install } = usePwaInstall();
   const { success } = useToast();
@@ -14,6 +22,10 @@ export function InstallAppButton() {
     return null;
   }
 
+  /**
+   * Dispara instalación nativa o abre instrucciones manuales.
+   * @returns void
+   */
   const handleClick = async () => {
     if (mode === "native") {
       const installed = await install();

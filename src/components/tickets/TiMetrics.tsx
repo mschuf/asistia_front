@@ -1,4 +1,8 @@
-﻿import type { ReactNode } from "react";
+﻿/**
+ * @file TiMetrics.tsx
+ * @description Panel de indicadores TI con tarjetas y gráfico por sede.
+ */
+import type { ReactNode } from "react";
 import { AlertTriangle, Building2, ClipboardList, History, Ticket } from "lucide-react";
 import { MobileRefreshFab } from "@/components/layout/MobileRefreshFab";
 import { Loading } from "@/components/ui/loading";
@@ -15,6 +19,7 @@ interface TiMetricsProps {
   openBySiteChartDescription?: string;
 }
 
+/** @param props - Slice de métrica con porcentaje del mes. @returns Subtítulo con % y conteos. */
 function MetricPercent({ slice }: { slice: TicketMetricSlice | MyTicketsMetricSlice }) {
   const openMonth = "openThisMonth" in slice ? slice.openThisMonth : 0;
   const totalMonth = slice.totalThisMonth;
@@ -38,10 +43,16 @@ interface MetricCardProps {
   ariaLabel?: string;
 }
 
+/** @param count - Cantidad abierta. @returns Etiqueta singular/plural. */
 function openCountLabel(count: number): string {
   return count === 1 ? "abierto" : "abiertos";
 }
 
+/**
+ * Tarjeta de métrica clickeable o estática.
+ * @param props - Etiqueta, valor, icono, estilos y onClick opcional.
+ * @returns Botón o div con la métrica.
+ */
 function MetricCard({
   label,
   value,
@@ -90,6 +101,11 @@ function MetricCard({
   return <div className={cn("rounded-md border p-4", className)}>{content}</div>;
 }
 
+/**
+ * Dashboard de indicadores personales y gráfico por sede.
+ * @param props - Métricas, carga, navegación a historial y refresh.
+ * @returns Grid de tarjetas, gráfico y FAB móvil opcional.
+ */
 export function TiMetrics({
   metrics,
   loading,

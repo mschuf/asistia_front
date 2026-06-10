@@ -1,4 +1,8 @@
-﻿import { BarChart3, FilePlus2, History } from "lucide-react";
+﻿/**
+ * @file BottomTabBar.tsx
+ * @description Barra de pestañas inferior móvil para la ruta de tickets.
+ */
+import { BarChart3, FilePlus2, History } from "lucide-react";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -17,12 +21,17 @@ const items: BottomTabItem[] = [
   { tab: "historial", label: "Historial", icon: History },
 ];
 
+/** @param value - Query `tab`. @returns Pestaña inferior normalizada. */
 function readBottomTab(value: string | null): BottomTab {
   if (value === "crear" || value === "create") return "crear";
   if (value === "historial" || value === "history") return "historial";
   return "metricas";
 }
 
+/**
+ * Navegación rápida móvil entre indicadores, crear e historial.
+ * @returns Barra fija inferior o null fuera de /tickets.
+ */
 export function BottomTabBar() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -34,6 +43,11 @@ export function BottomTabBar() {
 
   const current = readBottomTab(searchParams.get("tab"));
 
+  /**
+   * Cambia la pestaña activa vía query string.
+   * @param tab - Pestaña seleccionada.
+   * @returns void
+   */
   const handleSelect = (tab: BottomTab) => {
     if (tab === "metricas") {
       setSearchParams({});

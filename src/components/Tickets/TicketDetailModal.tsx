@@ -1,3 +1,7 @@
+/**
+ * @file TicketDetailModal.tsx
+ * @description Modal de detalle de ticket con carga lazy y adjuntos.
+ */
 import { useEffect, useState, type ReactNode } from "react";
 import { TicketActions } from "@/components/tickets/TicketActions";
 import { TicketAttachmentsList } from "@/components/tickets/TicketAttachmentsList";
@@ -20,6 +24,11 @@ interface TicketDetailModalProps {
   assigning?: { ticketId: number } | null;
 }
 
+/**
+ * Fila de detalle con etiqueta y valor.
+ * @param props - Etiqueta y contenido hijo.
+ * @returns Elemento dl/dt/dd.
+ */
 function DetailRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="grid gap-1 sm:grid-cols-[140px_1fr] sm:gap-3">
@@ -29,6 +38,11 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
   );
 }
 
+/**
+ * Modal que carga el detalle completo del ticket al abrirse.
+ * @param props - Ticket, visibilidad, callbacks de estado y asignación.
+ * @returns Diálogo con metadatos y acciones o null.
+ */
 export function TicketDetailModal({
   ticket,
   open,

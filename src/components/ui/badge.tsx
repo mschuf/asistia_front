@@ -1,7 +1,12 @@
-﻿import * as React from "react";
+﻿/**
+ * @file badge.tsx
+ * @description Etiqueta compacta con variantes de color para estados y categorías.
+ */
+import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
+/** Variantes de color del badge definidas con CVA. */
 const badgeVariants = cva(
   "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset",
   {
@@ -20,10 +25,14 @@ const badgeVariants = cva(
   },
 );
 
+/** Props del componente Badge. */
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLSpanElement>,
     VariantProps<typeof badgeVariants> {}
 
+/**
+ * Badge inline para mostrar estados, etiquetas o contadores.
+ */
 function Badge({ className, variant, ...props }: BadgeProps) {
   return <span className={cn(badgeVariants({ variant }), className)} {...props} />;
 }

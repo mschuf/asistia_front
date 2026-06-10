@@ -1,14 +1,21 @@
-﻿import { ChevronDown, Search } from "lucide-react";
+﻿/**
+ * @file searchable-select.tsx
+ * @description Selector desplegable con búsqueda local, navegación por teclado y posicionamiento adaptativo.
+ */
+import { ChevronDown, Search } from "lucide-react";
 import { type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { cn, normalizeText } from "@/lib/utils";
 import { Input } from "./input";
 
+/** Opción disponible en el selector con texto de búsqueda opcional. */
 export interface SearchableSelectOption {
   value: string;
   label: string;
+  /** Texto alternativo para filtrar cuando difiere de `label`. */
   searchText?: string;
 }
 
+/** Props del componente SearchableSelect. */
 interface SearchableSelectProps {
   id?: string;
   value: string;
@@ -16,12 +23,17 @@ interface SearchableSelectProps {
   options: SearchableSelectOption[];
   placeholder?: string;
   searchPlaceholder?: string;
+  /** Opción especial (p. ej. "Todos") que se antepone a la lista. */
   emptyOption?: SearchableSelectOption;
   disabled?: boolean;
   "aria-describedby"?: string;
   noResultsText?: string;
 }
 
+/**
+ * Selector con filtrado en cliente, soporte ARIA y cierre al hacer clic fuera.
+ * @param props - Valor controlado, opciones y textos de la interfaz.
+ */
 export function SearchableSelect({
   id,
   value,
@@ -110,12 +122,20 @@ export function SearchableSelect({
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [open]);
 
+  /**
+   * Aplica la selección, cierra el desplegable y limpia la búsqueda.
+   * @param nextValue - Valor de la opción elegida.
+   */
   const selectOption = (nextValue: string) => {
     onChange(nextValue);
     setOpen(false);
     setQuery("");
   };
 
+  /**
+   * Gestiona apertura, cierre y navegación por teclado del listbox.
+   * @param event - Evento de teclado capturado en el contenedor.
+   */
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (disabled) {
       return;

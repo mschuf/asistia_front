@@ -1,3 +1,7 @@
+/**
+ * @file PromptConfirmDialog.tsx
+ * @description Diálogo de confirmación para eliminar un prompt definitivamente.
+ */
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -12,6 +16,11 @@ interface PromptConfirmDialogProps {
   onConfirm: () => void;
 }
 
+/**
+ * Diálogo modal de confirmación de eliminación de prompt.
+ * @param props - Prompt objetivo, estado de carga y callbacks.
+ * @returns Diálogo de confirmación o null sin prompt.
+ */
 export function PromptConfirmDialog({
   open,
   prompt,

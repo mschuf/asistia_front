@@ -1,3 +1,12 @@
+/**
+ * @file registerServiceWorker.ts
+ * @description Registro del service worker PWA tras la carga de la ventana.
+ */
+
+/**
+ * Registra `/sw.js` cuando el navegador soporta service workers.
+ * @returns void; no hace nada en SSR o navegadores sin soporte.
+ */
 export function registerServiceWorker(): void {
   if (typeof window === "undefined") return;
   if (!("serviceWorker" in navigator)) return;

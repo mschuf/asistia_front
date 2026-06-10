@@ -1,7 +1,15 @@
+/**
+ * @file asistia.ts
+ * @description Tipos de dominio de Asistia: usuarios, tickets, catálogos, métricas y respuestas de API.
+ */
+
+/** Rol de usuario en el sistema Asistia. */
 export type AsistiaRole = "final_user" | "technician";
 
+/** Tipo de ticket: incidente o solicitud. */
 export type AsistiaTicketType = "incident" | "request";
 
+/** Estado del ciclo de vida de un ticket. */
 export type AsistiaTicketStatus =
   | "new"
   | "assigned"
@@ -10,6 +18,7 @@ export type AsistiaTicketStatus =
   | "solved"
   | "closed";
 
+/** Usuario autenticado con datos de sesión y permisos. */
 export interface AuthUser {
   id: number;
   login: string;
@@ -23,21 +32,25 @@ export interface AuthUser {
   isSuperAdmin?: boolean;
 }
 
+/** Credenciales enviadas al endpoint de login. */
 export interface LoginPayload {
   username: string;
   password: string;
 }
 
+/** Respuesta exitosa del login con usuario y tiempo de expiración. */
 export interface LoginResponse {
   expiresIn: string;
   user: AuthUser;
 }
 
+/** Estado de sesión activa con fecha de expiración en epoch. */
 export interface SessionResponse {
   user: AuthUser;
   expiresAt: number;
 }
 
+/** Categoría jerárquica de tickets. */
 export interface AsistiaCategory {
   id: number;
   name: string;
@@ -46,6 +59,7 @@ export interface AsistiaCategory {
   level: number;
 }
 
+/** Ubicación física asociada a tickets o usuarios. */
 export interface AsistiaLocation {
   id: number;
   name: string;
@@ -54,6 +68,7 @@ export interface AsistiaLocation {
   room: string | null;
 }
 
+/** Usuario del directorio Asistia (técnico o solicitante). */
 export interface AsistiaUser {
   id: number;
   login: string;
@@ -68,12 +83,14 @@ export interface AsistiaUser {
   isActive: boolean;
 }
 
+/** Actor involucrado en un ticket (solicitante o técnico). */
 export interface AsistiaTicketActor {
   id: number | null;
   name: string | null;
   email: string | null;
 }
 
+/** Ticket con relaciones resumidas de categoría, ubicación y actores. */
 export interface AsistiaTicket {
   id: number;
   type: AsistiaTicketType;
@@ -89,6 +106,7 @@ export interface AsistiaTicket {
   updatedAt: string | null;
 }
 
+/** Respuesta paginada de listado de tickets. */
 export interface AsistiaTicketListResponse {
   items: AsistiaTicket[];
   total: number;
@@ -96,6 +114,7 @@ export interface AsistiaTicketListResponse {
   limit: number;
 }
 
+/** Respuesta paginada de listado de usuarios. */
 export interface AsistiaUserListResponse {
   items: AsistiaUser[];
   total: number;
@@ -103,6 +122,7 @@ export interface AsistiaUserListResponse {
   limit: number;
 }
 
+/** Datos mínimos para crear un ticket. */
 export interface CreateTicketInput {
   type: AsistiaTicketType;
   subject: string;
@@ -120,6 +140,7 @@ export interface CreateTicketResponse {
   mail: { sent: boolean; error: string | null };
 }
 
+/** Archivo adjunto asociado a un ticket. */
 export interface TicketAttachment {
   id: number;
   ticketId: number;
@@ -130,11 +151,13 @@ export interface TicketAttachment {
   createdAt: string;
 }
 
+/** Respuesta al actualizar el estado de un ticket. */
 export interface UpdateTicketStatusResponse {
   id: number;
   status: AsistiaTicketStatus;
 }
 
+/** Métricas agregadas de tickets abiertos en un ámbito. */
 export interface TicketMetricSlice {
   open: number;
   openPercent: number;
@@ -142,6 +165,7 @@ export interface TicketMetricSlice {
   totalThisMonth: number;
 }
 
+/** Métricas de tickets propios del técnico autenticado. */
 export interface MyTicketsMetricSlice {
   inProgress: number;
   openPercent: number;
@@ -149,12 +173,14 @@ export interface MyTicketsMetricSlice {
   totalThisMonth: number;
 }
 
+/** Conteo de tickets abiertos agrupados por ubicación. */
 export interface OpenByLocationMetric {
   locationId: number;
   name: string;
   open: number;
 }
 
+/** Respuesta del endpoint de métricas para el panel de TI. */
 export interface TiMetricsResponse {
   myTickets: MyTicketsMetricSlice;
   mySite: TicketMetricSlice | null;

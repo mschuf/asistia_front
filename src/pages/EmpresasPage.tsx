@@ -1,3 +1,7 @@
+/**
+ * @file EmpresasPage.tsx
+ * @description Administración super-admin de empresas (tenants) y configuración Microsoft.
+ */
 import { Building2, Eye, Pencil, Plus, Power, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -56,6 +60,10 @@ const EMPTY_FORM: EmpresaFormState = {
   daemonIntervalSeconds: "60",
 };
 
+/**
+ * CRUD de empresas con búsqueda, paginación y diálogos de confirmación.
+ * @returns Vista de administración de tenants.
+ */
 export default function EmpresasPage() {
   const toast = useToast();
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
@@ -76,6 +84,7 @@ export default function EmpresasPage() {
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / PAGE_SIZE)), [total]);
 
+  /** Carga empresas paginadas desde la API. @returns void */
   const loadEmpresas = useCallback(async () => {
     setLoading(true);
     try {
@@ -100,12 +109,14 @@ export default function EmpresasPage() {
     }
   }, [dialogOpen]);
 
+  /** Abre el diálogo en modo creación. @returns void */
   function openCreateDialog() {
     setEditing(null);
     setForm(EMPTY_FORM);
     setDialogOpen(true);
   }
 
+  /** @param empresa - Empresa a editar. @returns void */
   function openEditDialog(empresa: Empresa) {
     setEditing(empresa);
     setForm({
@@ -123,22 +134,26 @@ export default function EmpresasPage() {
     setDialogOpen(true);
   }
 
+  /** @param key - Campo del formulario. @param value - Nuevo valor. @returns void */
   function updateForm<K extends keyof EmpresaFormState>(key: K, value: EmpresaFormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
+  /** @param action - Acción de confirmación. @param empresa - Empresa objetivo. @returns void */
   function openConfirm(action: EmpresaConfirmAction, empresa: Empresa) {
     setConfirmAction(action);
     setConfirmEmpresa(empresa);
     setConfirmOpen(true);
   }
 
+  /** Cierra el diálogo de confirmación. @returns void */
   function closeConfirm() {
     setConfirmOpen(false);
     setConfirmAction(null);
     setConfirmEmpresa(null);
   }
 
+  /** Ejecuta activar, desactivar o eliminar según la acción confirmada. @returns void */
   async function handleConfirmAction() {
     if (!confirmAction || !confirmEmpresa) return;
 
@@ -171,6 +186,7 @@ export default function EmpresasPage() {
     }
   }
 
+  /** @param event - Submit del formulario de empresa. @returns void */
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
@@ -244,6 +260,7 @@ export default function EmpresasPage() {
     }
   }
 
+  /** Aplica el texto de búsqueda y reinicia la página. @returns void */
   function applySearch() {
     setPage(1);
     setSearch(searchInput.trim());

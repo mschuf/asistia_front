@@ -1,3 +1,7 @@
+/**
+ * @file TiOpenBySiteChart.tsx
+ * @description Gráfico de barras horizontales de tickets abiertos por sede.
+ */
 import { getSiteMetricBarStyle } from "@/lib/site-metric-bar-colors";
 import type { OpenByLocationMetric } from "@/types/asistia";
 
@@ -6,6 +10,11 @@ interface TiOpenBySiteChartProps {
   description?: string;
 }
 
+/**
+ * Lista ordenada de sedes con barras proporcionales al máximo abierto.
+ * @param props - Métricas por sede y descripción opcional.
+ * @returns Tarjeta con gráfico o mensaje vacío.
+ */
 export function TiOpenBySiteChart({
   data,
   description = "Tickets abiertos totales por sede",

@@ -1,3 +1,7 @@
+/**
+ * @file useTiMetrics.ts
+ * @description Hook para cargar y refrescar indicadores TI de tickets.
+ */
 import { useCallback, useEffect, useState } from "react";
 import { ApiError } from "@/api/apiClient";
 import { isAbortError } from "@/lib/http";
@@ -10,6 +14,11 @@ interface UseTiMetricsOptions {
   isTabActive?: boolean;
 }
 
+/**
+ * Carga métricas TI cuando la pestaña está activa y permite refresco manual.
+ * @param options - `enabled` e `isTabActive` controlan la carga automática.
+ * @returns Métricas, estados de carga/error y `refreshMetrics`.
+ */
 export function useTiMetrics({ enabled, isTabActive = false }: UseTiMetricsOptions) {
   const [metrics, setMetrics] = useState<TiMetricsResponse | null>(null);
   const [loading, setLoading] = useState(false);

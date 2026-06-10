@@ -1,3 +1,7 @@
+/**
+ * @file AttachmentImagePreview.tsx
+ * @description Visor modal de imágenes adjuntas con zoom y tecla Escape.
+ */
 import { X, ZoomIn, ZoomOut } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -14,10 +18,16 @@ interface AttachmentImagePreviewProps {
   onClose: () => void;
 }
 
+/** @param value - Nivel de zoom. @returns Zoom acotado entre MIN y MAX. */
 function clampZoom(value: number): number {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
 }
 
+/**
+ * Modal de vista previa con zoom por rueda y botones.
+ * @param props - URL, alt, nombre de archivo y callback de cierre.
+ * @returns Overlay de imagen a pantalla completa.
+ */
 export function AttachmentImagePreview({
   src,
   alt,
@@ -28,6 +38,7 @@ export function AttachmentImagePreview({
   const [fittedSize, setFittedSize] = useState<{ width: number; height: number } | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
 
+  /** Recalcula dimensiones de ajuste al viewport. @param img - Elemento imagen cargado. @returns void */
   const recomputeFit = useCallback((img: HTMLImageElement) => {
     const container = viewportRef.current;
     if (!container) return;
@@ -91,7 +102,9 @@ export function AttachmentImagePreview({
     return () => observer.disconnect();
   }, [recomputeFit, src]);
 
+  /** Incrementa zoom un paso. @returns void */
   const zoomIn = () => setZoom((current) => clampZoom(Number((current + ZOOM_STEP).toFixed(2))));
+  /** Decrementa zoom un paso. @returns void */
   const zoomOut = () => setZoom((current) => clampZoom(Number((current - ZOOM_STEP).toFixed(2))));
 
   return (

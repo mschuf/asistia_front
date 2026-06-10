@@ -1,3 +1,7 @@
+/**
+ * @file MobileRefreshFab.tsx
+ * @description FAB móvil de recarga flotante sobre la barra inferior.
+ */
 import { createPortal } from "react-dom";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +13,11 @@ interface MobileRefreshFabProps {
   loading?: boolean;
 }
 
+/**
+ * Botón flotante de recarga visible solo en móvil.
+ * @param props - Visibilidad, callback y estado de carga.
+ * @returns Portal con FAB o null.
+ */
 export function MobileRefreshFab({ visible, onClick, loading }: MobileRefreshFabProps) {
   if (!visible || typeof document === "undefined") {
     return null;

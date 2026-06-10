@@ -1,3 +1,7 @@
+/**
+ * @file TicketAttachmentsField.tsx
+ * @description Campo de formulario para seleccionar adjuntos al crear ticket.
+ */
 import { FileText, Paperclip, X } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +25,11 @@ interface TicketAttachmentsFieldProps {
   error?: string;
 }
 
+/**
+ * Selector de archivos con paste global, validación y miniaturas.
+ * @param props - Archivos controlados, onChange y estados disabled/error.
+ * @returns Campo Field con input oculto y grilla de previews.
+ */
 export function TicketAttachmentsField({
   files,
   onChange,
@@ -46,6 +55,11 @@ export function TicketAttachmentsField({
     };
   }, [files]);
 
+  /**
+   * Fusiona archivos nuevos con validación de límites.
+   * @param incoming - Archivos a agregar.
+   * @returns void
+   */
   const addFiles = useCallback(
     (incoming: File[]) => {
       if (!incoming.length || disabled) return;
@@ -66,6 +80,7 @@ export function TicketAttachmentsField({
     [disabled, onChange],
   );
 
+  /** @param selected - FileList del input file. @returns void */
   const handleSelect = (selected: FileList | null) => {
     if (!selected?.length) return;
     addFiles(Array.from(selected));
@@ -90,6 +105,7 @@ export function TicketAttachmentsField({
     return () => document.removeEventListener("paste", handleDocumentPaste);
   }, [addFiles, disabled]);
 
+  /** @param index - Índice del archivo a quitar. @returns void */
   const removeFile = (index: number) => {
     setSelectionError("");
     onChange(files.filter((_, currentIndex) => currentIndex !== index));

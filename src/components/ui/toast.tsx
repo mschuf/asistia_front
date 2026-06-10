@@ -1,13 +1,19 @@
-﻿import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
+﻿/**
+ * @file toast.tsx
+ * @description Notificación inline con variantes visuales, icono y acción opcional.
+ */
+import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
+/** Props del componente Toast. */
 interface ToastProps {
   title: string;
   message: string;
   variant?: "success" | "default" | "destructive";
   onClose?: () => void;
+  /** Contenido interactivo adicional (p. ej. un botón de acción). */
   action?: ReactNode;
 }
 
@@ -26,6 +32,10 @@ const variantIcons: Record<NonNullable<ToastProps["variant"]>, LucideIcon> = {
   destructive: AlertTriangle,
 };
 
+/**
+ * Muestra una notificación accesible con título, mensaje y variante de color.
+ * @param props - Textos, variante visual y callbacks del toast.
+ */
 export function Toast({ title, message, variant = "default", onClose, action }: ToastProps) {
   const Icon = variantIcons[variant];
 

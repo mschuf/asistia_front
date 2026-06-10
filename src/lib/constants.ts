@@ -1,3 +1,9 @@
+/**
+ * @file constants.ts
+ * @description Etiquetas en español para estados, tipos y urgencias de tickets en la UI.
+ */
+
+/** Mapa de códigos de estado de ticket a etiquetas legibles. */
 export const TICKET_STATUS_LABELS: Record<string, string> = {
   new: "Nuevo",
   assigned: "En curso asignada",
@@ -7,11 +13,13 @@ export const TICKET_STATUS_LABELS: Record<string, string> = {
   closed: "Cerrado"
 };
 
+/** Mapa de tipos de ticket a etiquetas legibles. */
 export const TICKET_TYPE_LABELS: Record<string, string> = {
   incident: "Incidente",
   request: "Solicitud"
 };
 
+/** Mapa de niveles de urgencia de ticket a etiquetas legibles. */
 export const TICKET_URGENCY_LABELS: Record<string, string> = {
   very_low: "Muy baja",
   low: "Baja",

@@ -1,3 +1,7 @@
+/**
+ * @file MailTestPage.tsx
+ * @description Herramienta de prueba del endpoint público POST /mail/send.
+ */
 import { ApiError } from "@/api/apiClient";
 import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
@@ -16,6 +20,10 @@ const DESCRIPTION_MIN_LENGTH = 10;
 const DEFAULT_CATEGORY_ID = "65";
 const DEFAULT_TICKET_TYPE = "request";
 
+/**
+ * Formulario de prueba para crear ticket vía correo sin autenticación.
+ * @returns Pantalla de prueba SMTP/GLPI.
+ */
 export default function MailTestPage() {
   const { user } = useAuth();
   const [email, setEmail] = useState("");
@@ -77,6 +85,11 @@ export default function MailTestPage() {
     };
   }, []);
 
+  /**
+   * Valida el formulario y envía la solicitud de correo de prueba.
+   * @param event - Evento submit del formulario.
+   * @returns void
+   */
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");

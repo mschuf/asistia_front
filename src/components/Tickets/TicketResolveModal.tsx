@@ -1,3 +1,7 @@
+/**
+ * @file TicketResolveModal.tsx
+ * @description Modal para marcar ticket como resuelto con nota obligatoria.
+ */
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -15,6 +19,11 @@ interface TicketResolveModalProps {
   submitting?: boolean;
 }
 
+/**
+ * Solicita nota de resolución antes de confirmar estado solved.
+ * @param props - Ticket, visibilidad, onConfirm y submitting.
+ * @returns Diálogo con textarea o null.
+ */
 export function TicketResolveModal({
   ticket,
   open,
@@ -34,6 +43,7 @@ export function TicketResolveModal({
 
   if (!ticket) return null;
 
+  /** Valida longitud mínima y confirma resolución. @returns void */
   const handleConfirm = () => {
     const trimmed = note.trim();
     if (trimmed.length < RESOLUTION_NOTE_MIN_LENGTH) {

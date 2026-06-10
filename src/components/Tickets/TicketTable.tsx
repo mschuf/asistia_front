@@ -1,4 +1,8 @@
-﻿import { useEffect, useState } from "react";
+﻿/**
+ * @file TicketTable.tsx
+ * @description Tabla de historial de tickets con modal de detalle.
+ */
+import { useEffect, useState } from "react";
 import { TicketActions } from "@/components/tickets/TicketActions";
 import { TicketDetailModal } from "@/components/tickets/TicketDetailModal";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +20,7 @@ interface TicketTableProps {
   assigning?: { ticketId: number } | null;
 }
 
+/** @param props - Fecha ISO de apertura. @returns Celda con fecha y hora en dos líneas. */
 function AperturaCell({ value }: { value: string | null }) {
   const { date, time } = formatDateParts(value);
   return (
@@ -26,6 +31,7 @@ function AperturaCell({ value }: { value: string | null }) {
   );
 }
 
+/** @param props - Nombre completo. @returns Celda con nombre partido en dos líneas. */
 function NameCell({ value }: { value: string | null | undefined }) {
   const { firstLine, secondLine } = formatNameParts(value);
   return (
@@ -36,6 +42,11 @@ function NameCell({ value }: { value: string | null | undefined }) {
   );
 }
 
+/**
+ * Tabla clickeable de tickets con acciones inline y detalle modal.
+ * @param props - Lista de tickets y callbacks de estado/asignación.
+ * @returns Tabla o EmptyState si no hay resultados.
+ */
 export function TicketTable({
   tickets,
   onStatusChange,
@@ -52,6 +63,12 @@ export function TicketTable({
     });
   }, [tickets]);
 
+  /**
+   * Propaga cambio de estado cerrando modal si se resuelve.
+   * @param ticketId - ID del ticket.
+   * @param status - Nuevo estado.
+   * @returns void
+   */
   const handleStatusChange = (ticketId: number, status: AsistiaTicketStatus) => {
     if (status === "solved") {
       setSelectedTicket(null);
@@ -59,6 +76,7 @@ export function TicketTable({
     onStatusChange?.(ticketId, status);
   };
 
+  /** @param ticket - Ticket a asignar. @returns void */
   const handleAssignClick = (ticket: AsistiaTicket) => {
     setSelectedTicket(null);
     onAssignClick?.(ticket);

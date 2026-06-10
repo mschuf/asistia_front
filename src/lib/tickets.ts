@@ -1,3 +1,7 @@
+/**
+ * @file tickets.ts
+ * @description Utilidades de dominio para tickets: estados, filtros, etiquetas y transiciones.
+ */
 import type { AsistiaTicket, AsistiaTicketStatus, AsistiaTicketType, AsistiaUser } from "@/types/asistia";
 import type { AuthUser } from "@/types/auth";
 import type { TicketFilterState } from "@/types/pages/tickets-page.types";
@@ -13,27 +17,32 @@ export const HISTORY_TABLE_STATUSES: AsistiaTicketStatus[] = ["assigned", "plann
 /** Tamaño de página del historial (alineado con el máximo del backend). */
 export const TICKETS_PAGE_SIZE = 15;
 
+/** @param status - Estado del ticket. @returns Etiqueta legible en español. */
 export function statusLabel(status: AsistiaTicketStatus): string {
   return TICKET_STATUS_LABELS[status] ?? status;
 }
 
+/** @param type - Tipo de ticket. @returns Etiqueta legible en español. */
 export function typeLabel(type: AsistiaTicketType): string {
   return TICKET_TYPE_LABELS[type] ?? type;
 }
 
+/** @param urgency - Código de urgencia. @returns Etiqueta legible o el código original. */
 export function urgencyLabel(urgency: string): string {
   return TICKET_URGENCY_LABELS[urgency] ?? urgency;
 }
 
+/** @param ticket - Ticket a evaluar. @returns `true` si el estado es abierto. */
 export function isTicketOpen(ticket: AsistiaTicket): boolean {
   return OPEN_STATUSES.includes(ticket.status);
 }
 
+/** @param ticket - Ticket a evaluar. @returns `true` si está en progreso. */
 export function isTicketInProgress(ticket: AsistiaTicket): boolean {
   return IN_PROGRESS_STATUSES.includes(ticket.status);
 }
 
-/** Mes calendario actual en UTC (alineado con el backend). */
+/** @param isoDate - Fecha ISO. @returns `true` si cae en el mes UTC actual. */
 export function isInCurrentMonth(isoDate: string | null): boolean {
   if (!isoDate) return false;
   const date = new Date(isoDate);
@@ -44,15 +53,18 @@ export function isInCurrentMonth(isoDate: string | null): boolean {
   );
 }
 
+/** @param open - Cantidad abierta. @param total - Total del mes. @returns Porcentaje redondeado. */
 export function formatOpenPercent(open: number, total: number): number {
   if (total <= 0) return 0;
   return Math.round((open / total) * 100);
 }
 
+/** @param ticket - Ticket a evaluar. @returns `true` si está cerrado. */
 export function isTicketClosed(ticket: AsistiaTicket): boolean {
   return ticket.status === "closed";
 }
 
+/** @param ticket - Ticket a evaluar. @returns `true` si está resuelto o cerrado. */
 export function isTicketFinalized(ticket: AsistiaTicket): boolean {
   return ticket.status === "solved" || ticket.status === "closed";
 }
@@ -66,6 +78,12 @@ const ALLOWED_STATUS_TRANSITIONS: Record<AsistiaTicketStatus, AsistiaTicketStatu
   closed: [],
 };
 
+/**
+ * Valida si una transición de estado está permitida.
+ * @param from - Estado actual.
+ * @param to - Estado destino.
+ * @returns `true` si la transición es válida.
+ */
 export function canTransitionTicketStatus(
   from: AsistiaTicketStatus,
   to: AsistiaTicketStatus
@@ -74,6 +92,7 @@ export function canTransitionTicketStatus(
   return ALLOWED_STATUS_TRANSITIONS[from]?.includes(to) ?? false;
 }
 
+/** @param ticket - Ticket abierto. @returns `true` si lleva 7+ días sin actualizar. */
 export function isTicketOverdue(ticket: AsistiaTicket): boolean {
   if (!isTicketOpen(ticket)) return false;
   const reference = ticket.updatedAt ?? ticket.createdAt;
@@ -84,6 +103,7 @@ export function isTicketOverdue(ticket: AsistiaTicket): boolean {
   return days >= 7;
 }
 
+/** @param status - Estado del ticket. @returns Variante visual del badge. */
 export function statusBadgeVariant(
   status: AsistiaTicketStatus
 ): "default" | "success" | "info" | "warning" {
@@ -93,6 +113,7 @@ export function statusBadgeVariant(
   return "default";
 }
 
+/** @param categories - Catálogo de categorías. @returns Opciones para SearchableSelect. */
 export function buildCategoryOptions(
   categories: Array<{ id: number; name: string; fullPath: string }>
 ) {
@@ -103,6 +124,7 @@ export function buildCategoryOptions(
   }));
 }
 
+/** @param locations - Catálogo de sedes. @returns Opciones para SearchableSelect. */
 export function buildLocationOptions(
   locations: Array<{ id: number; name: string; fullPath: string }>
 ) {
@@ -113,6 +135,7 @@ export function buildLocationOptions(
   }));
 }
 
+/** @param locations - Catálogo de sedes. @returns Opciones ordenadas alfabéticamente. */
 export function buildLocationFilterOptions(
   locations: Array<{ id: number; name: string; fullPath: string }>
 ) {
@@ -121,25 +144,31 @@ export function buildLocationFilterOptions(
   );
 }
 
+/** @param location - Sede con nombre y ruta. @returns Nombre visible de la sede. */
 export function locationDisplayName(location: { name: string; fullPath: string }): string {
   return location.name || location.fullPath;
 }
 
+/** @param locationName - Nombre de sede. @returns Primera palabra (empresa). */
 export function locationCompanyName(locationName: string): string {
   const trimmed = locationName.trim();
   if (!trimmed) return "";
   return trimmed.split(/\s+/)[0] ?? "";
 }
 
+/** @param fullPath - Ruta completa de categoría. @returns Primera palabra. */
 export function categoryFirstWord(fullPath: string): string {
   const trimmed = fullPath.trim();
   if (!trimmed) return "";
   return trimmed.split(/\s+/)[0] ?? "";
 }
 
+const TICKET_DESCRIPTION_PREFIX_PATTERN = /^<p>(?:Incidente|Solicitud)(?: [^<]*)?<\/p>/;
+
+/** @param type - Tipo de ticket. @param category - Categoría seleccionada. @returns Prefijo HTML para la descripción. */
 export function buildTicketDescriptionPrefix(
   type: AsistiaTicketType,
-  category: { fullPath?: string; name?: string } | undefined,
+  category: { fullPath?: string; name?: string } | null | undefined,
 ): string {
   const typeText = typeLabel(type);
   if (!typeText) return "";
@@ -149,15 +178,42 @@ export function buildTicketDescriptionPrefix(
   return `<p>${prefixText}</p>`;
 }
 
-export function prependTicketDescriptionPrefix(
-  description: string,
+/** @param body - Texto libre de la descripción. @param type - Tipo de ticket. @param category - Categoría. @returns Descripción con prefijo visible. */
+export function applyTicketDescriptionPrefix(
+  body: string,
   type: AsistiaTicketType,
-  category: { fullPath?: string; name?: string } | undefined,
+  category: { fullPath?: string; name?: string } | null | undefined,
 ): string {
   const prefix = buildTicketDescriptionPrefix(type, category);
-  return prefix ? `${prefix}${description}` : description;
+  return prefix ? `${prefix}${body}` : body;
 }
 
+/**
+ * Extrae el contenido editable de la descripción quitando el prefijo automático.
+ * @param description - HTML completo del editor.
+ * @param type - Tipo de ticket.
+ * @param category - Categoría seleccionada.
+ * @returns Cuerpo de la descripción sin prefijo.
+ */
+export function extractTicketDescriptionBody(
+  description: string,
+  type: AsistiaTicketType,
+  category: { fullPath?: string; name?: string } | null | undefined,
+): string {
+  const prefix = buildTicketDescriptionPrefix(type, category);
+  if (prefix && description.startsWith(prefix)) {
+    return description.slice(prefix.length);
+  }
+
+  const match = description.match(TICKET_DESCRIPTION_PREFIX_PATTERN);
+  if (match) {
+    return description.slice(match[0].length);
+  }
+
+  return description;
+}
+
+/** @param locations - Catálogo de sedes. @param locationId - ID buscado. @returns Sede encontrada o null. */
 export function findLocationById(
   locations: Array<{ id: number; name: string; fullPath: string }>,
   locationId: number | null | undefined
@@ -168,6 +224,7 @@ export function findLocationById(
   return locations.find((location) => location.id === normalizedId) ?? null;
 }
 
+/** @param user - Usuario solicitante. @param locations - Catálogo de sedes. @returns Etiqueta "Nombre (Sede)". */
 export function buildRequesterDisplayLabel(
   user: { fullName: string; login: string; locationId: number | null },
   locations: Array<{ id: number; name: string; fullPath: string }>,
@@ -178,6 +235,7 @@ export function buildRequesterDisplayLabel(
   return locationName ? `${name} (${locationName})` : name;
 }
 
+/** @param user - Usuario autenticado o null. @returns Filtros iniciales del historial. */
 export function buildInitialTicketFilters(user: AuthUser | null): TicketFilterState {
   return {
     search: "",
@@ -188,6 +246,7 @@ export function buildInitialTicketFilters(user: AuthUser | null): TicketFilterSt
   };
 }
 
+/** @param user - Usuario autenticado. @returns Preset de historial por sede o null. */
 export function buildSiteHistorialFilters(user: AuthUser | null): TicketFilterState | null {
   if (!user?.locationId) return null;
   return {
@@ -200,6 +259,7 @@ export function buildSiteHistorialFilters(user: AuthUser | null): TicketFilterSt
   };
 }
 
+/** @param technicians - Lista de técnicos. @param currentUser - Usuario actual. @returns Opciones de filtro por técnico. */
 export function buildTechnicianFilterOptions(
   technicians: AsistiaUser[],
   currentUser: AuthUser | null

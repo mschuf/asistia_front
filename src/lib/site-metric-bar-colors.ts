@@ -1,3 +1,7 @@
+/**
+ * @file site-metric-bar-colors.ts
+ * @description Colores de barras del gráfico de tickets abiertos por sede.
+ */
 import type { CSSProperties } from "react";
 
 const COMPANY_CODE_VARIANTS: Record<string, string> = {
@@ -26,6 +30,11 @@ const VARIANT_BACKGROUNDS: Record<string, string> = {
   default: "#94a3b8",
 };
 
+/**
+ * Devuelve el estilo CSS de fondo para la barra de una sede.
+ * @param name - Nombre o ruta de la sede.
+ * @returns Propiedad `background` para el elemento de barra.
+ */
 export function getSiteMetricBarStyle(name: string): CSSProperties {
   const variant = resolveSiteMetricBarVariant(name);
   return {
@@ -33,6 +42,11 @@ export function getSiteMetricBarStyle(name: string): CSSProperties {
   };
 }
 
+/**
+ * Resuelve la variante de color según tokens y nombres conocidos.
+ * @param name - Nombre de la sede.
+ * @returns Clave de variante de color.
+ */
 function resolveSiteMetricBarVariant(name: string): string {
   const normalized = name.trim().toLowerCase();
 
@@ -66,6 +80,11 @@ function resolveSiteMetricBarVariant(name: string): string {
   return "default";
 }
 
+/**
+ * Extrae tokens de empresa del nombre de sede.
+ * @param name - Nombre de la sede.
+ * @returns Tokens en mayúsculas detectados.
+ */
 function extractCompanyTokens(name: string): string[] {
   const tokens = new Set<string>();
 

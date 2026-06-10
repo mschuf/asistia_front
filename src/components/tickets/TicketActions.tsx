@@ -1,4 +1,8 @@
-﻿import { ArrowUpRight, Check, Loader2, Lock, UserPlus } from "lucide-react";
+﻿/**
+ * @file TicketActions.tsx
+ * @description Botones de acción inline sobre un ticket (asignar, resolver, cerrar, escalar).
+ */
+import { ArrowUpRight, Check, Loader2, Lock, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { canTransitionTicketStatus, isTicketFinalized } from "@/lib/tickets";
 import type { AsistiaTicket, AsistiaTicketStatus } from "@/types/asistia";
@@ -38,6 +42,11 @@ const actions = [
   }
 ] as const;
 
+/**
+ * Iconos de acción de ticket con estados pending y transiciones válidas.
+ * @param props - Ticket, callbacks y estados de carga.
+ * @returns Fila de botones de acción.
+ */
 export function TicketActions({
   ticket,
   onStatusChange,

@@ -1,3 +1,7 @@
+/**
+ * @file Backdrop.tsx
+ * @description Overlay global de carga durante peticiones HTTP.
+ */
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -5,6 +9,11 @@ interface BackdropProps {
   isVisible: boolean;
 }
 
+/**
+ * Muestra overlay semitransparente con spinner mientras hay peticiones en curso.
+ * @param props - Flag de visibilidad.
+ * @returns Overlay de carga o null.
+ */
 export default function Backdrop({ isVisible }: BackdropProps) {
   if (!isVisible) return null;
 

@@ -1,7 +1,15 @@
+/**
+ * @file AssistantPage.tsx
+ * @description Página placeholder del módulo de asistente IA.
+ */
 import { Bot } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
+/**
+ * Scaffold del asistente inteligente con enlace de vuelta a tickets.
+ * @returns Vista informativa del módulo IA.
+ */
 export default function AssistantPage() {
   return (
     <div className="space-y-5">

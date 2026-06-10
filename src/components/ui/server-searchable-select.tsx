@@ -1,27 +1,41 @@
-﻿import { ChevronDown, Loader2, Search } from "lucide-react";
+﻿/**
+ * @file server-searchable-select.tsx
+ * @description Selector desplegable con búsqueda remota, resolución de valor seleccionado y debounce.
+ */
+import { ChevronDown, Loader2, Search } from "lucide-react";
 import { type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { cn } from "@/lib/utils";
 import { Input } from "./input";
 import type { SearchableSelectOption } from "./searchable-select";
 
+/** Props del componente ServerSearchableSelect. */
 interface ServerSearchableSelectProps {
   id?: string;
   value: string;
   onChange: (value: string) => void;
+  /** Carga opciones desde el servidor según el texto de búsqueda. */
   onLoadOptions: (query: string, signal: AbortSignal) => Promise<SearchableSelectOption[]>;
+  /** Resuelve la etiqueta de un valor ya seleccionado que no está en la lista actual. */
   resolveSelectedOption?: (value: string, signal: AbortSignal) => Promise<SearchableSelectOption | null>;
+  /** Opción precargada para mostrar el valor seleccionado antes de resolverlo remotamente. */
   defaultSelectedOption?: SearchableSelectOption | null;
   placeholder?: string;
   searchPlaceholder?: string;
+  /** Opción especial (p. ej. "Todos") que se antepone a los resultados del servidor. */
   emptyOption?: SearchableSelectOption;
   disabled?: boolean;
+  /** Retraso en milisegundos antes de disparar la búsqueda remota. */
   debounceMs?: number;
   "aria-describedby"?: string;
   noResultsText?: string;
   loadingText?: string;
 }
 
+/**
+ * Selector con carga asíncrona de opciones, indicador de carga y navegación por teclado.
+ * @param props - Valor controlado, callbacks de carga y textos de la interfaz.
+ */
 export function ServerSearchableSelect({
   id,
   value,
@@ -181,6 +195,10 @@ export function ServerSearchableSelect({
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [open]);
 
+  /**
+   * Aplica la selección, actualiza la etiqueta visible y cierra el desplegable.
+   * @param nextValue - Valor de la opción elegida.
+   */
   const selectOption = (nextValue: string) => {
     const match = visibleOptions.find((option) => option.value === nextValue) ?? null;
     setSelectedOption(match);
@@ -189,6 +207,10 @@ export function ServerSearchableSelect({
     setQuery("");
   };
 
+  /**
+   * Gestiona apertura, cierre y navegación por teclado del listbox.
+   * @param event - Evento de teclado capturado en el contenedor.
+   */
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (disabled) {
       return;

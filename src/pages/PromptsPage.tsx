@@ -1,3 +1,7 @@
+/**
+ * @file PromptsPage.tsx
+ * @description Administración super-admin de prompts de clasificación por empresa.
+ */
 import { MessageSquareText, Pencil, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { listarEmpresas, type Empresa } from "@/api/empresas";
@@ -52,12 +56,14 @@ const EMPTY_FORM: PromptFormState = {
   promptTemplate: "",
 };
 
+/** @param value - Texto a truncar. @param maxLength - Longitud máxima. @returns Texto truncado con elipsis. */
 function truncateText(value: string, maxLength = 120): string {
   const normalized = value.replace(/\s+/g, " ").trim();
   if (normalized.length <= maxLength) return normalized;
   return `${normalized.slice(0, maxLength)}…`;
 }
 
+/** @param value - Fecha ISO. @returns Fecha formateada en locale es-PY. */
 function formatDate(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -67,6 +73,10 @@ function formatDate(value: string): string {
   });
 }
 
+/**
+ * CRUD de prompts con editor de placeholders y empresas sin prompt.
+ * @returns Vista de administración de prompts.
+ */
 export default function PromptsPage() {
   const toast = useToast();
   const [prompts, setPrompts] = useState<Prompt[]>([]);
@@ -104,6 +114,7 @@ export default function PromptsPage() {
     [empresasSinPrompt],
   );
 
+  /** Carga prompts paginados desde la API. @returns void */
   const loadPrompts = useCallback(async () => {
     setLoading(true);
     try {
@@ -118,6 +129,7 @@ export default function PromptsPage() {
     }
   }, [page, search, toast]);
 
+  /** Carga catálogo de empresas para el selector de creación. @returns void */
   const loadEmpresas = useCallback(async () => {
     try {
       const result = await listarEmpresas({ page: 1, limit: 200 });
@@ -136,6 +148,7 @@ export default function PromptsPage() {
     void loadEmpresas();
   }, [loadEmpresas]);
 
+  /** Abre el diálogo en modo creación. @returns void */
   function openCreateDialog() {
     setEditing(null);
     setForm({
@@ -145,6 +158,7 @@ export default function PromptsPage() {
     setDialogOpen(true);
   }
 
+  /** @param prompt - Prompt a editar. @returns void */
   function openEditDialog(prompt: Prompt) {
     setEditing(prompt);
     setForm({
@@ -155,10 +169,12 @@ export default function PromptsPage() {
     setDialogOpen(true);
   }
 
+  /** @param key - Campo del formulario. @param value - Nuevo valor. @returns void */
   function updateForm<K extends keyof PromptFormState>(key: K, value: PromptFormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
+  /** @param token - Placeholder a insertar en el campo activo. @returns void */
   function insertPlaceholder(token: string) {
     const field = activeTextField;
     const textareaRef = field === "systemInstruction" ? systemInstructionRef : promptTemplateRef;
@@ -177,16 +193,19 @@ export default function PromptsPage() {
     });
   }
 
+  /** @param prompt - Prompt a eliminar. @returns void */
   function openConfirm(prompt: Prompt) {
     setConfirmPrompt(prompt);
     setConfirmOpen(true);
   }
 
+  /** Cierra el diálogo de confirmación. @returns void */
   function closeConfirm() {
     setConfirmOpen(false);
     setConfirmPrompt(null);
   }
 
+  /** Elimina el prompt confirmado y recarga la lista. @returns void */
   async function handleConfirmDelete() {
     if (!confirmPrompt) return;
 
@@ -204,6 +223,7 @@ export default function PromptsPage() {
     }
   }
 
+  /** @param event - Submit del formulario de prompt. @returns void */
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
@@ -245,6 +265,7 @@ export default function PromptsPage() {
     }
   }
 
+  /** Aplica el texto de búsqueda y reinicia la página. @returns void */
   function applySearch() {
     setPage(1);
     setSearch(searchInput.trim());

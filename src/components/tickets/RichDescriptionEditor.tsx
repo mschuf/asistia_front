@@ -1,4 +1,8 @@
-﻿import { useEffect, useRef } from "react";
+﻿/**
+ * @file RichDescriptionEditor.tsx
+ * @description Editor contenteditable para descripción de ticket con paste de imágenes.
+ */
+import { useEffect, useRef } from "react";
 import type { ClipboardEvent } from "react";
 import { cn } from "@/lib/utils";
 
@@ -10,6 +14,11 @@ interface RichDescriptionEditorProps {
   disabled?: boolean;
 }
 
+/**
+ * Editor rich-text controlado con soporte de imágenes pegadas como data URL.
+ * @param props - id, value, onChange, accesibilidad y disabled.
+ * @returns Div contenteditable.
+ */
 export function RichDescriptionEditor({
   id,
   value,
@@ -25,10 +34,12 @@ export function RichDescriptionEditor({
     }
   }, [value]);
 
+  /** Sincroniza innerHTML con el estado padre. @returns void */
   const syncValue = () => {
     onChange(ref.current?.innerHTML ?? "");
   };
 
+  /** @param src - Data URL de la imagen. @returns void */
   const insertImage = (src: string) => {
     const img = document.createElement("img");
     img.src = src;
@@ -51,6 +62,11 @@ export function RichDescriptionEditor({
     syncValue();
   };
 
+  /**
+   * Intercepta paste de imágenes e inserta como data URL inline.
+   * @param event - Evento paste del editor.
+   * @returns void
+   */
   const handlePaste = (event: ClipboardEvent<HTMLDivElement>) => {
     const imageItem = Array.from(event.clipboardData.items).find((item) => item.type.startsWith("image/"));
 

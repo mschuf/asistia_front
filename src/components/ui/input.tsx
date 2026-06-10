@@ -1,8 +1,16 @@
-﻿import * as React from "react";
+﻿/**
+ * @file input.tsx
+ * @description Campo de texto nativo estilizado con soporte de ref y atributos HTML estándar.
+ */
+import * as React from "react";
 import { cn } from "@/lib/utils";
 
+/** Props del componente Input; extiende los atributos nativos de `<input>`. */
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
 
+/**
+ * Input de formulario con estilos del sistema de diseño.
+ */
 const Input = React.forwardRef<HTMLInputElement, InputProps>(({ className, type, ...props }, ref) => (
   <input
     type={type}

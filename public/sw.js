@@ -1,3 +1,7 @@
+/**
+ * @file sw.js
+ * @description Service worker PWA: precache del shell, estrategia network-first en navegación y caché de assets estáticos.
+ */
 /* asistIA service worker — shell cache mínimo */
 const CACHE_VERSION = "asistia-v3";
 const PRECACHE_URLS = [
@@ -11,6 +15,11 @@ const PRECACHE_URLS = [
   "/icons/apple-touch-icon.png",
 ];
 
+/**
+ * Precarga URLs del shell en la caché ignorando fallos individuales.
+ * @param {Cache} cache - Instancia de caché abierta para la versión activa.
+ * @returns {Promise<PromiseSettledResult<void>[]>} Resultados de cada intento de precache.
+ */
 function precacheUrls(cache) {
   return Promise.allSettled(
     PRECACHE_URLS.map((url) =>
@@ -21,6 +30,7 @@ function precacheUrls(cache) {
   );
 }
 
+/** Instala el SW, precachea el shell y activa `skipWaiting` para tomar control de inmediato. */
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
@@ -30,6 +40,7 @@ self.addEventListener("install", (event) => {
   );
 });
 
+/** Elimina cachés obsoletas y reclama clientes al activarse. */
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
@@ -45,6 +56,7 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+/** Intercepta GET del mismo origen (excepto `/api`) con network-first en navegación y cache-first en assets. */
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;

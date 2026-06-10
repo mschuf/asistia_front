@@ -1,3 +1,7 @@
+/**
+ * @file ticketsService.ts
+ * @description Cliente HTTP para tickets, catálogos, métricas y usuarios técnicos.
+ */
 import { apiClient } from "../api/apiClient";
 import type {
   AsistiaCategory,
@@ -16,6 +20,7 @@ type ReadRequestOptions = { signal?: AbortSignal; showBackdrop?: boolean };
 
 type ListLocationsOptions = ReadRequestOptions & { activeOnly?: boolean };
 
+/** Normaliza la respuesta de ticket del envelope `{ success, data }`. */
 function coerceTicketPayload(payload: unknown): AsistiaTicket {
   if (!payload || typeof payload !== "object") {
     throw new Error("La API no devolvió un ticket válido.");
@@ -33,10 +38,20 @@ function coerceTicketPayload(payload: unknown): AsistiaTicket {
   return payload as AsistiaTicket;
 }
 
+/**
+ * Lista categorías GLPI activas.
+ * @param options - Señal de aborto y backdrop opcionales.
+ * @returns Categorías disponibles.
+ */
 export async function listCategories(options?: ReadRequestOptions): Promise<AsistiaCategory[]> {
   return apiClient.get<AsistiaCategory[]>("/categories", options);
 }
 
+/**
+ * Lista sedes/ubicaciones.
+ * @param options - Filtro `activeOnly`, señal y backdrop opcionales.
+ * @returns Sedes disponibles.
+ */
 export async function listLocations(options?: ListLocationsOptions): Promise<AsistiaLocation[]> {
   return apiClient.get<AsistiaLocation[]>("/locations", {
     ...options,
@@ -46,6 +61,11 @@ export async function listLocations(options?: ListLocationsOptions): Promise<Asi
   });
 }
 
+/**
+ * Obtiene métricas TI agregadas de tickets.
+ * @param options - Señal, backdrop y timeout opcionales.
+ * @returns Respuesta con indicadores por sede y usuario.
+ */
 export async function fetchTiMetrics(options?: ReadRequestOptions): Promise<TiMetricsResponse> {
   return apiClient.get<TiMetricsResponse>("/tickets/metrics", {
     ...options,
@@ -65,6 +85,12 @@ export interface ListTicketsParams {
   search?: string;
 }
 
+/**
+ * Lista tickets con paginación y filtros.
+ * @param params - Filtros de página, estado, técnico, sede y búsqueda.
+ * @param options - Opciones de petición HTTP.
+ * @returns Página de tickets e total.
+ */
 export async function listTickets(
   params?: ListTicketsParams,
   options?: ReadRequestOptions
@@ -84,6 +110,12 @@ export async function listTickets(
   });
 }
 
+/**
+ * Lista tickets del historial con backdrop por defecto.
+ * @param params - Filtros de listado.
+ * @param options - Opciones de petición HTTP.
+ * @returns Página de tickets del historial.
+ */
 export async function listHistoryTickets(
   params?: ListTicketsParams,
   options?: ReadRequestOptions
@@ -104,6 +136,12 @@ export async function listHistoryTickets(
   });
 }
 
+/**
+ * Obtiene un ticket por ID.
+ * @param ticketId - ID del ticket.
+ * @param options - Opciones de petición HTTP.
+ * @returns Ticket completo.
+ */
 export async function getTicketById(
   ticketId: number,
   options?: ReadRequestOptions
@@ -115,6 +153,11 @@ export async function getTicketById(
   return coerceTicketPayload(response);
 }
 
+/**
+ * Crea un ticket nuevo.
+ * @param input - Datos del ticket a crear.
+ * @returns Ticket creado con metadatos de correo.
+ */
 export async function createTicket(input: CreateTicketInput): Promise<CreateTicketResponse> {
   return apiClient.post<CreateTicketResponse>("/tickets", input, { timeoutMs: 60_000 });
 }
@@ -123,6 +166,13 @@ export type UpdateTicketStatusOptions = {
   resolutionNote?: string;
 };
 
+/**
+ * Actualiza el estado de un ticket.
+ * @param ticketId - ID del ticket.
+ * @param status - Nuevo estado.
+ * @param options - Nota de resolución opcional.
+ * @returns Ticket actualizado.
+ */
 export async function updateTicketStatus(
   ticketId: number,
   status: AsistiaTicket["status"],
@@ -142,6 +192,12 @@ export async function updateTicketStatus(
   return coerceTicketPayload(response) as UpdateTicketStatusResponse;
 }
 
+/**
+ * Asigna un técnico a un ticket.
+ * @param ticketId - ID del ticket.
+ * @param technicianId - ID del técnico.
+ * @returns Ticket con asignación actualizada.
+ */
 export async function assignTicketTechnician(
   ticketId: number,
   technicianId: number
@@ -154,6 +210,12 @@ export async function assignTicketTechnician(
   return coerceTicketPayload(response);
 }
 
+/**
+ * Cambia la sede de un ticket.
+ * @param ticketId - ID del ticket.
+ * @param locationId - ID de la nueva sede.
+ * @returns Ticket con sede actualizada.
+ */
 export async function updateTicketLocation(
   ticketId: number,
   locationId: number
@@ -166,6 +228,13 @@ export async function updateTicketLocation(
   return coerceTicketPayload(response);
 }
 
+/**
+ * Busca técnicos activos por texto.
+ * @param search - Texto de búsqueda opcional.
+ * @param limit - Límite de resultados opcional.
+ * @param options - Opciones de petición HTTP.
+ * @returns Lista paginada de técnicos.
+ */
 export async function searchTechnicians(
   search?: string,
   limit?: number,
@@ -177,6 +246,13 @@ export async function searchTechnicians(
   });
 }
 
+/**
+ * Busca usuarios por texto.
+ * @param search - Texto de búsqueda opcional.
+ * @param limit - Límite de resultados opcional.
+ * @param options - Opciones de petición HTTP.
+ * @returns Lista paginada de usuarios.
+ */
 export async function searchUsers(
   search?: string,
   limit?: number,
@@ -188,6 +264,12 @@ export async function searchUsers(
   });
 }
 
+/**
+ * Obtiene un usuario por ID.
+ * @param userId - ID del usuario.
+ * @param options - Opciones de petición HTTP.
+ * @returns Usuario solicitado.
+ */
 export async function getUserById(
   userId: number,
   options?: ReadRequestOptions

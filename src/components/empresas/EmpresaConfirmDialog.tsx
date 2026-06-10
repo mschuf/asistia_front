@@ -1,3 +1,7 @@
+/**
+ * @file EmpresaConfirmDialog.tsx
+ * @description Diálogo de confirmación para activar, desactivar o eliminar empresas.
+ */
 import { Power, Trash2, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -57,6 +61,11 @@ const actionConfig: Record<
   },
 };
 
+/**
+ * Diálogo modal de confirmación de acciones destructivas sobre empresas.
+ * @param props - Acción, empresa, estado de carga y callbacks.
+ * @returns Diálogo de confirmación o null sin acción/empresa.
+ */
 export function EmpresaConfirmDialog({
   open,
   action,

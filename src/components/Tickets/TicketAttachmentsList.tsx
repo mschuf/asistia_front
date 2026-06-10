@@ -1,3 +1,7 @@
+/**
+ * @file TicketAttachmentsList.tsx
+ * @description Lista de adjuntos de un ticket con miniaturas y descarga.
+ */
 import { Download, Eye, FileText, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +25,11 @@ interface TicketAttachmentsListProps {
   enabled: boolean;
 }
 
+/**
+ * Carga y muestra adjuntos de un ticket con preview de imágenes.
+ * @param props - ID del ticket y flag de carga habilitada.
+ * @returns Lista de adjuntos, estados de carga o mensaje vacío.
+ */
 export function TicketAttachmentsList({ ticketId, enabled }: TicketAttachmentsListProps) {
   const [attachments, setAttachments] = useState<TicketAttachment[]>([]);
   const [loading, setLoading] = useState(false);
@@ -109,6 +118,11 @@ export function TicketAttachmentsList({ ticketId, enabled }: TicketAttachmentsLi
     };
   }, [attachments, enabled, ticketId]);
 
+  /**
+   * Descarga un adjunto al disco local.
+   * @param attachment - Metadatos del adjunto.
+   * @returns void
+   */
   const handleDownload = async (attachment: TicketAttachment) => {
     setDownloadingId(attachment.id);
     try {

@@ -1,3 +1,7 @@
+/**
+ * @file mailService.ts
+ * @description Servicio HTTP para pruebas de envío de correo y categorías GLPI.
+ */
 import { apiClient } from "@/api/apiClient";
 
 export interface SendMailPayload {
@@ -44,10 +48,19 @@ export interface MailTestCategory {
   level: number;
 }
 
+/**
+ * Lista categorías GLPI disponibles para la herramienta de prueba de correo.
+ * @returns Categorías con ruta completa.
+ */
 export async function listMailTestCategories(): Promise<MailTestCategory[]> {
   return apiClient.get<MailTestCategory[]>("/mail/categories", { auth: false });
 }
 
+/**
+ * Envía una solicitud de prueba que crea ticket y dispara correo SMTP.
+ * @param payload - Email, descripción, categoría y tipo de ticket.
+ * @returns void
+ */
 export async function sendMailRequest(payload: SendMailPayload): Promise<void> {
   await apiClient.post<void>("/mail/send", payload, { auth: false });
 }

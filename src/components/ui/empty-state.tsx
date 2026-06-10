@@ -1,6 +1,11 @@
-﻿import type { ReactNode } from "react";
+﻿/**
+ * @file empty-state.tsx
+ * @description Placeholder visual para listas o secciones sin contenido.
+ */
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
+/** Props del componente EmptyState. */
 interface EmptyStateProps {
   title: string;
   description?: string;
@@ -8,6 +13,10 @@ interface EmptyStateProps {
   className?: string;
 }
 
+/**
+ * Presenta un estado vacío con título, descripción y acción opcional.
+ * @param props - Textos, acción y clases del contenedor.
+ */
 export function EmptyState({ title, description, action, className }: EmptyStateProps) {
   return (
     <div

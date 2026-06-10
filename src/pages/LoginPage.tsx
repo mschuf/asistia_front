@@ -1,3 +1,7 @@
+/**
+ * @file LoginPage.tsx
+ * @description Página de inicio de sesión con credenciales LDAP corporativas.
+ */
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { Eye } from "lucide-react";
@@ -10,6 +14,10 @@ import { useToast } from "@/context/ToastContext";
 import type { LoginPayload } from "@/types/auth";
 import { ApiError } from "@/api/apiClient";
 
+/**
+ * Formulario de login y redirección a tickets tras autenticación exitosa.
+ * @returns Pantalla de inicio de sesión.
+ */
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -18,6 +26,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [revealPassword, setRevealPassword] = useState(false);
 
+  /**
+   * Envía credenciales al contexto de auth y redirige a tickets.
+   * @param event - Evento submit del formulario.
+   * @returns void
+   */
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
