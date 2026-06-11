@@ -34,6 +34,7 @@ const superAdminNavItems: Array<{
 }> = [
   { label: "Empresas", icon: Building2, path: "/admin/empresas", enabled: true },
   { label: "Prompts", icon: MessageSquareText, path: "/admin/prompts", enabled: true },
+  { label: "Tickets creados", icon: History, path: "/admin/reporte-tickets", enabled: true },
 ];
 
 /**

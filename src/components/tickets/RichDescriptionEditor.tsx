@@ -2,42 +2,40 @@
  * @file RichDescriptionEditor.tsx
  * @description Editor contenteditable para descripción de ticket con paste de imágenes.
  */
-import { useEffect, useRef } from "react";
-import type { ClipboardEvent, MouseEvent } from "react";
+import { forwardRef, useImperativeHandle, useLayoutEffect, useRef } from "react";
+import type { ClipboardEvent } from "react";
 import { cn } from "@/lib/utils";
 
 interface RichDescriptionEditorProps {
   id: string;
   value: string;
   onChange: (value: string) => void;
-  prefix?: string;
   describedBy?: string;
   disabled?: boolean;
 }
 
+/** API imperativa para enfocar la zona editable desde el padre. */
+export interface RichDescriptionEditorHandle {
+  focus: () => void;
+  /** Enfoca el editor y coloca el cursor al final del contenido. */
+  focusAtEnd: () => void;
+}
+
 /**
  * Editor rich-text controlado con soporte de imágenes pegadas como data URL.
- * @param props - id, value, onChange, prefijo de solo lectura opcional, accesibilidad y disabled.
- * @returns Editor de una o dos zonas según haya prefijo.
+ * @param props - id, value, onChange, accesibilidad y disabled.
+ * @returns Editor contenteditable para la descripción completa del ticket.
  */
-export function RichDescriptionEditor({
-  id,
-  value,
-  onChange,
-  prefix,
-  describedBy,
-  disabled,
-}: RichDescriptionEditorProps) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const bodyRef = useRef<HTMLDivElement | null>(null);
-  const hasPrefix = Boolean(prefix?.trim());
+export const RichDescriptionEditor = forwardRef<RichDescriptionEditorHandle, RichDescriptionEditorProps>(
+  function RichDescriptionEditor({ id, value, onChange, describedBy, disabled }, ref) {
+  const editorRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    const target = hasPrefix ? bodyRef.current : ref.current;
-    if (target && target.innerHTML !== value) {
-      target.innerHTML = value;
+  useLayoutEffect(() => {
+    const editor = editorRef.current;
+    if (editor && editor.innerHTML !== value) {
+      editor.innerHTML = value;
     }
-  }, [hasPrefix, value]);
+  }, [value]);
 
   /** @param editor - Nodo contenteditable activo. @returns void */
   const syncValue = (editor: HTMLDivElement | null) => {
@@ -88,78 +86,62 @@ export function RichDescriptionEditor({
       return;
     }
 
-    const editor = hasPrefix ? bodyRef.current : ref.current;
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === "string") {
-        insertImage(editor, reader.result);
+        insertImage(editorRef.current, reader.result);
       }
     };
     reader.readAsDataURL(file);
   };
 
-  /** Enfoca la zona editable al interactuar con el contenedor o el prefijo. @returns void */
-  const focusBody = () => {
+  /** Enfoca la zona editable. @returns void */
+  const focusEditor = () => {
     if (disabled) return;
-    const editor = hasPrefix ? bodyRef.current : ref.current;
-    editor?.focus();
+    editorRef.current?.focus();
   };
 
-  /** @param event - Click en el contenedor del editor. @returns void */
-  const handleShellClick = (event: MouseEvent<HTMLDivElement>) => {
-    if (!hasPrefix) return;
-    if (event.target === bodyRef.current) return;
-    focusBody();
+  /** Enfoca el editor y posiciona el cursor al final del texto. @returns void */
+  const focusEditorAtEnd = () => {
+    if (disabled) return;
+
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    editor.focus();
+
+    const range = document.createRange();
+    range.selectNodeContents(editor);
+    range.collapse(false);
+
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
   };
 
-  const bodyClassName = cn(
-    "rich-description text-sm outline-none",
-    hasPrefix
-      ? "rich-description-body min-h-[9.5rem] px-3 py-2"
-      : "w-full rounded-md border border-input bg-background px-3 py-2 transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-    disabled && "cursor-not-allowed opacity-50",
-  );
+  useImperativeHandle(ref, () => ({
+    focus: focusEditor,
+    focusAtEnd: focusEditorAtEnd,
+  }));
 
-  const bodyNode = (
+  return (
     <div
       id={id}
-      ref={hasPrefix ? bodyRef : ref}
+      ref={editorRef}
       role="textbox"
       aria-multiline="true"
       aria-describedby={describedBy}
       aria-disabled={disabled}
-      aria-label={hasPrefix && prefix ? `Descripción del ticket. Prefijo fijo: ${prefix}` : undefined}
       contentEditable={!disabled}
       suppressContentEditableWarning
       data-placeholder="Describa el caso con el detalle necesario"
-      onInput={() => syncValue(hasPrefix ? bodyRef.current : ref.current)}
+      onInput={() => syncValue(editorRef.current)}
       onPaste={handlePaste}
-      className={bodyClassName}
-    />
-  );
-
-  if (!hasPrefix) {
-    return bodyNode;
-  }
-
-  return (
-    <div
       className={cn(
-        "rich-description-shell w-full overflow-hidden rounded-md border border-input bg-background text-sm transition-colors focus-within:ring-2 focus-within:ring-ring",
+        "rich-description w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
         disabled && "cursor-not-allowed opacity-50",
       )}
-      onClick={handleShellClick}
-    >
-      <div
-        className="rich-description-prefix select-none border-b border-input bg-muted/40 px-3 py-2 text-muted-foreground"
-        aria-hidden="true"
-        contentEditable={false}
-        suppressContentEditableWarning
-      >
-        {prefix}
-      </div>
-      {bodyNode}
-    </div>
+    />
   );
-}
+});
 

@@ -100,7 +100,7 @@ export function Dialog({
           className
         )}
       >
-        <div className="flex items-start justify-between gap-3 border-b px-4 py-3 sm:px-5">
+        <div className="flex items-center justify-between gap-3 border-b px-4 py-3 sm:px-5">
           <div className="min-w-0 space-y-1">
             <h2 id={titleId} className="text-lg font-semibold leading-tight">
               {title}

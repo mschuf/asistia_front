@@ -26,9 +26,12 @@ import {
   buildInitialTicketFilters,
   canTransitionTicketStatus,
   HISTORY_TABLE_STATUSES,
+  isTicketsAllPageSize,
+  isValidTicketsPageSize,
+  resolveTicketsApiLimit,
   statusLabel,
   TICKETS_PAGE_SIZE,
-  TICKETS_PAGE_SIZE_OPTIONS
+  type TicketsPageSize,
 } from "../lib/tickets";
 
 /** @param value - Valor del query `tab`. @returns Pestaña normalizada. */
@@ -113,8 +116,15 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
   const [assigning, setAssigning] = useState<{ ticketId: number } | null>(null);
 
   const listParams = useMemo(
-    () => toListTicketParams(appliedFilters, page, pageLimit, appliedFilters.search, sort),
-    [appliedFilters, page, pageLimit, sort]
+    () =>
+      toListTicketParams(
+        appliedFilters,
+        page,
+        resolveTicketsApiLimit(pageLimit, total),
+        appliedFilters.search,
+        sort,
+      ),
+    [appliedFilters, page, pageLimit, sort, total],
   );
   const ticketsFetchKey = JSON.stringify(listParams);
   const loadedTicketsKeyRef = useRef<string | null>(null);
@@ -124,7 +134,9 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
 
   ticketsRef.current = tickets;
 
-  const totalPages = Math.max(1, Math.ceil(total / pageLimit));
+  const totalPages = isTicketsAllPageSize(pageLimit)
+    ? 1
+    : Math.max(1, Math.ceil(total / pageLimit));
 
   const needsCategories = tab === "crear" || visitedTabs.has("crear");
   const needsLocationsForCrear = tab === "crear" || visitedTabs.has("crear");
@@ -160,8 +172,8 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
     setPageState(Math.max(1, nextPage));
   }, []);
 
-  const setPageLimit = useCallback((limit: number) => {
-    if (!(TICKETS_PAGE_SIZE_OPTIONS as readonly number[]).includes(limit)) return;
+  const setPageLimit = useCallback((limit: TicketsPageSize) => {
+    if (!isValidTicketsPageSize(limit)) return;
     setPageLimitState(limit);
     setPageState(1);
     loadedTicketsKeyRef.current = null;

@@ -3,11 +3,27 @@
  * @description Selector desplegable con búsqueda remota, resolución de valor seleccionado y debounce.
  */
 import { ChevronDown, Loader2, Search } from "lucide-react";
-import { type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  forwardRef,
+  type KeyboardEvent,
+  useEffect,
+  useId,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { cn } from "@/lib/utils";
 import { Input } from "./input";
 import type { SearchableSelectOption } from "./searchable-select";
+
+/** API imperativa para enfocar el selector desde el padre. */
+export interface ServerSearchableSelectHandle {
+  focus: () => void;
+  /** Enfoca el trigger y despliega el listado de opciones. */
+  focusAndOpen: () => void;
+}
 
 /** Props del componente ServerSearchableSelect. */
 interface ServerSearchableSelectProps {
@@ -36,22 +52,26 @@ interface ServerSearchableSelectProps {
  * Selector con carga asíncrona de opciones, indicador de carga y navegación por teclado.
  * @param props - Valor controlado, callbacks de carga y textos de la interfaz.
  */
-export function ServerSearchableSelect({
-  id,
-  value,
-  onChange,
-  onLoadOptions,
-  resolveSelectedOption,
-  defaultSelectedOption,
-  placeholder = "Seleccione una opcion",
-  searchPlaceholder = "Buscar...",
-  emptyOption,
-  disabled,
-  debounceMs = 300,
-  "aria-describedby": ariaDescribedBy,
-  noResultsText = "Sin resultados",
-  loadingText = "Buscando...",
-}: ServerSearchableSelectProps) {
+export const ServerSearchableSelect = forwardRef<ServerSearchableSelectHandle, ServerSearchableSelectProps>(
+  function ServerSearchableSelect(
+    {
+      id,
+      value,
+      onChange,
+      onLoadOptions,
+      resolveSelectedOption,
+      defaultSelectedOption,
+      placeholder = "Seleccione una opcion",
+      searchPlaceholder = "Buscar...",
+      emptyOption,
+      disabled,
+      debounceMs = 300,
+      "aria-describedby": ariaDescribedBy,
+      noResultsText = "Sin resultados",
+      loadingText = "Buscando...",
+    },
+    ref,
+  ) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [options, setOptions] = useState<SearchableSelectOption[]>([]);
@@ -60,10 +80,28 @@ export function ServerSearchableSelect({
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [placement, setPlacement] = useState<"bottom" | "top">("bottom");
   const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const lastResolvedValueRef = useRef<string | null>(null);
   const listboxId = useId();
   const debouncedQuery = useDebouncedValue(query, debounceMs);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus: () => {
+        buttonRef.current?.focus();
+      },
+      focusAndOpen: () => {
+        if (disabled) {
+          return;
+        }
+        setOpen(true);
+        buttonRef.current?.focus();
+      },
+    }),
+    [disabled],
+  );
 
   const visibleOptions = useMemo(
     () => (emptyOption ? [emptyOption, ...options] : options),
@@ -253,6 +291,7 @@ export function ServerSearchableSelect({
   return (
     <div ref={containerRef} className="relative" onKeyDown={handleKeyDown}>
       <button
+        ref={buttonRef}
         id={id}
         type="button"
         disabled={disabled}
@@ -326,4 +365,4 @@ export function ServerSearchableSelect({
       ) : null}
     </div>
   );
-}
+});

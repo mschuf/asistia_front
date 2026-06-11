@@ -272,5 +272,75 @@ export const apiClient = {
    */
   delete<T>(path: string, options?: Omit<RequestOptions, "method">): Promise<T> {
     return request<T>(path, { ...options, method: "DELETE" });
+  },
+  /**
+   * Descarga un archivo binario sin envelope JSON.
+   * @param path - Ruta del endpoint.
+   * @param options - Query, backdrop y señal de aborto.
+   * @returns Blob y nombre de archivo sugerido.
+   */
+  async download(
+    path: string,
+    options?: Omit<RequestOptions, "method" | "data">,
+  ): Promise<{ blob: Blob; filename: string }> {
+    const { showBackdrop = true, signal, query } = options ?? {};
+    if (showBackdrop) onRequestStart();
+
+    try {
+      const response = await fetch(buildUrl(path, query), {
+        method: "GET",
+        credentials: "include",
+        signal,
+      });
+
+      if (!response.ok) {
+        const raw = await response.text();
+        let payload: ApiPayload | null = null;
+        if (raw) {
+          try {
+            payload = JSON.parse(raw) as ApiPayload;
+          } catch {
+            payload = { message: raw };
+          }
+        }
+
+        if (response.status === 401 && isExpiredToken(payload)) {
+          onUnauthorized(payload);
+        }
+
+        throw new ApiError(extractMessage(payload, "No se pudo descargar el archivo"), {
+          status: response.status,
+          code: payload?.code,
+          details: payload,
+        });
+      }
+
+      const blob = await response.blob();
+      const filename = parseDownloadFilename(response.headers.get("Content-Disposition"));
+      return { blob, filename };
+    } finally {
+      if (showBackdrop) onRequestEnd();
+    }
   }
 };
+
+/**
+ * Extrae nombre de archivo desde Content-Disposition.
+ * @param header - Cabecera HTTP Content-Disposition.
+ * @returns Nombre de archivo o fallback genérico.
+ */
+function parseDownloadFilename(header: string | null): string {
+  if (!header) return "descarga";
+
+  const utfMatch = header.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utfMatch?.[1]) {
+    try {
+      return decodeURIComponent(utfMatch[1].trim());
+    } catch {
+      return utfMatch[1].trim();
+    }
+  }
+
+  const plainMatch = header.match(/filename="?([^";]+)"?/i);
+  return plainMatch?.[1]?.trim() || "descarga";
+}

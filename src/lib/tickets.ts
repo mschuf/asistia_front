@@ -6,6 +6,7 @@ import type { AsistiaTicket, AsistiaTicketStatus, AsistiaTicketType, AsistiaUser
 import type { AuthUser } from "@/types/auth";
 import type { TicketFilterState } from "@/types/pages/tickets-page.types";
 import { TICKET_STATUS_LABELS, TICKET_TYPE_LABELS, TICKET_URGENCY_LABELS } from "@/lib/constants";
+import { stripHtml } from "@/lib/utils";
 
 export const OPEN_STATUSES: AsistiaTicketStatus[] = ["new", "assigned", "planned", "waiting"];
 
@@ -18,7 +19,53 @@ export const HISTORY_TABLE_STATUSES: AsistiaTicketStatus[] = ["assigned", "plann
 export const TICKETS_PAGE_SIZE = 15;
 
 /** Opciones de tamaño de página disponibles en la tabla de historial. */
-export const TICKETS_PAGE_SIZE_OPTIONS = [15, 50, 100, 500, 1000] as const;
+export const TICKETS_PAGE_SIZE_OPTIONS = [15, 50, 100] as const;
+
+/** Valor del selector que muestra todos los registros en una sola página. */
+export const TICKETS_PAGE_SIZE_ALL = "all" as const;
+
+/** Tope de registros al elegir "Todos" (alineado con exportación del reporte). */
+export const TICKETS_LIST_ALL_MAX = 50_000;
+
+/** Tamaño de página numérico o modo "todos". */
+export type TicketsPageSize =
+  | (typeof TICKETS_PAGE_SIZE_OPTIONS)[number]
+  | typeof TICKETS_PAGE_SIZE_ALL;
+
+/** @param limit - Tamaño de página UI. @returns `true` si el modo es "todos". */
+export function isTicketsAllPageSize(limit: TicketsPageSize): boolean {
+  return limit === TICKETS_PAGE_SIZE_ALL;
+}
+
+/**
+ * Resuelve el `limit` enviado al API según la selección UI.
+ * @param limit - Tamaño elegido en el selector.
+ * @param total - Total de registros del listado actual.
+ * @returns Límite numérico para la petición.
+ */
+export function resolveTicketsApiLimit(limit: TicketsPageSize, total: number): number {
+  if (isTicketsAllPageSize(limit)) {
+    return Math.min(Math.max(total, TICKETS_PAGE_SIZE), TICKETS_LIST_ALL_MAX);
+  }
+  return limit;
+}
+
+/** @param limit - Valor candidato del selector. @returns `true` si es una opción válida. */
+export function isValidTicketsPageSize(limit: TicketsPageSize): boolean {
+  return (
+    isTicketsAllPageSize(limit) ||
+    (TICKETS_PAGE_SIZE_OPTIONS as readonly number[]).includes(limit)
+  );
+}
+
+/** @param value - Valor del `<select>`. @returns Tamaño parseado o `null` si no es válido. */
+export function parseTicketsPageSize(value: string): TicketsPageSize | null {
+  if (value === TICKETS_PAGE_SIZE_ALL) return TICKETS_PAGE_SIZE_ALL;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  const candidate = parsed as TicketsPageSize;
+  return isValidTicketsPageSize(candidate) ? candidate : null;
+}
 
 /** @param status - Estado del ticket. @returns Etiqueta legible en español. */
 export function statusLabel(status: AsistiaTicketStatus): string {
@@ -197,6 +244,82 @@ export function applyTicketDescriptionPrefix(
 ): string {
   const prefix = buildTicketDescriptionPrefix(type, category);
   return prefix ? `${prefix}${body}` : body;
+}
+
+/** @param type - Tipo de ticket. @returns Descripción inicial con prefijo automático. */
+export function createDefaultTicketDescription(type: AsistiaTicketType = "request"): string {
+  return applyTicketDescriptionPrefix("", type, null);
+}
+
+/** @param description - HTML completo. @param type - Tipo de ticket. @param category - Categoría. @returns Si incluye el prefijo automático. */
+export function hasTicketDescriptionPrefix(
+  description: string,
+  type: AsistiaTicketType,
+  category: { fullPath?: string; name?: string } | null | undefined,
+): boolean {
+  const prefix = buildTicketDescriptionPrefix(type, category);
+  if (prefix && description.startsWith(prefix)) {
+    return true;
+  }
+  return TICKET_DESCRIPTION_PREFIX_PATTERN.test(description);
+}
+
+/**
+ * Contenido a validar (longitud mínima): cuerpo sin prefijo si aún está presente, o texto completo.
+ * @param description - HTML completo del editor.
+ * @param type - Tipo de ticket.
+ * @param category - Categoría seleccionada.
+ * @returns Texto plano que debe cumplir la validación.
+ */
+export function getTicketDescriptionValidationContent(
+  description: string,
+  type: AsistiaTicketType,
+  category: { fullPath?: string; name?: string } | null | undefined,
+): string {
+  const plain = stripHtml(description);
+
+  if (!hasTicketDescriptionPrefix(description, type, category)) {
+    return plain;
+  }
+
+  const prefixCandidates = [
+    buildTicketDescriptionPrefixText(type, category),
+    buildTicketDescriptionPrefixText(type, null),
+  ].filter((value, index, array) => value.length > 0 && array.indexOf(value) === index);
+
+  for (const prefixText of prefixCandidates) {
+    if (plain.startsWith(prefixText)) {
+      return plain.slice(prefixText.length).trimStart();
+    }
+  }
+
+  return plain;
+}
+
+/**
+ * Actualiza el prefijo al cambiar tipo o categoría. No modifica la descripción si el usuario quitó el prefijo.
+ * @param description - HTML actual del editor.
+ * @param oldType - Tipo anterior.
+ * @param oldCategory - Categoría anterior.
+ * @param newType - Tipo nuevo.
+ * @param newCategory - Categoría nueva.
+ * @returns Descripción con prefijo actualizado o sin cambios.
+ */
+export function updateTicketDescriptionPrefix(
+  description: string,
+  oldType: AsistiaTicketType,
+  oldCategory: { fullPath?: string; name?: string } | null | undefined,
+  newType: AsistiaTicketType,
+  newCategory: { fullPath?: string; name?: string } | null | undefined,
+): string {
+  if (!description.trim()) {
+    return applyTicketDescriptionPrefix("", newType, newCategory);
+  }
+  if (!hasTicketDescriptionPrefix(description, oldType, oldCategory)) {
+    return description;
+  }
+  const body = extractTicketDescriptionBody(description, oldType, oldCategory);
+  return applyTicketDescriptionPrefix(body, newType, newCategory);
 }
 
 /**

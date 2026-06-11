@@ -3,7 +3,16 @@
  * @description Selector desplegable con búsqueda local, navegación por teclado y posicionamiento adaptativo.
  */
 import { ChevronDown, Search } from "lucide-react";
-import { type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  forwardRef,
+  type KeyboardEvent,
+  useEffect,
+  useId,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { cn, normalizeText } from "@/lib/utils";
 import { Input } from "./input";
 
@@ -13,6 +22,13 @@ export interface SearchableSelectOption {
   label: string;
   /** Texto alternativo para filtrar cuando difiere de `label`. */
   searchText?: string;
+}
+
+/** API imperativa para enfocar el selector desde el padre. */
+export interface SearchableSelectHandle {
+  focus: () => void;
+  /** Enfoca el trigger y despliega el listado de opciones. */
+  focusAndOpen: () => void;
 }
 
 /** Props del componente SearchableSelect. */
@@ -34,25 +50,46 @@ interface SearchableSelectProps {
  * Selector con filtrado en cliente, soporte ARIA y cierre al hacer clic fuera.
  * @param props - Valor controlado, opciones y textos de la interfaz.
  */
-export function SearchableSelect({
-  id,
-  value,
-  onChange,
-  options,
-  placeholder = "Seleccione una opcion",
-  searchPlaceholder = "Buscar...",
-  emptyOption,
-  disabled,
-  "aria-describedby": ariaDescribedBy,
-  noResultsText = "Sin resultados",
-}: SearchableSelectProps) {
+export const SearchableSelect = forwardRef<SearchableSelectHandle, SearchableSelectProps>(function SearchableSelect(
+  {
+    id,
+    value,
+    onChange,
+    options,
+    placeholder = "Seleccione una opcion",
+    searchPlaceholder = "Buscar...",
+    emptyOption,
+    disabled,
+    "aria-describedby": ariaDescribedBy,
+    noResultsText = "Sin resultados",
+  },
+  ref,
+) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [placement, setPlacement] = useState<"bottom" | "top">("bottom");
   const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const listboxId = useId();
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus: () => {
+        buttonRef.current?.focus();
+      },
+      focusAndOpen: () => {
+        if (disabled) {
+          return;
+        }
+        setOpen(true);
+        buttonRef.current?.focus();
+      },
+    }),
+    [disabled],
+  );
 
   const allOptions = useMemo(
     () => (emptyOption ? [emptyOption, ...options] : options),
@@ -178,6 +215,7 @@ export function SearchableSelect({
   return (
     <div ref={containerRef} className="relative" onKeyDown={handleKeyDown}>
       <button
+        ref={buttonRef}
         id={id}
         type="button"
         disabled={disabled}
@@ -247,4 +285,4 @@ export function SearchableSelect({
       ) : null}
     </div>
   );
-}
+});

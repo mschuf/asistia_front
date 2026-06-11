@@ -2,6 +2,7 @@
  * @file tickets-page.types.ts
  * @description Tipos del hook y estado de la página de gestión de tickets.
  */
+import type { TicketsPageSize } from "@/lib/tickets";
 import type {
   AsistiaCategory,
   AsistiaLocation,
@@ -28,7 +29,7 @@ export interface TicketFilterState {
 /** Estado de paginación del listado de tickets. */
 export interface TicketPaginationState {
   page: number;
-  limit: number;
+  limit: TicketsPageSize;
   total: number;
   totalPages: number;
 }
@@ -70,7 +71,7 @@ export interface UseTicketsResult {
   tickets: AsistiaTicket[];
   pagination: TicketPaginationState;
   setPage: (page: number) => void;
-  setPageLimit: (limit: number) => void;
+  setPageLimit: (limit: TicketsPageSize) => void;
   sort: HistorySortState | null;
   setSortColumn: (column: HistorySortColumn) => void;
   filters: TicketFilterState;

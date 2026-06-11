@@ -16,6 +16,7 @@ const TicketsPage = lazy(() => import("./pages/TicketsPage"));
 const AssistantPage = lazy(() => import("./pages/AssistantPage"));
 const EmpresasPage = lazy(() => import("./pages/EmpresasPage"));
 const PromptsPage = lazy(() => import("./pages/PromptsPage"));
+const TicketCreatedReportPage = lazy(() => import("./pages/TicketCreatedReportPage"));
 
 /**
  * Componente raíz con definición de rutas y guards de autenticación.
@@ -59,6 +60,14 @@ export default function App() {
             element={
               <SuperAdminRoute>
                 <PromptsPage />
+              </SuperAdminRoute>
+            }
+          />
+          <Route
+            path="admin/reporte-tickets"
+            element={
+              <SuperAdminRoute>
+                <TicketCreatedReportPage />
               </SuperAdminRoute>
             }
           />

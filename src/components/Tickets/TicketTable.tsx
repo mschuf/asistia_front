@@ -146,7 +146,7 @@ export function TicketTable({
    * @returns void
    */
   const handleStatusChange = (ticketId: number, status: AsistiaTicketStatus) => {
-    if (status === "solved") {
+    if (status === "solved" || status === "closed") {
       setSelectedTicket(null);
     }
     onStatusChange?.(ticketId, status);

@@ -37,8 +37,11 @@ import { useTickets } from "@/hooks/useTickets";
 import {
   buildSiteHistorialFilters,
   findLocationById,
+  isTicketsAllPageSize,
   locationCompanyName,
   locationDisplayName,
+  parseTicketsPageSize,
+  TICKETS_PAGE_SIZE_ALL,
   TICKETS_PAGE_SIZE_OPTIONS,
 } from "@/lib/tickets";
 
@@ -143,7 +146,10 @@ export default function TicketsPage() {
 
   refreshMetricsRef.current = refreshMetrics;
 
-  const [resolveTarget, setResolveTarget] = useState<AsistiaTicket | null>(null);
+  const [statusNoteModal, setStatusNoteModal] = useState<{
+    ticket: AsistiaTicket;
+    mode: "solved" | "closed";
+  } | null>(null);
   const [assignTarget, setAssignTarget] = useState<AsistiaTicket | null>(null);
 
   /**
@@ -160,10 +166,19 @@ export default function TicketsPage() {
     if (status === "solved" && isTechnician) {
       const ticket = tickets.find((item) => Number(item.id) === Number(ticketId));
       if (ticket) {
-        setResolveTarget(ticket);
+        setStatusNoteModal({ ticket, mode: "solved" });
       }
       return;
     }
+
+    if (status === "closed") {
+      const ticket = tickets.find((item) => Number(item.id) === Number(ticketId));
+      if (ticket) {
+        setStatusNoteModal({ ticket, mode: "closed" });
+      }
+      return;
+    }
+
     void handleStatusChange(ticketId, status);
   };
 
@@ -177,12 +192,14 @@ export default function TicketsPage() {
     ? locationCompanyName(userLocationName)
     : null;
 
+  const numericLimit =
+    typeof pagination.limit === "number" ? pagination.limit : TICKETS_PAGE_SIZE_OPTIONS[0];
+  const showingAll = isTicketsAllPageSize(pagination.limit);
   const paginationFrom =
-    pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1;
-  const paginationTo = Math.min(
-    pagination.page * pagination.limit,
-    pagination.total,
-  );
+    pagination.total === 0 ? 0 : showingAll ? 1 : (pagination.page - 1) * numericLimit + 1;
+  const paginationTo = showingAll
+    ? pagination.total
+    : Math.min(pagination.page * numericLimit, pagination.total);
 
   /** Recarga historial o métricas según la pestaña activa. @returns void */
   async function handleRefresh() {
@@ -362,23 +379,23 @@ export default function TicketsPage() {
               />
 
               <TicketResolveModal
-                ticket={resolveTarget}
-                open={resolveTarget !== null}
+                ticket={statusNoteModal?.ticket ?? null}
+                mode={statusNoteModal?.mode}
+                open={statusNoteModal !== null}
                 onOpenChange={(open) => {
-                  if (!open) setResolveTarget(null);
+                  if (!open) setStatusNoteModal(null);
                 }}
                 submitting={
-                  resolveTarget !== null &&
-                  statusChanging?.ticketId === Number(resolveTarget.id) &&
-                  statusChanging.status === "solved"
+                  statusNoteModal !== null &&
+                  statusChanging?.ticketId === Number(statusNoteModal.ticket.id) &&
+                  statusChanging.status === statusNoteModal.mode
                 }
                 onConfirm={(resolutionNote) => {
-                  if (!resolveTarget) return;
-                  void handleStatusChange(resolveTarget.id, "solved", { resolutionNote }).then(
-                    (ok) => {
-                      if (ok) setResolveTarget(null);
-                    }
-                  );
+                  if (!statusNoteModal) return;
+                  const { ticket, mode } = statusNoteModal;
+                  void handleStatusChange(ticket.id, mode, { resolutionNote }).then((ok) => {
+                    if (ok) setStatusNoteModal(null);
+                  });
                 }}
               />
 
@@ -409,14 +426,22 @@ export default function TicketsPage() {
                       <Select
                         aria-label="Mostrar por página"
                         className="h-9 w-24 shrink-0 px-2 py-1 text-center text-sm font-medium tabular-nums text-foreground"
-                        value={String(pagination.limit)}
-                        onChange={(event) => setPageLimit(Number(event.target.value))}
+                        value={
+                          isTicketsAllPageSize(pagination.limit)
+                            ? TICKETS_PAGE_SIZE_ALL
+                            : String(pagination.limit)
+                        }
+                        onChange={(event) => {
+                          const nextLimit = parseTicketsPageSize(event.target.value);
+                          if (nextLimit) setPageLimit(nextLimit);
+                        }}
                       >
                         {TICKETS_PAGE_SIZE_OPTIONS.map((size) => (
                           <option key={size} value={size}>
                             {size}
                           </option>
                         ))}
+                        <option value={TICKETS_PAGE_SIZE_ALL}>Todos</option>
                       </Select>
                     </label>
                     <p className="text-sm text-muted-foreground">
@@ -424,29 +449,31 @@ export default function TicketsPage() {
                       {pagination.total} tickets
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={pagination.page <= 1}
-                      onClick={() => setPage(pagination.page - 1)}
-                    >
-                      Anterior
-                    </Button>
-                    <span className="min-w-24 text-center text-sm text-muted-foreground">
-                      Página {pagination.page} de {pagination.totalPages}
-                    </span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={pagination.page >= pagination.totalPages}
-                      onClick={() => setPage(pagination.page + 1)}
-                    >
-                      Siguiente
-                    </Button>
-                  </div>
+                  {!showingAll ? (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={pagination.page <= 1}
+                        onClick={() => setPage(pagination.page - 1)}
+                      >
+                        Anterior
+                      </Button>
+                      <span className="min-w-24 text-center text-sm text-muted-foreground">
+                        Página {pagination.page} de {pagination.totalPages}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={pagination.page >= pagination.totalPages}
+                        onClick={() => setPage(pagination.page + 1)}
+                      >
+                        Siguiente
+                      </Button>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </>

@@ -10,9 +10,13 @@ import { Textarea } from "@/components/ui/textarea";
 import type { AsistiaTicket } from "@/types/asistia";
 
 const RESOLUTION_NOTE_MIN_LENGTH = 3;
+const DEFAULT_CLOSE_NOTE = "Cerrado con conformidad.";
+
+type TicketStatusNoteModalMode = "solved" | "closed";
 
 interface TicketResolveModalProps {
   ticket: AsistiaTicket | null;
+  mode?: TicketStatusNoteModalMode;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (resolutionNote: string) => void;
@@ -26,6 +30,7 @@ interface TicketResolveModalProps {
  */
 export function TicketResolveModal({
   ticket,
+  mode = "solved",
   open,
   onOpenChange,
   onConfirm,
@@ -33,13 +38,17 @@ export function TicketResolveModal({
 }: TicketResolveModalProps) {
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
+  const isCloseMode = mode === "closed";
 
   useEffect(() => {
     if (!open) {
       setNote("");
       setError("");
+      return;
     }
-  }, [open]);
+    setNote(isCloseMode ? DEFAULT_CLOSE_NOTE : "");
+    setError("");
+  }, [open, isCloseMode]);
 
   if (!ticket) return null;
 
@@ -60,12 +69,13 @@ export function TicketResolveModal({
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      title={`Marcar ticket #${ticket.id} como resuelto`}
-      description="Describa lo realizado. Se añadirá automáticamente // después de la descripción del solicitante."
+      title={`Marcar ticket #${ticket.id} como ${isCloseMode ? "CERRADO" : "RESUELTO"}`}
+      className="max-h-fit"
+      contentClassName="flex-none py-3 sm:py-4"
     >
       <Field
         id="ticket-resolution-note"
-        label="Lo realizado"
+        label="Describa lo realizado:"
         error={error}
       >
         <Textarea
@@ -82,7 +92,7 @@ export function TicketResolveModal({
         />
       </Field>
 
-      <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Button
           type="button"
           variant="outline"
@@ -92,7 +102,7 @@ export function TicketResolveModal({
           Cancelar
         </Button>
         <Button type="button" disabled={submitting} onClick={handleConfirm}>
-          {submitting ? "Guardando…" : "Confirmar resolución"}
+          {submitting ? "Guardando…" : isCloseMode ? "CERRAR" : "Confirmar resolución"}
         </Button>
       </div>
     </Dialog>

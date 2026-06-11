@@ -3,28 +3,30 @@
  * @description Formulario de creación de tickets con catálogos y adjuntos.
  */
 import { Eraser, SendHorizontal } from "lucide-react";
-import { FormEvent, useCallback, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Loading } from "@/components/ui/loading";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import type { SearchableSelectOption } from "@/components/ui/searchable-select";
+import type { SearchableSelectHandle, SearchableSelectOption } from "@/components/ui/searchable-select";
 import { ServerSearchableSelect } from "@/components/ui/server-searchable-select";
+import type { ServerSearchableSelectHandle } from "@/components/ui/server-searchable-select";
 import { RichDescriptionEditor } from "@/components/tickets/RichDescriptionEditor";
+import type { RichDescriptionEditorHandle } from "@/components/tickets/RichDescriptionEditor";
 import { TicketAttachmentsField } from "@/components/tickets/TicketAttachmentsField";
 import { validateAttachmentSelection } from "@/lib/attachments";
 import {
-  applyTicketDescriptionPrefix,
+  createDefaultTicketDescription,
   buildCategoryOptions,
   buildLocationOptions,
   buildRequesterDisplayLabel,
   buildTechnicianSelectOptions,
-  buildTicketDescriptionPrefixText,
+  getTicketDescriptionValidationContent,
   findLocationById,
   locationDisplayName,
+  updateTicketDescriptionPrefix,
 } from "@/lib/tickets";
-import { stripHtml } from "@/lib/utils";
 import { getUserById, searchTechnicians, searchUsers } from "@/services/ticketsService";
 import type { AsistiaCategory, AsistiaLocation, AsistiaTicketType } from "@/types/asistia";
 import type { AuthUser } from "@/types/auth";
@@ -72,13 +74,17 @@ function defaultTechnicianId(user: AuthUser, isTechnician: boolean): string {
 export function TicketForm({ categories, locations, isTechnician, user, onSubmit }: TicketFormProps) {
   const [ticketType, setTicketType] = useState<AsistiaTicketType>("request");
   const [categoryId, setCategoryId] = useState("");
-  const [descriptionBody, setDescriptionBody] = useState("");
+  const [description, setDescription] = useState(() => createDefaultTicketDescription());
   const [technicianId, setTechnicianId] = useState(() => defaultTechnicianId(user, isTechnician));
   const [requesterId, setRequesterId] = useState(() => defaultRequesterId(user, isTechnician));
   const [locationId, setLocationId] = useState(user.locationId ? String(user.locationId) : "");
   const [attachments, setAttachments] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const requesterRef = useRef<ServerSearchableSelectHandle>(null);
+  const categoryRef = useRef<SearchableSelectHandle>(null);
+  const descriptionRef = useRef<RichDescriptionEditorHandle>(null);
+  const pendingDescriptionFocusRef = useRef(false);
 
   const categoryOptions = useMemo(() => buildCategoryOptions(categories), [categories]);
   const locationOptions = useMemo(() => buildLocationOptions(locations), [locations]);
@@ -87,14 +93,6 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
   const selectedCategory = useMemo(
     () => categories.find((category) => String(category.id) === categoryId) ?? null,
     [categories, categoryId],
-  );
-  const descriptionPrefixText = useMemo(
-    () => buildTicketDescriptionPrefixText(effectiveType, selectedCategory),
-    [effectiveType, selectedCategory],
-  );
-  const description = useMemo(
-    () => applyTicketDescriptionPrefix(descriptionBody, effectiveType, selectedCategory),
-    [descriptionBody, effectiveType, selectedCategory],
   );
   const defaultTechnicianOption = useMemo<SearchableSelectOption | null>(() => {
     if (!isTechnician || !user.id) return null;
@@ -176,8 +174,13 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
     if (!categoryId) {
       nextErrors.category = "Seleccione una categoría.";
     }
-    if (stripHtml(descriptionBody).length < DESCRIPTION_MIN_LENGTH) {
-      nextErrors.description = `La descripción debe tener al menos ${DESCRIPTION_MIN_LENGTH} caracteres.`;
+    const validationContent = getTicketDescriptionValidationContent(
+      description,
+      effectiveType,
+      selectedCategory,
+    );
+    if (validationContent.length < DESCRIPTION_MIN_LENGTH) {
+      nextErrors.description = `Su descripción debe tener al menos ${DESCRIPTION_MIN_LENGTH} caracteres.`;
     }
     if (isTechnician && !technicianId) {
       nextErrors.technician = "Seleccione el técnico asignado.";
@@ -187,15 +190,74 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
       nextErrors.attachments = attachmentError;
     }
     return nextErrors;
-  }, [attachments, categoryId, descriptionBody, isTechnician, technicianId]);
+  }, [attachments, categoryId, description, effectiveType, isTechnician, selectedCategory, technicianId]);
 
   const canSubmit = Object.keys(errors).length === 0 && !submitting;
+
+  /** @returns void */
+  const focusInitialField = useCallback(() => {
+    if (isTechnician) {
+      requesterRef.current?.focusAndOpen();
+      return;
+    }
+    categoryRef.current?.focusAndOpen();
+  }, [isTechnician]);
+
+  useLayoutEffect(() => {
+    focusInitialField();
+  }, [focusInitialField]);
+
+  /** @param value - ID del solicitante. @returns void */
+  const handleRequesterChange = (value: string) => {
+    setRequesterId(value);
+    if (value) {
+      window.requestAnimationFrame(() => categoryRef.current?.focusAndOpen());
+    }
+  };
+
+  /** @param value - ID de categoría. @returns void */
+  const handleCategoryChange = (value: string) => {
+    const nextCategory = categories.find((category) => String(category.id) === value) ?? null;
+    setDescription((current) =>
+      updateTicketDescriptionPrefix(
+        current,
+        effectiveType,
+        selectedCategory,
+        effectiveType,
+        nextCategory,
+      ),
+    );
+    setCategoryId(value);
+    pendingDescriptionFocusRef.current = Boolean(value);
+  };
+
+  /** @param type - Tipo de ticket. @returns void */
+  const handleTicketTypeChange = (type: AsistiaTicketType) => {
+    setDescription((current) =>
+      updateTicketDescriptionPrefix(current, ticketType, selectedCategory, type, selectedCategory),
+    );
+    setTicketType(type);
+  };
+
+  useLayoutEffect(() => {
+    if (!pendingDescriptionFocusRef.current || !categoryId) {
+      return;
+    }
+
+    pendingDescriptionFocusRef.current = false;
+    descriptionRef.current?.focusAtEnd();
+  }, [categoryId, description]);
+
+  /** @param fullDescription - HTML completo del editor. @returns void */
+  const handleDescriptionChange = (fullDescription: string) => {
+    setDescription(fullDescription);
+  };
 
   /** @param clearFeedback - Si limpia errores de submit. @returns void */
   const resetForm = (clearFeedback = true) => {
     setTicketType("request");
     setCategoryId("");
-    setDescriptionBody("");
+    setDescription(createDefaultTicketDescription());
     setTechnicianId(defaultTechnicianId(user, isTechnician));
     setRequesterId(defaultRequesterId(user, isTechnician));
     setLocationId(user.locationId ? String(user.locationId) : "");
@@ -203,6 +265,7 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
     if (clearFeedback) {
       setSubmitError("");
     }
+    focusInitialField();
   };
 
   /** @param event - Submit del formulario. @returns void */
@@ -251,7 +314,7 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
                   key={type}
                   type="button"
                   variant={ticketType === type ? "default" : "outline"}
-                  onClick={() => setTicketType(type)}
+                  onClick={() => handleTicketTypeChange(type)}
                   className="w-full"
                 >
                   {type === "incident" ? "Incidente" : "Solicitud"}
@@ -267,9 +330,10 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
         {isTechnician ? (
           <Field id="ticket-requester" label="Solicitante">
             <ServerSearchableSelect
+              ref={requesterRef}
               id="ticket-requester"
               value={requesterId}
-              onChange={setRequesterId}
+              onChange={handleRequesterChange}
               onLoadOptions={loadRequesterOptions}
               resolveSelectedOption={resolveRequesterOption}
               placeholder="Seleccione solicitante"
@@ -281,9 +345,10 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
 
         <Field id="ticket-category" label="Categoría" error={errors.category}>
           <SearchableSelect
+            ref={categoryRef}
             id="ticket-category"
             value={categoryId}
-            onChange={setCategoryId}
+            onChange={handleCategoryChange}
             options={categoryOptions}
             placeholder="Seleccione una categoría"
             searchPlaceholder="Buscar categoría..."
@@ -326,10 +391,10 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
 
       <Field id="ticket-description" label="Descripción" error={errors.description}>
         <RichDescriptionEditor
+          ref={descriptionRef}
           id="ticket-description"
-          prefix={descriptionPrefixText}
-          value={descriptionBody}
-          onChange={setDescriptionBody}
+          value={description}
+          onChange={handleDescriptionChange}
           describedBy={errors.description ? "ticket-description-error" : undefined}
           disabled={submitting}
         />
