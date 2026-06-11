@@ -15,6 +15,7 @@ import {
   listLocations,
   searchTechnicians,
   updateTicketLocation,
+  updateTicketRequester,
   updateTicketStatus
 } from "../services/ticketsService";
 import type { ListTicketsParams } from "../services/ticketsService";
@@ -541,7 +542,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
   const handleAssignTicket = useCallback(
     async (
       ticketId: number,
-      input: { technicianId?: number; locationId?: number }
+      input: { technicianId?: number; requesterId?: number; locationId?: number }
     ): Promise<boolean> => {
       if (assignLockRef.current) return false;
 
@@ -556,15 +557,19 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
       }
 
       const currentTechnicianId = previousTicket.technician?.id ?? null;
+      const currentRequesterId = previousTicket.requester?.id ?? null;
       const currentLocationId = previousTicket.location?.id ?? null;
       const wantsTechnicianChange =
         input.technicianId !== undefined &&
         Number(input.technicianId) !== Number(currentTechnicianId);
+      const wantsRequesterChange =
+        input.requesterId !== undefined &&
+        Number(input.requesterId) !== Number(currentRequesterId);
       const wantsLocationChange =
         input.locationId !== undefined &&
         Number(input.locationId) !== Number(currentLocationId);
 
-      if (!wantsTechnicianChange && !wantsLocationChange) {
+      if (!wantsTechnicianChange && !wantsRequesterChange && !wantsLocationChange) {
         toast.error("No hay cambios para guardar.");
         return false;
       }
@@ -577,6 +582,9 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
 
         if (wantsTechnicianChange && input.technicianId) {
           requests.push(assignTicketTechnician(normalizedTicketId, input.technicianId));
+        }
+        if (wantsRequesterChange && input.requesterId) {
+          requests.push(updateTicketRequester(normalizedTicketId, input.requesterId));
         }
         if (wantsLocationChange && input.locationId) {
           requests.push(updateTicketLocation(normalizedTicketId, input.locationId));
@@ -595,6 +603,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
 
         const parts: string[] = [];
         if (wantsTechnicianChange) parts.push("técnico");
+        if (wantsRequesterChange) parts.push("solicitante");
         if (wantsLocationChange) parts.push("sede");
         toast.success(`Ticket #${normalizedTicketId}: ${parts.join(" y ")} actualizado(s).`);
         return true;

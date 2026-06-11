@@ -234,6 +234,24 @@ export async function updateTicketLocation(
 }
 
 /**
+ * Cambia el solicitante de un ticket.
+ * @param ticketId - ID del ticket.
+ * @param requesterId - ID del nuevo solicitante.
+ * @returns Ticket con solicitante actualizado.
+ */
+export async function updateTicketRequester(
+  ticketId: number,
+  requesterId: number
+): Promise<AsistiaTicket> {
+  const response = await apiClient.patch<unknown>(
+    `/tickets/${ticketId}/requester`,
+    { requesterId },
+    { showBackdrop: false, timeoutMs: 30_000 }
+  );
+  return coerceTicketPayload(response);
+}
+
+/**
  * Busca técnicos activos por texto.
  * @param search - Texto de búsqueda opcional.
  * @param limit - Límite de resultados opcional.

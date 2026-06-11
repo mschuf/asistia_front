@@ -16,6 +16,7 @@ import type {
 const TABLE_COLUMNS: Array<{ label: string; id: TicketCreatedReportSortColumn }> = [
   { label: "Fecha creación", id: "createdAt" },
   { label: "Empresa", id: "company" },
+  { label: "Sede", id: "requesterLocation" },
   { label: "Asunto", id: "subject" },
   { label: "Remitente", id: "fromAddress" },
   { label: "Solicitante", id: "requesterEmail" },
@@ -121,7 +122,7 @@ export function TicketCreatedReportTable({
   return (
     <div className="overflow-hidden rounded-md border bg-card shadow-soft">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[980px] border-separate border-spacing-0 text-left text-sm">
+        <table className="w-full min-w-[1100px] border-separate border-spacing-0 text-left text-sm">
           <thead className="bg-muted text-xs uppercase tracking-normal text-muted-foreground">
             <tr>
               {TABLE_COLUMNS.map((column) => (
@@ -143,6 +144,7 @@ export function TicketCreatedReportTable({
                   <CreatedAtCell value={item.createdAt} />
                 </td>
                 <td className="px-4 py-3">{item.company}</td>
+                <td className="min-w-40 px-4 py-3">{item.requesterLocation ?? "—"}</td>
                 <td className="min-w-56 px-4 py-3">{item.subject ?? "—"}</td>
                 <td className="px-4 py-3 text-muted-foreground">{item.fromAddress ?? "—"}</td>
                 <td className="px-4 py-3 text-muted-foreground">{item.requesterEmail ?? "—"}</td>

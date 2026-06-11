@@ -5,7 +5,7 @@
 import type { Empresa } from "@/api/empresas";
 import type { TicketCreatedReportExportFormat } from "@/api/reports";
 import type { TicketsPageSize } from "@/lib/tickets";
-import type { AsistiaCategory } from "../asistia";
+import type { AsistiaCategory, AsistiaLocation } from "../asistia";
 
 /** Estado de filtros del reporte ticket.created. */
 export interface TicketCreatedReportFilterState {
@@ -15,6 +15,7 @@ export interface TicketCreatedReportFilterState {
   createdTo: string;
   categoryName: string;
   companyId: string;
+  locationId: string;
 }
 
 /** Columnas ordenables del reporte. */
@@ -24,6 +25,7 @@ export type TicketCreatedReportSortColumn =
   | "subject"
   | "fromAddress"
   | "requesterEmail"
+  | "requesterLocation"
   | "type"
   | "category"
   | "mailSent"
@@ -50,6 +52,7 @@ export interface TicketCreatedReportPaginationState {
 export interface TicketCreatedLog {
   createdAt: string;
   company: string;
+  requesterLocation: string | null;
   subject: string | null;
   fromAddress: string | null;
   requesterEmail: string | null;
@@ -78,6 +81,7 @@ export interface UseTicketCreatedReportResult {
   downloadReport: (format: TicketCreatedReportExportFormat) => Promise<void>;
   categories: AsistiaCategory[];
   empresas: Empresa[];
+  locations: AsistiaLocation[];
   catalogsLoading: boolean;
   catalogsError: string;
 }

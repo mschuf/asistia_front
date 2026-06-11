@@ -37,6 +37,7 @@ export default function TicketCreatedReportPage() {
     refresh,
     categories,
     empresas,
+    locations,
     catalogsLoading,
     catalogsError,
     exporting,
@@ -71,6 +72,7 @@ export default function TicketCreatedReportPage() {
         onApply={applyFilters}
         categories={categories}
         empresas={empresas}
+        locations={locations}
         catalogsLoading={catalogsLoading}
       />
 

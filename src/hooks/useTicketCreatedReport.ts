@@ -22,8 +22,8 @@ import {
   resolveTicketsApiLimit,
   type TicketsPageSize,
 } from "@/lib/tickets";
-import { listCategories } from "@/services/ticketsService";
-import type { AsistiaCategory } from "@/types/asistia";
+import { listCategories, listLocations } from "@/services/ticketsService";
+import type { AsistiaCategory, AsistiaLocation } from "@/types/asistia";
 import type {
   TicketCreatedLog,
   TicketCreatedReportFilterState,
@@ -51,6 +51,7 @@ function buildInitialReportFilters(): TicketCreatedReportFilterState {
     createdTo: formatDateTimeInput(now),
     categoryName: "",
     companyId: "",
+    locationId: "",
   };
 }
 
@@ -86,6 +87,7 @@ function toExportParams(
     createdTo,
     categoryName: filters.categoryName || undefined,
     companyId: filters.companyId ? Number(filters.companyId) : undefined,
+    locationId: filters.locationId ? Number(filters.locationId) : undefined,
     sortBy: sort?.column,
     sortOrder: sort?.order,
   };
@@ -107,6 +109,7 @@ function toListParams(
     createdTo,
     categoryName: filters.categoryName || undefined,
     companyId: filters.companyId ? Number(filters.companyId) : undefined,
+    locationId: filters.locationId ? Number(filters.locationId) : undefined,
     sortBy: sort?.column,
     sortOrder: sort?.order,
   };
@@ -133,6 +136,7 @@ export function useTicketCreatedReport(): UseTicketCreatedReportResult {
   const [error, setError] = useState("");
   const [categories, setCategories] = useState<AsistiaCategory[]>([]);
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
+  const [locations, setLocations] = useState<AsistiaLocation[]>([]);
   const [catalogsLoading, setCatalogsLoading] = useState(true);
   const [catalogsError, setCatalogsError] = useState("");
   const [catalogsLoaded, setCatalogsLoaded] = useState(false);
@@ -257,13 +261,15 @@ export function useTicketCreatedReport(): UseTicketCreatedReportResult {
       setCatalogsLoading(true);
       setCatalogsError("");
       try {
-        const [categoryResult, empresaResult] = await Promise.all([
+        const [categoryResult, empresaResult, locationResult] = await Promise.all([
           listCategories({ signal }),
           listarEmpresas({ page: 1, limit: 200 }),
+          listLocations({ signal, activeOnly: true }),
         ]);
         if (signal.aborted) return;
         setCategories(categoryResult);
         setEmpresas(empresaResult.items);
+        setLocations(locationResult);
         setCatalogsLoaded(true);
       } catch (err) {
         if (signal.aborted || isAbortError(err)) return;
@@ -314,6 +320,7 @@ export function useTicketCreatedReport(): UseTicketCreatedReportResult {
     downloadReport,
     categories,
     empresas,
+    locations,
     catalogsLoading,
     catalogsError,
   };

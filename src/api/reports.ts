@@ -17,6 +17,7 @@ export interface ExportTicketCreatedLogsQuery {
   createdTo?: string;
   categoryName?: string;
   companyId?: number;
+  locationId?: number;
   sortBy?: TicketCreatedReportSortColumn;
   sortOrder?: TicketCreatedReportSortOrder;
 }
@@ -28,6 +29,7 @@ export interface ListTicketCreatedLogsQuery {
   createdTo?: string;
   categoryName?: string;
   companyId?: number;
+  locationId?: number;
   sortBy?: TicketCreatedReportSortColumn;
   sortOrder?: TicketCreatedReportSortOrder;
 }
@@ -61,6 +63,7 @@ export async function listTicketCreatedLogs(
       createdTo: query.createdTo,
       categoryName: query.categoryName || undefined,
       companyId: query.companyId,
+      locationId: query.locationId,
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
     },
@@ -86,6 +89,7 @@ export async function downloadTicketCreatedReport(
       createdTo: query.createdTo,
       categoryName: query.categoryName || undefined,
       companyId: query.companyId,
+      locationId: query.locationId,
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
     },
