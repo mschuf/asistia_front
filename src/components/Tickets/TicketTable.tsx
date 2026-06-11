@@ -217,8 +217,8 @@ export function TicketTable({
                     className={cn(
                       "px-4 py-3",
                       actionsColumnClass,
-                      "group-hover:bg-muted/50",
-                      selectedTicket?.id === ticket.id && "bg-muted/40"
+                      "max-md:group-hover:bg-muted md:group-hover:bg-muted/50",
+                      selectedTicket?.id === ticket.id && "max-md:bg-muted md:bg-muted/40"
                     )}
                     onClick={(event) => event.stopPropagation()}
                   >
