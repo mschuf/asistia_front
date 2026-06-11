@@ -126,7 +126,7 @@ export function useTicketCreatedReport(): UseTicketCreatedReportResult {
     buildInitialReportFilters(),
   );
   const [page, setPageState] = useState(1);
-  const [pageLimit, setPageLimitState] = useState(TICKETS_PAGE_SIZE);
+  const [pageLimit, setPageLimitState] = useState<TicketsPageSize>(TICKETS_PAGE_SIZE);
   const [sort, setSortState] = useState<TicketCreatedReportSortState>(null);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);

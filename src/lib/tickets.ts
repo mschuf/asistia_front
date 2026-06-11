@@ -15,11 +15,11 @@ export const IN_PROGRESS_STATUSES: AsistiaTicketStatus[] = ["assigned", "planned
 /** Estados mostrados por defecto en la tabla de historial. */
 export const HISTORY_TABLE_STATUSES: AsistiaTicketStatus[] = ["assigned", "planned"];
 
-/** Tamaño de página por defecto del historial. */
-export const TICKETS_PAGE_SIZE = 15;
-
 /** Opciones de tamaño de página disponibles en la tabla de historial. */
 export const TICKETS_PAGE_SIZE_OPTIONS = [15, 50, 100] as const;
+
+/** Tamaño de página por defecto del historial. */
+export const TICKETS_PAGE_SIZE = TICKETS_PAGE_SIZE_OPTIONS[0];
 
 /** Valor del selector que muestra todos los registros en una sola página. */
 export const TICKETS_PAGE_SIZE_ALL = "all" as const;
@@ -33,7 +33,9 @@ export type TicketsPageSize =
   | typeof TICKETS_PAGE_SIZE_ALL;
 
 /** @param limit - Tamaño de página UI. @returns `true` si el modo es "todos". */
-export function isTicketsAllPageSize(limit: TicketsPageSize): boolean {
+export function isTicketsAllPageSize(
+  limit: TicketsPageSize,
+): limit is typeof TICKETS_PAGE_SIZE_ALL {
   return limit === TICKETS_PAGE_SIZE_ALL;
 }
 
@@ -51,9 +53,10 @@ export function resolveTicketsApiLimit(limit: TicketsPageSize, total: number): n
 }
 
 /** @param limit - Valor candidato del selector. @returns `true` si es una opción válida. */
-export function isValidTicketsPageSize(limit: TicketsPageSize): boolean {
+export function isValidTicketsPageSize(limit: unknown): limit is TicketsPageSize {
+  if (limit === TICKETS_PAGE_SIZE_ALL) return true;
   return (
-    isTicketsAllPageSize(limit) ||
+    typeof limit === "number" &&
     (TICKETS_PAGE_SIZE_OPTIONS as readonly number[]).includes(limit)
   );
 }
