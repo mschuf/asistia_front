@@ -6,14 +6,18 @@ import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import PublicOnlyRoute from "@/components/PublicOnlyRoute";
+import NonPorteriaUserRoute from "@/components/NonPorteriaUserRoute";
+import SingleUserRoute from "@/components/SingleUserRoute";
 import SuperAdminRoute from "@/components/SuperAdminRoute";
 import { Loading } from "@/components/ui/loading";
+import { PORTERIA_ALLOWED_LOGIN } from "@/lib/porteria.constants";
 import { useAuth } from "./context/AuthContext";
 
 const AppShellLayout = lazy(() => import("./layouts/AppShellLayout"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const TicketsPage = lazy(() => import("./pages/TicketsPage"));
 const AssistantPage = lazy(() => import("./pages/AssistantPage"));
+const PorteriaPage = lazy(() => import("./pages/PorteriaPage"));
 const EmpresasPage = lazy(() => import("./pages/EmpresasPage"));
 const PromptsPage = lazy(() => import("./pages/PromptsPage"));
 const TicketCreatedReportPage = lazy(() => import("./pages/TicketCreatedReportPage"));
@@ -23,7 +27,8 @@ const TicketCreatedReportPage = lazy(() => import("./pages/TicketCreatedReportPa
  * @returns Árbol de rutas de React Router con carga diferida por página.
  */
 export default function App() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const isPorteriaUser = user?.login?.toLowerCase() === PORTERIA_ALLOWED_LOGIN.toLowerCase();
 
   return (
     <Suspense fallback={<RouteFallback />}>
@@ -44,35 +49,66 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="/tickets" replace />} />
-          <Route path="tickets" element={<TicketsPage />} />
-          <Route path="assistant" element={<AssistantPage />} />
+          <Route index element={<Navigate to={isPorteriaUser ? "/porteria" : "/tickets"} replace />} />
+          <Route
+            path="tickets"
+            element={
+              <NonPorteriaUserRoute>
+                <TicketsPage />
+              </NonPorteriaUserRoute>
+            }
+          />
+          <Route
+            path="assistant"
+            element={
+              <NonPorteriaUserRoute>
+                <AssistantPage />
+              </NonPorteriaUserRoute>
+            }
+          />
+          <Route
+            path="porteria"
+            element={
+              <SingleUserRoute allowedLogin={PORTERIA_ALLOWED_LOGIN}>
+                <PorteriaPage />
+              </SingleUserRoute>
+            }
+          />
           <Route
             path="admin/empresas"
             element={
-              <SuperAdminRoute>
-                <EmpresasPage />
-              </SuperAdminRoute>
+              <NonPorteriaUserRoute>
+                <SuperAdminRoute>
+                  <EmpresasPage />
+                </SuperAdminRoute>
+              </NonPorteriaUserRoute>
             }
           />
           <Route
             path="admin/prompts"
             element={
-              <SuperAdminRoute>
-                <PromptsPage />
-              </SuperAdminRoute>
+              <NonPorteriaUserRoute>
+                <SuperAdminRoute>
+                  <PromptsPage />
+                </SuperAdminRoute>
+              </NonPorteriaUserRoute>
             }
           />
           <Route
             path="admin/reporte-tickets"
             element={
-              <SuperAdminRoute>
-                <TicketCreatedReportPage />
-              </SuperAdminRoute>
+              <NonPorteriaUserRoute>
+                <SuperAdminRoute>
+                  <TicketCreatedReportPage />
+                </SuperAdminRoute>
+              </NonPorteriaUserRoute>
             }
           />
         </Route>
-        <Route path="*" element={<Navigate to={isAuthenticated ? "/tickets" : "/login"} replace />} />
+        <Route
+          path="*"
+          element={<Navigate to={isAuthenticated ? (isPorteriaUser ? "/porteria" : "/tickets") : "/login"} replace />}
+        />
       </Routes>
     </Suspense>
   );

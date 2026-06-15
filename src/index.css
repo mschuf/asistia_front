@@ -108,6 +108,72 @@
     background: hsl(var(--muted-foreground) / 0.65);
     background-clip: content-box;
   }
+
+  @keyframes porteria-alert-border {
+    0%,
+    100% {
+      outline-color: rgb(251 191 36 / 0.3);
+      outline-width: 2px;
+      box-shadow: 0 0 0 0 rgb(251 191 36 / 0);
+    }
+
+    50% {
+      outline-color: rgb(245 158 11 / 1);
+      outline-width: 3px;
+      box-shadow:
+        0 0 0 4px rgb(251 191 36 / 0.45),
+        0 0 20px rgb(251 191 36 / 0.5);
+    }
+  }
+
+  @keyframes porteria-danger-border {
+    0%,
+    100% {
+      outline-color: rgb(248 113 113 / 0.3);
+      outline-width: 2px;
+      box-shadow: 0 0 0 0 rgb(239 68 68 / 0);
+    }
+
+    50% {
+      outline-color: rgb(239 68 68 / 1);
+      outline-width: 3px;
+      box-shadow:
+        0 0 0 4px rgb(239 68 68 / 0.45),
+        0 0 20px rgb(239 68 68 / 0.5);
+    }
+  }
+
+  .porteria-blink-alerta {
+    animation: porteria-alert-border 1.15s ease-in-out infinite;
+    outline-style: solid;
+    outline-offset: 0;
+    overflow: visible;
+  }
+
+  .porteria-blink-peligro {
+    animation: porteria-danger-border 1.15s ease-in-out infinite;
+    outline-style: solid;
+    outline-offset: 0;
+    overflow: visible;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .porteria-blink-alerta,
+    .porteria-blink-peligro {
+      animation: none;
+      outline-width: 3px;
+    }
+
+    .porteria-blink-alerta {
+      outline-color: rgb(245 158 11 / 0.85);
+      box-shadow: 0 0 0 3px rgb(251 191 36 / 0.35);
+    }
+
+    .porteria-blink-peligro {
+      outline-color: rgb(239 68 68 / 0.85);
+      box-shadow: 0 0 0 3px rgb(239 68 68 / 0.35);
+    }
+  }
 }
 
 @layer components {

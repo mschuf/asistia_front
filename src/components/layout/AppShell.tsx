@@ -3,13 +3,14 @@
  * @description Layout principal con header, menú lateral y barra inferior móvil.
  */
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import { BarChart3, Building2, FilePlus2, History, LogOut, Menu, MessageSquareText, Moon, Sun, X } from "lucide-react";
+import { BarChart3, Building2, FilePlus2, History, LogOut, Menu, MessageSquareText, Moon, Shield, Sun, Users, MapPin, ClipboardList, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { BottomTabBar } from "@/components/layout/BottomTabBar";
 import { InstallAppButton } from "@/components/layout/InstallAppButton";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
+import { PORTERIA_ALLOWED_LOGIN } from "@/lib/porteria.constants";
 import { roleLabel } from "@/utils/role";
 
 interface AppShellProps {
@@ -37,6 +38,20 @@ const superAdminNavItems: Array<{
   { label: "Tickets creados", icon: History, path: "/admin/reporte-tickets", enabled: true },
 ];
 
+const porteriaNavItems: Array<{
+  label: string;
+  icon: typeof Shield;
+  path: string;
+}> = [
+  { label: "Porteria", icon: Shield, path: "/porteria" },
+];
+
+const porteriaCrudPlaceholders: Array<{ label: string; icon: typeof Users }> = [
+  { label: "Personas", icon: Users },
+  { label: "Ubicacion", icon: MapPin },
+  { label: "Visitas", icon: ClipboardList },
+];
+
 /**
  * Shell de la aplicación con navegación, tema y cierre de sesión.
  * @param props - Contenido hijo, tema y toggle de tema.
@@ -51,6 +66,7 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   const [searchParams] = useSearchParams();
   const currentTab = readNavTab(searchParams.get("tab"));
   const onTicketsRoute = location.pathname.startsWith("/tickets");
+  const isPorteriaOnlyUser = user?.login?.toLowerCase() === PORTERIA_ALLOWED_LOGIN.toLowerCase();
 
   /** Cierra sesión con toast y cierra el menú. @returns void */
   function handleLogout() {
@@ -129,54 +145,18 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
           </Button>
         </div>
         <nav className="flex-1 space-y-1 p-3">
-          {ticketNavItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = onTicketsRoute && currentTab === item.tab;
-            return (
-              <button
-                key={item.tab}
-                type="button"
-                onClick={() => goToTab(item.tab)}
-                aria-current={isActive ? "page" : undefined}
-                className={cn(
-                  "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-                  isActive && "bg-muted text-foreground",
-                )}
-              >
-                <Icon className="h-4 w-4" aria-hidden="true" />
-                {item.label}
-              </button>
-            );
-          })}
-          {isSuperAdmin ? (
+          {isPorteriaOnlyUser ? (
             <div className="space-y-1 border-t pt-3">
-              <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Super-Admin
-              </p>
-              {superAdminNavItems.map((item) => {
+              <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Porteria</p>
+              {porteriaNavItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = item.path ? location.pathname.startsWith(item.path) : false;
-
-                if (!item.enabled || !item.path) {
-                  return (
-                    <button
-                      key={item.label}
-                      type="button"
-                      disabled
-                      aria-disabled="true"
-                      className="flex w-full cursor-not-allowed items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground/70"
-                    >
-                      <Icon className="h-4 w-4" aria-hidden="true" />
-                      {item.label}
-                    </button>
-                  );
-                }
+                const isActive = location.pathname.startsWith(item.path);
 
                 return (
                   <button
                     key={item.label}
                     type="button"
-                    onClick={() => goToSuperAdmin(item.path!)}
+                    onClick={() => goToSuperAdmin(item.path)}
                     aria-current={isActive ? "page" : undefined}
                     className={cn(
                       "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
@@ -188,8 +168,91 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
                   </button>
                 );
               })}
+
+              <p className="px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                CRUDs
+              </p>
+              {porteriaCrudPlaceholders.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    disabled
+                    aria-disabled="true"
+                    className="flex w-full cursor-not-allowed items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground/70"
+                  >
+                    <Icon className="h-4 w-4" aria-hidden="true" />
+                    {item.label}
+                  </button>
+                );
+              })}
             </div>
-          ) : null}
+          ) : (
+            <>
+              {ticketNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = onTicketsRoute && currentTab === item.tab;
+                return (
+                  <button
+                    key={item.tab}
+                    type="button"
+                    onClick={() => goToTab(item.tab)}
+                    aria-current={isActive ? "page" : undefined}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                      isActive && "bg-muted text-foreground",
+                    )}
+                  >
+                    <Icon className="h-4 w-4" aria-hidden="true" />
+                    {item.label}
+                  </button>
+                );
+              })}
+              {isSuperAdmin ? (
+                <div className="space-y-1 border-t pt-3">
+                  <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Super-Admin
+                  </p>
+                  {superAdminNavItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = item.path ? location.pathname.startsWith(item.path) : false;
+
+                    if (!item.enabled || !item.path) {
+                      return (
+                        <button
+                          key={item.label}
+                          type="button"
+                          disabled
+                          aria-disabled="true"
+                          className="flex w-full cursor-not-allowed items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground/70"
+                        >
+                          <Icon className="h-4 w-4" aria-hidden="true" />
+                          {item.label}
+                        </button>
+                      );
+                    }
+
+                    return (
+                      <button
+                        key={item.label}
+                        type="button"
+                        onClick={() => goToSuperAdmin(item.path!)}
+                        aria-current={isActive ? "page" : undefined}
+                        className={cn(
+                          "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                          isActive && "bg-muted text-foreground",
+                        )}
+                      >
+                        <Icon className="h-4 w-4" aria-hidden="true" />
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </>
+          )}
         </nav>
         {isAuthenticated ? (
           <div className="border-t p-3">
@@ -235,7 +298,7 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
 
       <main className="container py-5 pb-20 sm:py-7 sm:pb-7">{children}</main>
 
-      <BottomTabBar />
+      {!isPorteriaOnlyUser ? <BottomTabBar /> : null}
     </div>
   );
 }

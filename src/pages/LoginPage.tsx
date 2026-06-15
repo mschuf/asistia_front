@@ -11,6 +11,7 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
+import { PORTERIA_ALLOWED_LOGIN } from "@/lib/porteria.constants";
 import type { LoginPayload } from "@/types/auth";
 import { ApiError } from "@/api/apiClient";
 
@@ -36,9 +37,11 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await login(form);
+      const response = await login(form);
       toast.success("Inicio de sesión correcto.");
-      navigate("/tickets", { replace: true });
+      const isPorteriaUser =
+        response.user.login.toLowerCase() === PORTERIA_ALLOWED_LOGIN.toLowerCase();
+      navigate(isPorteriaUser ? "/porteria" : "/tickets", { replace: true });
     } catch (error) {
       const message =
         error instanceof ApiError || error instanceof Error
