@@ -21,9 +21,16 @@ export interface TicketFilterState {
   status: AsistiaTicketStatus | "";
   type: AsistiaTicketType | "";
   assignedToId: string;
+  requesterId: string;
   locationId: string;
+  /** Fecha de creación mínima (input type="date", YYYY-MM-DD). */
+  createdFrom: string;
+  /** Fecha de creación máxima (input type="date", YYYY-MM-DD). */
+  createdTo: string;
   /** Conjunto de estados preseleccionados al navegar desde métricas. */
   statusesPreset?: AsistiaTicketStatus[];
+  /** Solo TI: tickets donde soy asignado o solicitante (por defecto true). */
+  involvingMe?: boolean;
 }
 
 /** Estado de paginación del listado de tickets. */

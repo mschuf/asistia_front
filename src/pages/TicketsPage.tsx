@@ -182,7 +182,8 @@ export default function TicketsPage() {
     void handleStatusChange(ticketId, status);
   };
 
-  const userLocation = findLocationById(locations, user?.locationId);
+  const badgeLocations = locations.length > 0 ? locations : historyLocations;
+  const userLocation = findLocationById(badgeLocations, user?.locationId);
 
   const userLocationName = userLocation
     ? locationDisplayName(userLocation)

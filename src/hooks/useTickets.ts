@@ -32,6 +32,8 @@ import {
   resolveTicketsApiLimit,
   statusLabel,
   TICKETS_PAGE_SIZE,
+  toApiDateFrom,
+  toApiDateTo,
   type TicketsPageSize,
 } from "../lib/tickets";
 
@@ -58,11 +60,18 @@ function toListTicketParams(
     page,
     limit,
     technicianId: filters.assignedToId ? Number(filters.assignedToId) : undefined,
+    requesterId: filters.requesterId ? Number(filters.requesterId) : undefined,
+    involvingMe:
+      filters.involvingMe && !filters.assignedToId && !filters.requesterId
+        ? true
+        : undefined,
     locationId: filters.locationId ? Number(filters.locationId) : undefined,
     status: filters.status || undefined,
     statuses: useHistoryDefaultStatuses ? [...defaultStatuses] : undefined,
     type: filters.type || undefined,
     search: trimmedSearch || undefined,
+    createdFrom: toApiDateFrom(filters.createdFrom),
+    createdTo: toApiDateTo(filters.createdTo),
     sortBy: sort?.column,
     sortOrder: sort?.order,
   };
@@ -106,7 +115,6 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
   const [catalogsLoading, setCatalogsLoading] = useState(false);
   const [locationsLoading, setLocationsLoading] = useState(false);
   const [techniciansLoading, setTechniciansLoading] = useState(false);
-  const [historyTicketsReady, setHistoryTicketsReady] = useState(false);
   const [error, setError] = useState("");
   const [catalogsError, setCatalogsError] = useState("");
   const [techniciansError, setTechniciansError] = useState("");
@@ -146,10 +154,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
   const shouldFetchLocationsForCrear =
     needsLocationsForCrear && !loadedCatalogs.locations;
   const shouldPrefetchLocationsForBadges =
-    Boolean(user?.locationId) &&
-    !loadedCatalogs.locations &&
-    tab !== "crear" &&
-    tab !== "historial";
+    Boolean(user?.locationId) && !loadedCatalogs.locations && tab !== "crear";
 
   const setTab = useCallback(
     (nextTab: TicketsTab) => {
@@ -200,11 +205,13 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
       let next: TicketFilterState = withoutPreset;
       if (!value.search.trim() && prev.search.trim()) {
         const defaults = buildInitialTicketFilters(user);
-        if (!value.status && !value.assignedToId) {
+        if (!value.status && !value.assignedToId && !value.requesterId) {
           next = {
             ...withoutPreset,
             status: defaults.status,
             assignedToId: defaults.assignedToId,
+            requesterId: defaults.requesterId,
+            involvingMe: defaults.involvingMe,
           };
         }
       }
@@ -213,9 +220,24 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
   }, [user]);
 
   const applyFilters = useCallback((nextFilters?: TicketFilterState) => {
-    setAppliedFilters(nextFilters ?? filters);
+    let candidate = nextFilters ?? filters;
+    const from = candidate.createdFrom.trim();
+    const to = candidate.createdTo.trim();
+    if (from && to && from > to) {
+      toast.error("La fecha Desde no puede ser posterior a Hasta.");
+      return;
+    }
+    if (
+      user?.role === "technician" &&
+      !candidate.assignedToId &&
+      !candidate.requesterId
+    ) {
+      candidate = { ...candidate, involvingMe: false };
+    }
+    setFiltersState(candidate);
+    setAppliedFilters(candidate);
     setPageState(1);
-  }, [filters]);
+  }, [filters, toast, user]);
 
   useEffect(() => {
     setVisitedTabs((current) => {
@@ -228,11 +250,6 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
 
   useEffect(() => {
     if (tab === "historial") return;
-    setHistoryTicketsReady(false);
-  }, [tab]);
-
-  useEffect(() => {
-    if (tab === "historial") return;
 
     const defaults = buildInitialTicketFilters(user);
     setFiltersState((current) => {
@@ -241,7 +258,11 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
         current.status === defaults.status &&
         current.type === defaults.type &&
         current.assignedToId === defaults.assignedToId &&
+        current.requesterId === defaults.requesterId &&
+        current.involvingMe === defaults.involvingMe &&
         current.locationId === defaults.locationId &&
+        current.createdFrom === defaults.createdFrom &&
+        current.createdTo === defaults.createdTo &&
         !current.statusesPreset;
       return isDefault ? current : defaults;
     });
@@ -251,7 +272,11 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
         current.status === defaults.status &&
         current.type === defaults.type &&
         current.assignedToId === defaults.assignedToId &&
+        current.requesterId === defaults.requesterId &&
+        current.involvingMe === defaults.involvingMe &&
         current.locationId === defaults.locationId &&
+        current.createdFrom === defaults.createdFrom &&
+        current.createdTo === defaults.createdTo &&
         !current.statusesPreset;
       return isDefault ? current : defaults;
     });
@@ -278,7 +303,6 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
       } finally {
         if (!signal?.aborted) {
           setLoading(false);
-          setHistoryTicketsReady(true);
         }
       }
     },
@@ -359,7 +383,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
   }, [shouldFetchCategories, shouldFetchLocationsForCrear]);
 
   useEffect(() => {
-    if (tab !== "historial" || !historyTicketsReady || loadedCatalogs.historyLocations) {
+    if (tab !== "historial" || loadedCatalogs.historyLocations) {
       return;
     }
 
@@ -388,7 +412,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
 
     void loadHistoryLocations();
     return () => controller.abort();
-  }, [tab, historyTicketsReady, loadedCatalogs.historyLocations]);
+  }, [tab, loadedCatalogs.historyLocations]);
 
   useEffect(() => {
     if (tab !== "historial" || !loadedCatalogs.historyLocations || loadedCatalogs.technicians) {

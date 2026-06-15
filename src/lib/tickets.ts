@@ -378,9 +378,31 @@ export function buildInitialTicketFilters(user: AuthUser | null): TicketFilterSt
     search: "",
     status: "",
     type: "",
-    assignedToId: user?.role === "technician" ? String(user.id) : "",
+    assignedToId: "",
+    requesterId: "",
     locationId: "",
+    createdFrom: "",
+    createdTo: "",
+    involvingMe: user?.role === "technician" ? true : undefined,
   };
+}
+
+/** Convierte input type="date" (YYYY-MM-DD) al inicio del día local en ISO8601. */
+export function toApiDateFrom(value: string): string | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const parsed = new Date(`${trimmed}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return undefined;
+  return parsed.toISOString();
+}
+
+/** Convierte input type="date" (YYYY-MM-DD) al fin del día local en ISO8601. */
+export function toApiDateTo(value: string): string | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const parsed = new Date(`${trimmed}T23:59:59.999`);
+  if (Number.isNaN(parsed.getTime())) return undefined;
+  return parsed.toISOString();
 }
 
 /** @param user - Usuario autenticado. @returns Preset de historial por sede o null. */
@@ -391,7 +413,11 @@ export function buildSiteHistorialFilters(user: AuthUser | null): TicketFilterSt
     status: "",
     type: "",
     assignedToId: "",
+    requesterId: "",
     locationId: String(user.locationId),
+    createdFrom: "",
+    createdTo: "",
+    involvingMe: false,
     statusesPreset: [...OPEN_STATUSES],
   };
 }

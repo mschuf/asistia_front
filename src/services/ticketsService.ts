@@ -79,11 +79,15 @@ export interface ListTicketsParams {
   page?: number;
   limit?: number;
   technicianId?: number;
+  requesterId?: number;
   locationId?: number;
   status?: AsistiaTicket["status"];
   statuses?: AsistiaTicket["status"][];
   type?: AsistiaTicket["type"];
   search?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  involvingMe?: boolean;
   sortBy?: HistorySortColumn;
   sortOrder?: HistorySortOrder;
 }
@@ -104,6 +108,7 @@ export async function listTickets(
       page: params?.page ?? 1,
       limit: params?.limit ?? 15,
       technicianId: params?.technicianId,
+      requesterId: params?.requesterId,
       locationId: params?.locationId,
       status: params?.status,
       statuses: params?.statuses?.length ? params.statuses.join(",") : undefined,
@@ -130,11 +135,15 @@ export async function listHistoryTickets(
       page: params?.page ?? 1,
       limit: params?.limit ?? 15,
       technicianId: params?.technicianId,
+      requesterId: params?.requesterId,
       locationId: params?.locationId,
       status: params?.status,
       statuses: params?.statuses?.length ? params.statuses.join(",") : undefined,
       type: params?.type,
       search: params?.search,
+      createdFrom: params?.createdFrom,
+      createdTo: params?.createdTo,
+      involvingMe: params?.involvingMe ? true : undefined,
       sortBy: params?.sortBy,
       sortOrder: params?.sortOrder,
     }
