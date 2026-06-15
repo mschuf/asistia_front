@@ -90,6 +90,7 @@ export interface ListTicketsParams {
   involvingMe?: boolean;
   sortBy?: HistorySortColumn;
   sortOrder?: HistorySortOrder;
+  allStatuses?: boolean;
 }
 
 /**
@@ -146,6 +147,7 @@ export async function listHistoryTickets(
       involvingMe: params?.involvingMe ? true : undefined,
       sortBy: params?.sortBy,
       sortOrder: params?.sortOrder,
+      allStatuses: params?.allStatuses ? true : undefined,
     }
   });
 }

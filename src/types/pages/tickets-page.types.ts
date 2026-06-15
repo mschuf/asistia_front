@@ -18,7 +18,7 @@ export type TicketsTab = "metricas" | "crear" | "historial";
 /** Estado de filtros aplicables al historial de tickets. */
 export interface TicketFilterState {
   search: string;
-  status: AsistiaTicketStatus | "";
+  status: AsistiaTicketStatus | "" | "all";
   type: AsistiaTicketType | "";
   assignedToId: string;
   requesterId: string;

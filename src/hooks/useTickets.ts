@@ -31,6 +31,7 @@ import {
   isValidTicketsPageSize,
   resolveTicketsApiLimit,
   statusLabel,
+  TICKET_STATUS_FILTER_ALL,
   TICKETS_PAGE_SIZE,
   toApiDateFrom,
   toApiDateTo,
@@ -53,6 +54,7 @@ function toListTicketParams(
   sort: HistorySortState | null
 ): ListTicketsParams {
   const trimmedSearch = search.trim();
+  const isAllStatuses = filters.status === TICKET_STATUS_FILTER_ALL;
   const useHistoryDefaultStatuses = !filters.status && !trimmedSearch;
   const defaultStatuses = filters.statusesPreset ?? HISTORY_TABLE_STATUSES;
 
@@ -66,8 +68,12 @@ function toListTicketParams(
         ? true
         : undefined,
     locationId: filters.locationId ? Number(filters.locationId) : undefined,
-    status: filters.status || undefined,
+    status:
+      filters.status && filters.status !== TICKET_STATUS_FILTER_ALL
+        ? filters.status
+        : undefined,
     statuses: useHistoryDefaultStatuses ? [...defaultStatuses] : undefined,
+    allStatuses: isAllStatuses ? true : undefined,
     type: filters.type || undefined,
     search: trimmedSearch || undefined,
     createdFrom: toApiDateFrom(filters.createdFrom),

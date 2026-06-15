@@ -15,6 +15,9 @@ export const IN_PROGRESS_STATUSES: AsistiaTicketStatus[] = ["assigned", "planned
 /** Estados mostrados por defecto en la tabla de historial. */
 export const HISTORY_TABLE_STATUSES: AsistiaTicketStatus[] = ["assigned", "planned"];
 
+/** Valor del selector de estado que incluye todos los estados. */
+export const TICKET_STATUS_FILTER_ALL = "all" as const;
+
 /** Opciones de tamaño de página disponibles en la tabla de historial. */
 export const TICKETS_PAGE_SIZE_OPTIONS = [15, 50, 100] as const;
 

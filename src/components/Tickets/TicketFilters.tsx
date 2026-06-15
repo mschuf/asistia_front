@@ -18,6 +18,7 @@ import {
   buildTechnicianFilterOptions,
   findLocationById,
   locationDisplayName,
+  TICKET_STATUS_FILTER_ALL,
 } from "@/lib/tickets";
 import { getUserById, searchUsers } from "@/services/ticketsService";
 import type { AsistiaLocation, AsistiaUser } from "@/types/asistia";
@@ -118,7 +119,7 @@ export function TicketFilters({
   );
 
   return (
-    <div className="rounded-md border bg-card p-3">
+    <div className="overflow-visible rounded-md border bg-card p-3">
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
@@ -148,86 +149,103 @@ export function TicketFilters({
       </div>
 
       {expanded ? (
-        <div className="mt-3 space-y-3">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-muted-foreground">Desde</span>
-              <Input
-                type="date"
-                value={filters.createdFrom}
-                onChange={(event) => update("createdFrom", event.target.value)}
-              />
-            </label>
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-muted-foreground">Hasta</span>
-              <Input
-                type="date"
-                value={filters.createdTo}
-                onChange={(event) => update("createdTo", event.target.value)}
-              />
-            </label>
-          </div>
+        <div
+          className={cn(
+            "mt-3 grid items-end gap-2 overflow-visible",
+            isTechnician
+              ? "grid-cols-[minmax(0,1.05fr)_minmax(0,1.05fr)_minmax(0,0.85fr)_minmax(0,0.9fr)_minmax(0,1.1fr)_minmax(0,1.1fr)_minmax(0,1.1fr)_auto]"
+              : "grid-cols-[minmax(0,1.05fr)_minmax(0,1.05fr)_minmax(0,0.85fr)_minmax(0,0.9fr)_minmax(0,1.15fr)_minmax(0,1.15fr)_auto]",
+          )}
+        >
+          <label className="flex min-w-0 flex-col gap-1 text-sm">
+            <span className="text-muted-foreground">Desde</span>
+            <Input
+              type="date"
+              value={filters.createdFrom}
+              onChange={(event) => update("createdFrom", event.target.value)}
+            />
+          </label>
+          <label className="flex min-w-0 flex-col gap-1 text-sm">
+            <span className="text-muted-foreground">Hasta</span>
+            <Input
+              type="date"
+              value={filters.createdTo}
+              onChange={(event) => update("createdTo", event.target.value)}
+            />
+          </label>
+          <label className="flex min-w-0 flex-col gap-1 text-sm">
+            <span className="text-muted-foreground">Estado</span>
+            <Select
+              value={filters.status}
+              onChange={(event) => update("status", event.target.value)}
+            >
+              <option value="">Abiertos</option>
+              <option value={TICKET_STATUS_FILTER_ALL}>Todos</option>
+              {Object.entries(TICKET_STATUS_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </label>
+          <label className="flex min-w-0 flex-col gap-1 text-sm">
+            <span className="text-muted-foreground">Tipo</span>
+            <Select
+              value={filters.type}
+              onChange={(event) => update("type", event.target.value)}
+            >
+              <option value="">Todos los tipos</option>
+              {Object.entries(TICKET_TYPE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </label>
 
-          <div
-            className={cn(
-              "grid gap-3 sm:grid-cols-2",
-              isTechnician
-                ? "lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]"
-                : "lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]",
-            )}
-          >
-          <Select value={filters.status} onChange={(event) => update("status", event.target.value)}>
-            <option value="">Abiertos</option>
-            {Object.entries(TICKET_STATUS_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </Select>
-
-          <Select value={filters.type} onChange={(event) => update("type", event.target.value)}>
-            <option value="">Todos los tipos</option>
-            {Object.entries(TICKET_TYPE_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </Select>
-
-          <SearchableSelect
-            id="ticket-filter-assigned"
-            value={filters.assignedToId}
-            onChange={(value) => updateActorFilter("assignedToId", value)}
-            options={technicianOptions}
-            placeholder={techniciansLoading ? "Cargando técnicos..." : "Asignado a"}
-            searchPlaceholder="Buscar técnico..."
-            emptyOption={{ value: "", label: "Todos los técnicos" }}
-            disabled={techniciansLoading}
-          />
+          <label className="flex min-w-0 flex-col gap-1 text-sm">
+            <span className="text-muted-foreground">Asignado</span>
+            <SearchableSelect
+              id="ticket-filter-assigned"
+              value={filters.assignedToId}
+              onChange={(value) => updateActorFilter("assignedToId", value)}
+              options={technicianOptions}
+              placeholder={techniciansLoading ? "Cargando técnicos..." : "Todos los técnicos"}
+              searchPlaceholder="Buscar técnico..."
+              emptyOption={{ value: "", label: "Todos los técnicos" }}
+              disabled={techniciansLoading}
+            />
+          </label>
 
           {isTechnician ? (
-            <ServerSearchableSelect
-              id="ticket-filter-requester"
-              value={filters.requesterId}
-              onChange={(value) => updateActorFilter("requesterId", value)}
-              onLoadOptions={loadRequesterOptions}
-              resolveSelectedOption={resolveRequesterOption}
-              placeholder="Solicitante"
-              searchPlaceholder="Buscar usuario..."
-              emptyOption={REQUESTER_EMPTY_OPTION}
-            />
+            <label className="flex min-w-0 flex-col gap-1 text-sm">
+              <span className="text-muted-foreground">Solicitante</span>
+              <ServerSearchableSelect
+                id="ticket-filter-requester"
+                value={filters.requesterId}
+                onChange={(value) => updateActorFilter("requesterId", value)}
+                onLoadOptions={loadRequesterOptions}
+                resolveSelectedOption={resolveRequesterOption}
+                placeholder="Todos los solicitantes"
+                searchPlaceholder="Buscar usuario..."
+                emptyOption={REQUESTER_EMPTY_OPTION}
+              />
+            </label>
           ) : null}
 
-          <SearchableSelect
-            id="ticket-filter-location"
-            value={filters.locationId}
-            onChange={(value) => update("locationId", value)}
-            options={locationOptions}
-            placeholder={locationsLoading ? "Cargando sedes..." : "Sede"}
-            searchPlaceholder="Buscar sede..."
-            emptyOption={{ value: "", label: "Todas las sedes" }}
-            disabled={locationsLoading}
-          />
+          <label className="flex min-w-0 flex-col gap-1 text-sm">
+            <span className="text-muted-foreground">Sede</span>
+            <SearchableSelect
+              id="ticket-filter-location"
+              value={filters.locationId}
+              onChange={(value) => update("locationId", value)}
+              options={locationOptions}
+              placeholder={locationsLoading ? "Cargando sedes..." : "Todas las sedes"}
+              searchPlaceholder="Buscar sede..."
+              emptyOption={{ value: "", label: "Todas las sedes" }}
+              disabled={locationsLoading}
+            />
+          </label>
 
           <Button
             type="button"
@@ -238,7 +256,6 @@ export function TicketFilters({
             <Search className="h-3.5 w-3.5" aria-hidden="true" />
             Buscar
           </Button>
-          </div>
         </div>
       ) : null}
     </div>
