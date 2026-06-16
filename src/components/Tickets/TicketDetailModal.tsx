@@ -10,7 +10,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Loading } from "@/components/ui/loading";
 import { formatDate } from "@/lib/format";
 import { isAbortError } from "@/lib/http";
-import { statusBadgeVariant, statusLabel, typeLabel, urgencyLabel } from "@/lib/tickets";
+import { statusBadgeVariant, statusLabel, typeLabel } from "@/lib/tickets";
 import { getTicketById } from "@/services/ticketsService";
 import type { AsistiaTicket, AsistiaTicketStatus } from "@/types/asistia";
 
@@ -127,8 +127,6 @@ export function TicketDetailModal({
               </Badge>
             </DetailRow>
             <DetailRow label="Tipo">{typeLabel(displayTicket.type)}</DetailRow>
-            <DetailRow label="Urgencia">{urgencyLabel(displayTicket.urgency) || "—"}</DetailRow>
-            <DetailRow label="Categoría">{displayTicket.category?.name ?? "—"}</DetailRow>
             <DetailRow label="Ubicación">{displayTicket.location?.name ?? "—"}</DetailRow>
             <DetailRow label="Solicitante">
               <div>
