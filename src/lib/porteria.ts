@@ -2,11 +2,13 @@
  * @file porteria.ts
  * @description Utilidades de dominio para el modulo Porteria: filtros, orden y paginacion.
  */
+import type { Visita, VisitaEstado, VisitaZona } from "@/api/visitas";
 import type {
   PorteriaHistoryFilterState,
   PorteriaHistoryRecord,
   PorteriaHistorySortColumn,
   PorteriaHistorySortState,
+  PorteriaTrackingVisitor,
 } from "@/types/pages/porteria-page.types";
 
 /** Opciones de tamano de pagina del historial. */
@@ -62,6 +64,135 @@ export function parsePorteriaPageSize(value: string): PorteriaPageSize | null {
   if (!Number.isFinite(parsed)) return null;
   const candidate = parsed as PorteriaPageSize;
   return isValidPorteriaPageSize(candidate) ? candidate : null;
+}
+
+/** @returns Fecha local actual en formato YYYY-MM-DD. */
+export function getLocalTodayYmd(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/** @param zonasPermitidas - Zonas autorizadas de la visita. @returns Zona para las cards de seguimiento. */
+function resolveTrackingZone(zonasPermitidas: VisitaZona[]): PorteriaTrackingVisitor["zone"] {
+  if (zonasPermitidas.includes("fábrica")) return "fabrica";
+  if (zonasPermitidas.includes("administración")) return "administracion";
+  return "porteria";
+}
+
+/** @param entradaAt - Timestamp ISO de entrada. @returns Hora formateada para la card. */
+function formatTrackingEntryTime(entradaAt: string | null): string {
+  if (!entradaAt) return "—";
+  return new Date(entradaAt).toLocaleTimeString("es-AR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/**
+ * Convierte una visita activa de la API al modelo de seguimiento de Portería.
+ * @param visita - Visita obtenida del backend.
+ * @returns Visitante listo para PorteriaSeguimientoCards.
+ */
+export function mapVisitaToTrackingVisitor(visita: Visita): PorteriaTrackingVisitor {
+  return {
+    id: visita.id,
+    name: visita.visitante,
+    company: visita.empresa ?? "—",
+    zone: resolveTrackingZone(visita.zonasPermitidas),
+    entryTime: formatTrackingEntryTime(visita.entradaAt),
+    status: visita.estadoSeguimiento ?? "activo",
+  };
+}
+
+/**
+ * Convierte una visita de la API al registro del historial de Portería.
+ * @param visita - Visita obtenida del backend.
+ * @returns Fila compatible con PorteriaHistoryTable.
+ */
+export function mapVisitaToHistoryRecord(visita: Visita): PorteriaHistoryRecord {
+  return {
+    id: visita.id,
+    visitante: visita.visitante,
+    documento: visita.documento,
+    empresa: visita.empresa ?? "—",
+    motivo: visita.motivo,
+    responsable: visita.responsableNombre,
+    entradaAt: visita.entradaAt,
+    salidaAt: visita.salidaAt,
+    estado: visita.estado,
+  };
+}
+
+const HISTORY_ESTADO_LABEL: Record<VisitaEstado, string> = {
+  programada: "Programada",
+  activa: "Activa",
+  finalizada: "Finalizada",
+  cancelada: "Cancelada",
+};
+
+const HISTORY_ESTADO_VARIANT: Record<
+  VisitaEstado,
+  "info" | "success" | "warning" | "danger"
+> = {
+  programada: "info",
+  activa: "success",
+  finalizada: "warning",
+  cancelada: "danger",
+};
+
+/** @param entradaAt - Timestamp ISO de entrada. @returns Fecha formateada para el detalle del historial. */
+export function formatHistoryVisitDate(entradaAt: string | null): string {
+  if (!entradaAt) return "—";
+  return new Date(entradaAt).toLocaleDateString("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+/** @param iso - Timestamp ISO. @returns Hora formateada para el recorrido del historial. */
+export function formatHistoryVisitTime(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleTimeString("es-AR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/**
+ * @param entradaAt - Timestamp ISO de entrada.
+ * @param salidaAt - Timestamp ISO de salida.
+ * @returns Duracion en formato HH:mm o `—` si faltan datos.
+ */
+export function calculateHistoryVisitDuration(
+  entradaAt: string | null,
+  salidaAt: string | null,
+): string {
+  if (!entradaAt || !salidaAt) return "—";
+
+  const diffMs = new Date(salidaAt).getTime() - new Date(entradaAt).getTime();
+  if (diffMs < 0) return "—";
+
+  const totalMinutes = Math.floor(diffMs / 60_000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+/** @param estado - Estado de la visita. @returns Etiqueta legible para UI. */
+export function getHistoryEstadoLabel(estado: VisitaEstado): string {
+  return HISTORY_ESTADO_LABEL[estado];
+}
+
+/** @param estado - Estado de la visita. @returns Variante de badge para UI. */
+export function getHistoryEstadoBadgeVariant(
+  estado: VisitaEstado,
+): "info" | "success" | "warning" | "danger" {
+  return HISTORY_ESTADO_VARIANT[estado];
 }
 
 /** @returns Estado inicial de filtros del historial. */

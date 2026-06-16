@@ -5,6 +5,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import type { AuthUser } from "../types/auth";
+import { accessFlagsFromUser, resolveDefaultAuthenticatedPath } from "../utils/auth-access";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -17,8 +18,9 @@ interface ProtectedRouteProps {
  * @returns Children o redirección.
  */
 export default function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
-  const { isAuthenticated, isBootstrapping, role } = useAuth();
+  const { isAuthenticated, isBootstrapping, role, user } = useAuth();
   const location = useLocation();
+  const defaultPath = resolveDefaultAuthenticatedPath(accessFlagsFromUser(user));
 
   if (isBootstrapping) {
     return null;
@@ -29,7 +31,7 @@ export default function ProtectedRoute({ children, roles }: ProtectedRouteProps)
   }
 
   if (Array.isArray(roles) && roles.length > 0 && (!role || !roles.includes(role))) {
-    return <Navigate to="/tickets" replace />;
+    return <Navigate to={defaultPath} replace />;
   }
 
   return <>{children}</>;

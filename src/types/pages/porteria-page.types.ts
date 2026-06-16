@@ -6,13 +6,14 @@
 
  */
 
+import type { VisitaEstado } from "@/api/visitas";
 import type { PorteriaPageSize } from "@/lib/porteria";
 
 
 
 /** Tabs disponibles en Porteria. */
 
-export type PorteriaTab = "seguimiento" | "historial";
+export type PorteriaTab = "indicadores" | "visita" | "historial";
 
 
 
@@ -31,6 +32,12 @@ export interface PorteriaHistoryRecord {
   motivo: string;
 
   responsable: string;
+
+  entradaAt: string | null;
+
+  salidaAt: string | null;
+
+  estado: VisitaEstado;
 
 }
 
@@ -116,7 +123,7 @@ export interface PorteriaTrackingVisitor {
 
   company: string;
 
-  zone: "planta" | "administracion" | "porteria";
+  zone: "Fábrica" | "Administración";
 
   entryTime: string;
 
@@ -142,42 +149,31 @@ export interface PorteriaHistoryPagination {
 
 
 
-/** Valor retornado por usePorteria. */
-
-export interface UsePorteriaResult {
-
-  tab: PorteriaTab;
-
-  setTab: (nextTab: PorteriaTab) => void;
-
+/** Valor retornado por usePorteriaIndicadores. */
+export interface UsePorteriaIndicadoresResult {
   metrics: PorteriaMetricCard[];
-
   trackingVisitors: PorteriaTrackingVisitor[];
+  loading: boolean;
+  refresh: () => Promise<void>;
+}
 
+/** Valor retornado por usePorteriaHistorial. */
+export interface UsePorteriaHistorialResult {
   historyRows: PorteriaHistoryRecord[];
-
   historyPagination: PorteriaHistoryPagination;
-
+  historyLoading: boolean;
+  historyError: string;
   filters: PorteriaHistoryFilterState;
-
   setFilters: (filters: PorteriaHistoryFilterState) => void;
-
   applyFilters: (filters?: PorteriaHistoryFilterState) => void;
-
   sort: PorteriaHistorySortState | null;
-
   setSortColumn: (column: PorteriaHistorySortColumn) => void;
-
   setPage: (page: number) => void;
-
   setPageLimit: (limit: PorteriaPageSize) => void;
-
   selectedRecord: PorteriaHistoryRecord | null;
-
   selectRecord: (record: PorteriaHistoryRecord) => void;
-
   clearSelectedRecord: () => void;
-
+  refresh: () => Promise<void>;
 }
 
 

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
   PORTERIA_ADMINISTRACION_COLORS,
-  PORTERIA_PLANTA_COLORS,
+  PORTERIA_FABRICA_COLORS,
 } from "@/lib/porteria.constants";
 import type { PorteriaTrackingVisitor } from "@/types/pages/porteria-page.types";
 
@@ -38,12 +38,12 @@ const ZONE_STYLES: Record<
     badgeVariant: "info" | "success" | "warning";
   }
 > = {
-  planta: {
-    label: "Planta",
+  fabrica: {
+    label: "Fabrica",
     icon: Factory,
-    cardClassName: PORTERIA_PLANTA_COLORS.trackingCard,
-    iconClassName: PORTERIA_PLANTA_COLORS.trackingIcon,
-    entryBoxClassName: PORTERIA_PLANTA_COLORS.trackingEntryBox,
+    cardClassName: PORTERIA_FABRICA_COLORS.trackingCard,
+    iconClassName: PORTERIA_FABRICA_COLORS.trackingIcon,
+    entryBoxClassName: PORTERIA_FABRICA_COLORS.trackingEntryBox,
     badgeVariant: "success",
   },
   administracion: {

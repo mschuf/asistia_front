@@ -1,18 +1,19 @@
 /**
  * @file PorteriaTabs.tsx
- * @description Selector de tabs para Seguimiento e Historial.
+ * @description Selector de tabs para Indicadores, Visita e Historial.
  */
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { PorteriaTab } from "@/types/pages/porteria-page.types";
 
 interface PorteriaTabsProps {
-  value: PorteriaTab;
+  value: PorteriaTab | null;
   onChange: (nextTab: PorteriaTab) => void;
 }
 
 const PORTERIA_TABS: Array<{ value: PorteriaTab; label: string }> = [
-  { value: "seguimiento", label: "Seguimiento" },
+  { value: "indicadores", label: "Indicadores" },
+  { value: "visita", label: "Visitas" },
   { value: "historial", label: "Historial" },
 ];
 
@@ -23,14 +24,14 @@ const PORTERIA_TABS: Array<{ value: PorteriaTab; label: string }> = [
  */
 export function PorteriaTabs({ value, onChange }: PorteriaTabsProps) {
   return (
-    <div className="flex shrink-0 rounded-md border bg-card p-1">
+    <div className="flex w-full shrink-0 rounded-md border bg-card p-1 sm:w-auto">
       {PORTERIA_TABS.map((tab) => (
         <Button
           key={tab.value}
           type="button"
           size="sm"
           variant={value === tab.value ? "default" : "ghost"}
-          className={cn("gap-2")}
+          className={cn("min-w-0 flex-1 sm:flex-initial")}
           onClick={() => onChange(tab.value)}
         >
           {tab.label}

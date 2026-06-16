@@ -11,9 +11,9 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
-import { PORTERIA_ALLOWED_LOGIN } from "@/lib/porteria.constants";
 import type { LoginPayload } from "@/types/auth";
 import { ApiError } from "@/api/apiClient";
+import { accessFlagsFromUser, resolveDefaultAuthenticatedPath } from "@/utils/auth-access";
 
 /**
  * Formulario de login y redirección a tickets tras autenticación exitosa.
@@ -39,9 +39,7 @@ export default function LoginPage() {
     try {
       const response = await login(form);
       toast.success("Inicio de sesión correcto.");
-      const isPorteriaUser =
-        response.user.login.toLowerCase() === PORTERIA_ALLOWED_LOGIN.toLowerCase();
-      navigate(isPorteriaUser ? "/porteria" : "/tickets", { replace: true });
+      navigate(resolveDefaultAuthenticatedPath(accessFlagsFromUser(response.user)), { replace: true });
     } catch (error) {
       const message =
         error instanceof ApiError || error instanceof Error

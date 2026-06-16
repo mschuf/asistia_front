@@ -7,7 +7,7 @@ import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   PORTERIA_ADMINISTRACION_COLORS,
-  PORTERIA_PLANTA_COLORS,
+  PORTERIA_FABRICA_COLORS,
 } from "@/lib/porteria.constants";
 import type { PorteriaMetricCard } from "@/types/pages/porteria-page.types";
 
@@ -39,8 +39,8 @@ const METRIC_STYLES: Record<
   },
   plant: {
     icon: Factory,
-    cardClassName: PORTERIA_PLANTA_COLORS.metricCard,
-    iconClassName: PORTERIA_PLANTA_COLORS.metricIcon,
+    cardClassName: PORTERIA_FABRICA_COLORS.metricCard,
+    iconClassName: PORTERIA_FABRICA_COLORS.metricIcon,
   },
   admin: {
     icon: Building2,

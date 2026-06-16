@@ -4,6 +4,7 @@
  */
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { accessFlagsFromUser, resolveDefaultAuthenticatedPath } from "../utils/auth-access";
 
 interface PublicOnlyRouteProps {
   children: React.ReactNode;
@@ -15,14 +16,14 @@ interface PublicOnlyRouteProps {
  * @returns `null` durante bootstrap, redirección a `/tickets` o los hijos.
  */
 export default function PublicOnlyRoute({ children }: PublicOnlyRouteProps) {
-  const { isAuthenticated, isBootstrapping } = useAuth();
+  const { isAuthenticated, isBootstrapping, user } = useAuth();
 
   if (isBootstrapping) {
     return null;
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/tickets" replace />;
+    return <Navigate to={resolveDefaultAuthenticatedPath(accessFlagsFromUser(user))} replace />;
   }
 
   return <>{children}</>;
