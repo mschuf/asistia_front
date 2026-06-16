@@ -8,8 +8,16 @@ import type {
   TicketCreatedReportSortColumn,
   TicketCreatedReportSortOrder,
 } from "@/types/pages/ticket-created-report.types";
+import type {
+  PorteriaReportLog,
+  PorteriaReportSortColumn,
+  PorteriaReportSortOrder,
+} from "@/types/pages/porteria-report.types";
+import type { VisitaEstado } from "@/api/visitas";
 
 export type TicketCreatedReportExportFormat = "pdf" | "xlsx";
+
+export type PorteriaReportExportFormat = "pdf" | "xlsx";
 
 export interface ExportTicketCreatedLogsQuery {
   format: TicketCreatedReportExportFormat;
@@ -36,6 +44,42 @@ export interface ListTicketCreatedLogsQuery {
 
 export interface TicketCreatedLogListResponse {
   items: TicketCreatedLog[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface ExportVisitasReportQuery {
+  format: PorteriaReportExportFormat;
+  entradaFrom?: string;
+  entradaTo?: string;
+  estado?: VisitaEstado;
+  empresa?: string;
+  visitante?: string;
+  documento?: string;
+  motivo?: string;
+  responsable?: string;
+  sortBy?: PorteriaReportSortColumn;
+  sortOrder?: PorteriaReportSortOrder;
+}
+
+export interface ListVisitasReportQuery {
+  page?: number;
+  limit?: number;
+  entradaFrom?: string;
+  entradaTo?: string;
+  estado?: VisitaEstado;
+  empresa?: string;
+  visitante?: string;
+  documento?: string;
+  motivo?: string;
+  responsable?: string;
+  sortBy?: PorteriaReportSortColumn;
+  sortOrder?: PorteriaReportSortOrder;
+}
+
+export interface VisitaReportListResponse {
+  items: PorteriaReportLog[];
   total: number;
   page: number;
   limit: number;
@@ -90,6 +134,65 @@ export async function downloadTicketCreatedReport(
       categoryName: query.categoryName || undefined,
       companyId: query.companyId,
       locationId: query.locationId,
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+    },
+  });
+}
+
+/**
+ * Lista visitas de portería con filtros y paginación.
+ * @param query - Parámetros de consulta del reporte.
+ * @param options - Opciones de petición HTTP.
+ * @returns Página de visitas y total.
+ */
+export async function listVisitasReport(
+  query: ListVisitasReportQuery = {},
+  options?: ReadRequestOptions,
+): Promise<VisitaReportListResponse> {
+  return apiClient.get<VisitaReportListResponse>("/reports/visitas", {
+    ...options,
+    showBackdrop: options?.showBackdrop ?? true,
+    query: {
+      page: query.page ?? 1,
+      limit: query.limit ?? 15,
+      entradaFrom: query.entradaFrom,
+      entradaTo: query.entradaTo,
+      estado: query.estado,
+      empresa: query.empresa || undefined,
+      visitante: query.visitante || undefined,
+      documento: query.documento || undefined,
+      motivo: query.motivo || undefined,
+      responsable: query.responsable || undefined,
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+    },
+  });
+}
+
+/**
+ * Descarga reporte de visitas de portería en PDF o Excel.
+ * @param query - Filtros activos y formato de exportación.
+ * @param options - Opciones de petición HTTP.
+ * @returns Blob y nombre de archivo.
+ */
+export async function downloadVisitasReport(
+  query: ExportVisitasReportQuery,
+  options?: ReadRequestOptions,
+): Promise<{ blob: Blob; filename: string }> {
+  return apiClient.download("/reports/visitas/export", {
+    ...options,
+    showBackdrop: options?.showBackdrop ?? true,
+    query: {
+      format: query.format,
+      entradaFrom: query.entradaFrom,
+      entradaTo: query.entradaTo,
+      estado: query.estado,
+      empresa: query.empresa || undefined,
+      visitante: query.visitante || undefined,
+      documento: query.documento || undefined,
+      motivo: query.motivo || undefined,
+      responsable: query.responsable || undefined,
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
     },

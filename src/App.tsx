@@ -51,6 +51,8 @@ const PromptsPage = lazy(() => import("./pages/PromptsPage"));
 
 const TicketCreatedReportPage = lazy(() => import("./pages/TicketCreatedReportPage"));
 
+const PorteriaReportPage = lazy(() => import("./pages/PorteriaReportPage"));
+
 
 
 /**
@@ -194,6 +196,22 @@ export default function App() {
               <SuperAdminRoute>
 
                 <TicketCreatedReportPage />
+
+              </SuperAdminRoute>
+
+            }
+
+          />
+
+          <Route
+
+            path="admin/reporte-porteria"
+
+            element={
+
+              <SuperAdminRoute>
+
+                <PorteriaReportPage />
 
               </SuperAdminRoute>
 
