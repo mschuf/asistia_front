@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDateParts, formatNameParts } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { statusBadgeVariant, statusLabel, typeLabel } from "@/lib/tickets";
+import { statusBadgeVariant, statusLabel, typeLabel, TICKETS_HISTORIAL_LAYOUT_MIN_WIDTH_CLASS } from "@/lib/tickets";
 import type { AsistiaTicket, AsistiaTicketStatus } from "@/types/asistia";
 import type { HistorySortColumn, HistorySortOrder } from "@/types/pages/tickets-page.types";
 
@@ -178,9 +178,14 @@ export function TicketTable({
 
   return (
     <>
-    <div className="overflow-hidden rounded-md border bg-card shadow-soft">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[860px] border-separate border-spacing-0 text-left text-sm">
+    <div className="w-full min-w-0 overflow-hidden rounded-md border bg-card shadow-soft">
+      <div className="w-full min-w-0 overflow-x-auto">
+        <table
+          className={cn(
+            "w-full border-separate border-spacing-0 text-left text-sm",
+            TICKETS_HISTORIAL_LAYOUT_MIN_WIDTH_CLASS,
+          )}
+        >
           <thead className="bg-muted text-xs uppercase tracking-normal text-muted-foreground">
             <tr>
               <th className="w-10 px-2 py-3" aria-hidden="true" />
@@ -201,7 +206,7 @@ export function TicketTable({
               ) : null}
             </tr>
           </thead>
-          <tbody className="[&>tr:not(:last-child)>td]:border-b [&>tr:not(:last-child)>td]:border-muted-foreground/25">
+          <tbody className="[&>tr:not(:last-child)>td]:border-b [&>tr:not(:last-child)>td]:border-muted-foreground/25 [&>tr[data-expanded-row]>td]:!border-b-0">
             {tickets.map((ticket) => {
               const isExpanded = expandedIds.has(ticket.id);
               const detailColSpan = SORTABLE_COLUMNS.length + (showActionsColumn ? 1 : 0) + 1;
@@ -209,10 +214,11 @@ export function TicketTable({
               return (
               <Fragment key={ticket.id}>
               <tr
+                data-expanded-row={isExpanded ? "" : undefined}
                 className={cn(
                   "group cursor-pointer hover:bg-muted/50",
                   selectedTicket?.id === ticket.id && "bg-muted/40",
-                  isExpanded && "bg-muted/30"
+                  isExpanded && "bg-muted/30",
                 )}
                 onClick={() => setSelectedTicket(ticket)}
               >
@@ -246,7 +252,9 @@ export function TicketTable({
                 <td className="px-4 py-3">
                   <NameCell value={ticket.requester.name} />
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">{ticket.location?.name ?? "—"}</td>
+                <td className="max-w-xs px-4 py-3 text-muted-foreground">
+                  <span className="line-clamp-2">{ticket.location?.name ?? "—"}</span>
+                </td>
                 <td className="whitespace-nowrap px-4 py-3">{typeLabel(ticket.type)}</td>
                 <td className="min-w-56 px-4 py-3">{ticket.subject}</td>
                 <td className="whitespace-nowrap px-4 py-3">
@@ -281,16 +289,16 @@ export function TicketTable({
                 ) : null}
               </tr>
               {isExpanded ? (
-                <tr className="bg-muted/20">
+                <tr data-expanded-detail className="bg-muted/20">
                   <td
                     colSpan={detailColSpan}
-                    className="border-b border-muted-foreground/25 px-4 py-3"
+                    className="border-b border-t-0 border-muted-foreground/25 px-4 py-3 align-top"
                   >
-                    <div className="space-y-1 pl-8">
+                    <div className="min-w-0 space-y-1 pl-8">
                       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         Descripción
                       </p>
-                      <p className="whitespace-pre-wrap text-sm text-foreground">
+                      <p className="whitespace-pre-wrap break-words text-sm text-foreground [overflow-wrap:anywhere]">
                         {ticket.description?.trim() || "Sin descripción"}
                       </p>
                     </div>

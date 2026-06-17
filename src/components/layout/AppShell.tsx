@@ -74,6 +74,7 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   const [searchParams] = useSearchParams();
   const currentTab = readNavTab(searchParams.get("tab"));
   const onTicketsRoute = location.pathname.startsWith("/tickets");
+  const isTicketsHistorialLayout = onTicketsRoute && currentTab === "historial";
 
   /** Cierra sesión con toast y cierra el menú. @returns void */
   function handleLogout() {
@@ -326,7 +327,14 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
         />
       ) : null}
 
-      <main className="container py-5 pb-20 sm:py-7 sm:pb-7">{children}</main>
+      <main
+        className={cn(
+          "py-5 pb-20 sm:py-7 sm:pb-7",
+          isTicketsHistorialLayout ? "w-full min-w-0 px-4 sm:px-6" : "container",
+        )}
+      >
+        {children}
+      </main>
 
       <BottomTabBar />
     </div>

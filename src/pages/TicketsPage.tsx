@@ -214,7 +214,13 @@ export default function TicketsPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div
+      className={cn(
+        "space-y-5",
+        tab === "historial" &&
+          "w-full min-w-0 min-[1600px]:mx-auto min-[1600px]:max-w-[75vw]",
+      )}
+    >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <div>

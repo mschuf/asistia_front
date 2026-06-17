@@ -9,6 +9,7 @@ import {
   useEffect,
   useId,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -79,6 +80,12 @@ export const ServerSearchableSelect = forwardRef<ServerSearchableSelectHandle, S
   const [loading, setLoading] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [placement, setPlacement] = useState<"bottom" | "top">("bottom");
+  const [dropdownPosition, setDropdownPosition] = useState<{
+    left: number;
+    width: number;
+    top?: number;
+    bottom?: number;
+  } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -187,8 +194,9 @@ export const ServerSearchableSelect = forwardRef<ServerSearchableSelectHandle, S
     };
   }, [debouncedQuery, onLoadOptions, open]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open) {
+      setDropdownPosition(null);
       return;
     }
 
@@ -202,7 +210,15 @@ export const ServerSearchableSelect = forwardRef<ServerSearchableSelectHandle, S
       const dropdownMaxHeight = 280;
       const spaceBelow = window.innerHeight - rect.bottom;
       const spaceAbove = rect.top;
-      setPlacement(spaceBelow < dropdownMaxHeight && spaceAbove > spaceBelow ? "top" : "bottom");
+      const nextPlacement = spaceBelow < dropdownMaxHeight && spaceAbove > spaceBelow ? "top" : "bottom";
+      setPlacement(nextPlacement);
+      setDropdownPosition({
+        left: rect.left,
+        width: rect.width,
+        ...(nextPlacement === "bottom"
+          ? { top: rect.bottom + 4 }
+          : { bottom: window.innerHeight - rect.top + 4 }),
+      });
     };
 
     updatePlacement();
@@ -315,12 +331,15 @@ export const ServerSearchableSelect = forwardRef<ServerSearchableSelectHandle, S
         <ChevronDown className={cn("h-4 w-4 shrink-0 opacity-60 transition-transform", open && "rotate-180")} aria-hidden="true" />
       </button>
 
-      {open ? (
+      {open && dropdownPosition ? (
         <div
-          className={cn(
-            "absolute z-[60] w-full overflow-hidden rounded-md border bg-card shadow-md",
-            placement === "top" ? "bottom-full mb-1" : "top-full mt-1",
-          )}
+          className="fixed z-[60] overflow-hidden rounded-md border bg-card shadow-md"
+          style={{
+            left: dropdownPosition.left,
+            width: dropdownPosition.width,
+            top: dropdownPosition.top,
+            bottom: dropdownPosition.bottom,
+          }}
         >
           <div className="flex items-center gap-2 border-b px-3 py-2">
             <Search className="h-4 w-4 shrink-0 opacity-50" aria-hidden="true" />

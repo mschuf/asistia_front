@@ -19,11 +19,19 @@ import {
   findLocationById,
   locationDisplayName,
   TICKET_STATUS_FILTER_ALL,
+  TICKETS_HISTORIAL_FILTERS_SCROLL_CLASS,
+  TICKETS_HISTORIAL_FILTERS_WIDE_CLASS,
 } from "@/lib/tickets";
 import { getUserById, searchUsers } from "@/services/ticketsService";
 import type { AsistiaLocation, AsistiaUser } from "@/types/asistia";
 import type { AuthUser } from "@/types/auth";
 import type { TicketFilterState } from "@/types/pages/tickets-page.types";
+
+const ADVANCED_FILTER_GRID_TECHNICIAN =
+  "min-[1120px]:grid-cols-[minmax(8.75rem,1.05fr)_minmax(8.75rem,1.05fr)_minmax(7rem,0.85fr)_minmax(7rem,0.9fr)_minmax(9rem,1.1fr)_minmax(9rem,1.1fr)_minmax(9rem,1.1fr)_auto]";
+
+const ADVANCED_FILTER_GRID_USER =
+  "min-[1120px]:grid-cols-[minmax(8.75rem,1.05fr)_minmax(8.75rem,1.05fr)_minmax(7rem,0.85fr)_minmax(7rem,0.9fr)_minmax(9rem,1.15fr)_minmax(9rem,1.15fr)_auto]";
 
 const REQUESTER_EMPTY_OPTION = { value: "", label: "Todos los solicitantes" };
 
@@ -119,7 +127,7 @@ export function TicketFilters({
   );
 
   return (
-    <div className="overflow-visible rounded-md border bg-card p-3">
+    <div className="w-full min-w-0 overflow-visible rounded-md border bg-card p-3">
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
@@ -148,13 +156,19 @@ export function TicketFilters({
         </button>
       </div>
 
-      {expanded ? (
+      <div
+        aria-hidden={!expanded}
+        {...(!expanded ? { inert: true } : {})}
+        className={cn(
+          !expanded && "pointer-events-none max-h-0 overflow-hidden opacity-0",
+          expanded && cn("mt-3", TICKETS_HISTORIAL_FILTERS_SCROLL_CLASS),
+        )}
+      >
         <div
           className={cn(
-            "mt-3 grid items-end gap-2 overflow-visible",
-            isTechnician
-              ? "grid-cols-[minmax(0,1.05fr)_minmax(0,1.05fr)_minmax(0,0.85fr)_minmax(0,0.9fr)_minmax(0,1.1fr)_minmax(0,1.1fr)_minmax(0,1.1fr)_auto]"
-              : "grid-cols-[minmax(0,1.05fr)_minmax(0,1.05fr)_minmax(0,0.85fr)_minmax(0,0.9fr)_minmax(0,1.15fr)_minmax(0,1.15fr)_auto]",
+            "grid grid-cols-1 items-end gap-2 sm:grid-cols-2",
+            isTechnician ? ADVANCED_FILTER_GRID_TECHNICIAN : ADVANCED_FILTER_GRID_USER,
+            TICKETS_HISTORIAL_FILTERS_WIDE_CLASS,
           )}
         >
           <label className="flex min-w-0 flex-col gap-1 text-sm">
@@ -203,7 +217,7 @@ export function TicketFilters({
             </Select>
           </label>
 
-          <label className="flex min-w-0 flex-col gap-1 text-sm">
+          <label className="relative z-10 flex min-w-0 flex-col gap-1 text-sm">
             <span className="text-muted-foreground">Asignado</span>
             <SearchableSelect
               id="ticket-filter-assigned"
@@ -218,7 +232,7 @@ export function TicketFilters({
           </label>
 
           {isTechnician ? (
-            <label className="flex min-w-0 flex-col gap-1 text-sm">
+            <label className="relative z-10 flex min-w-0 flex-col gap-1 text-sm">
               <span className="text-muted-foreground">Solicitante</span>
               <ServerSearchableSelect
                 id="ticket-filter-requester"
@@ -233,7 +247,7 @@ export function TicketFilters({
             </label>
           ) : null}
 
-          <label className="flex min-w-0 flex-col gap-1 text-sm">
+          <label className="relative z-10 flex min-w-0 flex-col gap-1 text-sm">
             <span className="text-muted-foreground">Sede</span>
             <SearchableSelect
               id="ticket-filter-location"
@@ -257,7 +271,7 @@ export function TicketFilters({
             Buscar
           </Button>
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }
