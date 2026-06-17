@@ -11,10 +11,10 @@ export const VISITA_ZONA = ["administración", "fábrica"] as const;
 export type VisitaZona = (typeof VISITA_ZONA)[number];
 
 /** Etiquetas legibles para mostrar en UI. */
-export const VISITA_ZONA_LABELS: Record<VisitaZona, string> = {
+export const VISITA_ZONA_LABELS = {
   administración: "Administración",
   fábrica: "Fábrica",
-};
+} as const satisfies Record<VisitaZona, string>;
 export type VisitaSeguimiento = "activo" | "alerta" | "peligro";
 
 export interface Visita {
@@ -94,8 +94,10 @@ export type ActualizarVisitaPayload = Partial<CrearVisitaPayload>;
 export interface VisitaMetrics {
   monthVisits: number;
   dayVisits: number;
-  plantVisitors: number;
-  adminVisitors: number;
+  activeOnlyAdmin: number;
+  activeOnlyFactory: number;
+  activeBothZones: number;
+  activeStaleWithoutCheckout: number;
 }
 
 /** Lista visitas con paginación, filtros y orden. */

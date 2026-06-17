@@ -109,7 +109,15 @@ export interface PorteriaMetricCard {
 
   value: string;
 
+  subtitle?: string;
+
 }
+
+
+
+/** Tipo de acceso de visitante en seguimiento. */
+
+export type PorteriaTrackingAccessType = "solo_administracion" | "solo_fabrica" | "ambas";
 
 
 
@@ -123,7 +131,11 @@ export interface PorteriaTrackingVisitor {
 
   company: string;
 
-  zone: "Fábrica" | "Administración";
+  accessType: PorteriaTrackingAccessType;
+
+  accessLabel: string;
+
+  tarjetaColor: "rojo" | "amarillo" | "verde" | null;
 
   entryTime: string;
 

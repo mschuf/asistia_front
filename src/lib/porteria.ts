@@ -2,12 +2,18 @@
  * @file porteria.ts
  * @description Utilidades de dominio para el modulo Porteria: filtros, orden y paginacion.
  */
-import type { Visita, VisitaEstado, VisitaZona } from "@/api/visitas";
+import { type Visita, type VisitaEstado, type VisitaZona } from "@/api/visitas";
+import {
+  isVisitaTarjetaColor,
+  VISITA_TARJETA_COLOR_ACCESOS,
+  type VisitaTarjetaColor,
+} from "@/lib/visita-tarjeta-color";
 import type {
   PorteriaHistoryFilterState,
   PorteriaHistoryRecord,
   PorteriaHistorySortColumn,
   PorteriaHistorySortState,
+  PorteriaTrackingAccessType,
   PorteriaTrackingVisitor,
 } from "@/types/pages/porteria-page.types";
 
@@ -75,11 +81,52 @@ export function getLocalTodayYmd(): string {
   return `${year}-${month}-${day}`;
 }
 
-/** @param zonasPermitidas - Zonas autorizadas de la visita. @returns Zona para las cards de seguimiento. */
-function resolveTrackingZone(zonasPermitidas: VisitaZona[]): PorteriaTrackingVisitor["zone"] {
-  if (zonasPermitidas.includes("fábrica")) return "fabrica";
-  if (zonasPermitidas.includes("administración")) return "administracion";
-  return "porteria";
+/** @param zonasPermitidas - Zonas autorizadas de la visita. @returns Tipo de acceso para seguimiento. */
+function resolveTrackingAccessFromZonas(zonasPermitidas: VisitaZona[]): PorteriaTrackingAccessType {
+  const hasAdmin = zonasPermitidas.includes("administración");
+  const hasFactory = zonasPermitidas.includes("fábrica");
+
+  if (hasAdmin && hasFactory) return "ambas";
+  if (hasFactory) return "solo_fabrica";
+  return "solo_administracion";
+}
+
+/** @param tarjetaColor - Color de tarjeta de la visita. @returns Tipo de acceso para seguimiento. */
+function resolveTrackingAccessFromTarjetaColor(
+  tarjetaColor: VisitaTarjetaColor,
+): PorteriaTrackingAccessType {
+  switch (tarjetaColor) {
+    case "rojo":
+      return "solo_administracion";
+    case "amarillo":
+      return "solo_fabrica";
+    case "verde":
+      return "ambas";
+  }
+}
+
+const TRACKING_ACCESS_LABEL: Record<PorteriaTrackingAccessType, string> = {
+  solo_administracion: VISITA_TARJETA_COLOR_ACCESOS.rojo,
+  solo_fabrica: VISITA_TARJETA_COLOR_ACCESOS.amarillo,
+  ambas: VISITA_TARJETA_COLOR_ACCESOS.verde,
+};
+
+/** @param visita - Visita activa. @returns Tipo de acceso y etiqueta para la card de seguimiento. */
+function resolveTrackingAccess(visita: Visita): {
+  accessType: PorteriaTrackingAccessType;
+  accessLabel: string;
+  tarjetaColor: VisitaTarjetaColor | null;
+} {
+  const tarjetaColor = isVisitaTarjetaColor(visita.tarjetaColor) ? visita.tarjetaColor : null;
+  const accessType = tarjetaColor
+    ? resolveTrackingAccessFromTarjetaColor(tarjetaColor)
+    : resolveTrackingAccessFromZonas(visita.zonasPermitidas);
+
+  return {
+    accessType,
+    accessLabel: TRACKING_ACCESS_LABEL[accessType],
+    tarjetaColor,
+  };
 }
 
 /** @param entradaAt - Timestamp ISO de entrada. @returns Hora formateada para la card. */
@@ -97,11 +144,15 @@ function formatTrackingEntryTime(entradaAt: string | null): string {
  * @returns Visitante listo para PorteriaSeguimientoCards.
  */
 export function mapVisitaToTrackingVisitor(visita: Visita): PorteriaTrackingVisitor {
+  const { accessType, accessLabel, tarjetaColor } = resolveTrackingAccess(visita);
+
   return {
     id: visita.id,
     name: visita.visitante,
     company: visita.empresa ?? "—",
-    zone: resolveTrackingZone(visita.zonasPermitidas),
+    accessType,
+    accessLabel,
+    tarjetaColor,
     entryTime: formatTrackingEntryTime(visita.entradaAt),
     status: visita.estadoSeguimiento ?? "activo",
   };

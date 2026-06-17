@@ -6,6 +6,11 @@ import { ArrowDown, ArrowUp, ArrowUpDown, LogOut, Pencil, Trash2 } from "lucide-
 import type { Visita, VisitaSortColumn, VisitaSortOrder } from "@/api/visitas";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import {
+  isVisitaTarjetaColor,
+  VISITA_TARJETA_COLOR_LABELS,
+  type VisitaTarjetaColor,
+} from "@/lib/visita-tarjeta-color";
 import { cn } from "@/lib/utils";
 
 interface VisitasTableProps {
@@ -29,6 +34,12 @@ const SORTABLE_COLUMNS: Array<{ id: VisitaSortColumn; label: string }> = [
   { id: "entradaAt", label: "Entrada" },
 ];
 
+const TARJETA_SWATCH_CLASS: Record<VisitaTarjetaColor, string> = {
+  rojo: "bg-red-500 ring-red-300/60 dark:bg-red-600 dark:ring-red-700/45",
+  amarillo: "bg-amber-400 ring-amber-300/60 dark:bg-amber-500 dark:ring-amber-700/45",
+  verde: "bg-emerald-500 ring-emerald-300/60 dark:bg-emerald-600 dark:ring-emerald-700/45",
+};
+
 const ESTADO_VARIANT: Record<Visita["estado"], "info" | "success" | "warning" | "danger"> = {
   programada: "info",
   activa: "success",
@@ -39,15 +50,28 @@ const ESTADO_VARIANT: Record<Visita["estado"], "info" | "success" | "warning" | 
 const actionIconButtonClass =
   "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-40";
 
-function formatDateTime(value: string | null): string {
+function formatTime(value: string | null): string {
   if (!value) return "—";
-  return new Date(value).toLocaleString("es-AR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
+  return new Date(value).toLocaleTimeString("es-AR", {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function TarjetaColorCell({ color }: { color: VisitaTarjetaColor | null }) {
+  if (!isVisitaTarjetaColor(color)) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span
+        className={cn("h-3.5 w-3.5 shrink-0 rounded-full ring-1", TARJETA_SWATCH_CLASS[color])}
+        aria-hidden
+      />
+      <span>{VISITA_TARJETA_COLOR_LABELS[color]}</span>
+    </span>
+  );
 }
 
 function SortableHeader({
@@ -114,7 +138,7 @@ export function VisitasTable({
   return (
     <div className="overflow-hidden rounded-md border bg-card shadow-soft">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1100px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[1280px] border-collapse text-left text-sm">
           <thead className="bg-muted text-xs uppercase tracking-normal text-muted-foreground">
             <tr>
               {SORTABLE_COLUMNS.map(({ id, label }) => (
@@ -127,6 +151,8 @@ export function VisitasTable({
                   onSortColumnChange={onSortColumnChange}
                 />
               ))}
+              <th className="px-4 py-3 font-semibold">Nº tarjeta</th>
+              <th className="px-4 py-3 font-semibold">Color tarjeta</th>
               <th className="px-4 py-3 font-semibold">Acciones</th>
             </tr>
           </thead>
@@ -142,7 +168,11 @@ export function VisitasTable({
                 <td className="px-4 py-3">
                   <Badge variant={ESTADO_VARIANT[visita.estado]}>{visita.estado}</Badge>
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap">{formatDateTime(visita.entradaAt)}</td>
+                <td className="px-4 py-3 whitespace-nowrap tabular-nums">{formatTime(visita.entradaAt)}</td>
+                <td className="px-4 py-3 tabular-nums">{visita.credencialNumero ?? "—"}</td>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <TarjetaColorCell color={visita.tarjetaColor} />
+                </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-nowrap items-center gap-1.5">
                     <button

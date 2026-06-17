@@ -14,9 +14,9 @@ export default function PorteriaIndicadoresPage() {
   useRegisterPorteriaRefresh(refresh, loading);
 
   return (
-    <>
+    <div className="space-y-6">
       <PorteriaCards metrics={metrics} />
       <PorteriaSeguimientoCards visitors={trackingVisitors} />
-    </>
+    </div>
   );
 }

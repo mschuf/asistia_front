@@ -2,8 +2,8 @@
  * @file TicketTable.tsx
  * @description Tabla de historial de tickets con modal de detalle.
  */
-import { useEffect, useState } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import { Fragment, useEffect, useState } from "react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown } from "lucide-react";
 import { TicketActions } from "@/components/tickets/TicketActions";
 import { TicketDetailModal } from "@/components/tickets/TicketDetailModal";
 import { Badge } from "@/components/ui/badge";
@@ -131,6 +131,20 @@ export function TicketTable({
 }: TicketTableProps) {
   const showActionsColumn = Boolean(onStatusChange || onAssignClick);
   const [selectedTicket, setSelectedTicket] = useState<AsistiaTicket | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(() => new Set());
+
+  /** @param ticketId - ID del ticket. @returns void */
+  const toggleExpanded = (ticketId: number) => {
+    setExpandedIds((current) => {
+      const next = new Set(current);
+      if (next.has(ticketId)) {
+        next.delete(ticketId);
+      } else {
+        next.add(ticketId);
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     setSelectedTicket((current) => {
@@ -169,6 +183,7 @@ export function TicketTable({
         <table className="w-full min-w-[860px] border-separate border-spacing-0 text-left text-sm">
           <thead className="bg-muted text-xs uppercase tracking-normal text-muted-foreground">
             <tr>
+              <th className="w-10 px-2 py-3" aria-hidden="true" />
               {SORTABLE_COLUMNS.map(({ id, label }) => (
                 <SortableHeader
                   key={id}
@@ -187,15 +202,43 @@ export function TicketTable({
             </tr>
           </thead>
           <tbody className="[&>tr:not(:last-child)>td]:border-b [&>tr:not(:last-child)>td]:border-muted-foreground/25">
-            {tickets.map((ticket) => (
+            {tickets.map((ticket) => {
+              const isExpanded = expandedIds.has(ticket.id);
+              const detailColSpan = SORTABLE_COLUMNS.length + (showActionsColumn ? 1 : 0) + 1;
+
+              return (
+              <Fragment key={ticket.id}>
               <tr
-                key={ticket.id}
                 className={cn(
                   "group cursor-pointer hover:bg-muted/50",
-                  selectedTicket?.id === ticket.id && "bg-muted/40"
+                  selectedTicket?.id === ticket.id && "bg-muted/40",
+                  isExpanded && "bg-muted/30"
                 )}
                 onClick={() => setSelectedTicket(ticket)}
               >
+                <td
+                  className="w-10 px-2 py-3"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    className={cn(
+                      "inline-flex rounded-sm p-1 text-muted-foreground transition-colors",
+                      "hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    )}
+                    aria-expanded={isExpanded}
+                    aria-label={isExpanded ? "Ocultar descripción" : "Mostrar descripción"}
+                    onClick={() => toggleExpanded(ticket.id)}
+                  >
+                    <ChevronDown
+                      className={cn(
+                        "h-4 w-4 transition-transform duration-200",
+                        isExpanded && "rotate-180"
+                      )}
+                      aria-hidden="true"
+                    />
+                  </button>
+                </td>
                 <td className="whitespace-nowrap px-4 py-3 font-medium">#{ticket.id}</td>
                 <td className="px-4 py-3 text-muted-foreground">
                   <AperturaCell value={ticket.createdAt} />
@@ -237,7 +280,26 @@ export function TicketTable({
                   </td>
                 ) : null}
               </tr>
-            ))}
+              {isExpanded ? (
+                <tr className="bg-muted/20">
+                  <td
+                    colSpan={detailColSpan}
+                    className="border-b border-muted-foreground/25 px-4 py-3"
+                  >
+                    <div className="space-y-1 pl-8">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Descripción
+                      </p>
+                      <p className="whitespace-pre-wrap text-sm text-foreground">
+                        {ticket.description?.trim() || "Sin descripción"}
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              ) : null}
+              </Fragment>
+            );
+            })}
           </tbody>
         </table>
       </div>

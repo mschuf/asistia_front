@@ -3,13 +3,14 @@
  * @description CRUD de visitas del módulo Portería.
  */
 import { Plus } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ensurePersonaFromGlpi } from "@/api/personas";
 import {
   actualizarVisita,
   crearVisita,
   eliminarVisita,
   finalizarVisita,
+  listarVisitasActivas,
   type CrearVisitaPayload,
   type Visita,
   type VisitaEstado,
@@ -42,6 +43,16 @@ import {
   resolveZonasFromTarjetaColor,
   type VisitaTarjetaColor,
 } from "@/lib/visita-tarjeta-color";
+import {
+  credencialOcupadaMessage,
+  getCredencialesOcupadas,
+  isCredencialOcupada,
+  normalizeCredencialNumero,
+} from "@/lib/visita-credencial";
+import {
+  findVisitaActivaDePersona,
+  personaEnVisitaActivaMessage,
+} from "@/lib/visita-persona-activa";
 import {
   isPorteriaAllPageSize,
   parsePorteriaPageSize,
@@ -125,6 +136,7 @@ export default function VisitasPage() {
   const [finalizeVisitaTarget, setFinalizeVisitaTarget] = useState<Visita | null>(null);
   const [finalizeObservaciones, setFinalizeObservaciones] = useState("");
   const [form, setForm] = useState<VisitaFormState>(EMPTY_FORM);
+  const [visitasActivas, setVisitasActivas] = useState<Visita[]>([]);
   const [saving, setSaving] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [finalizeLoading, setFinalizeLoading] = useState(false);
@@ -153,30 +165,49 @@ export default function VisitasPage() {
     [],
   );
 
+  const refreshVisitasActivas = useCallback(async () => {
+    try {
+      const activas = await listarVisitasActivas();
+      setVisitasActivas(activas);
+    } catch {
+      setVisitasActivas([]);
+    }
+  }, []);
+
+  const occupiedCredenciales = useMemo(
+    () => getCredencialesOcupadas(visitasActivas, editing?.id),
+    [visitasActivas, editing?.id],
+  );
+
   const openCreateDialog = useCallback(() => {
     setEditing(null);
     setForm(EMPTY_FORM);
     setDialogOpen(true);
-  }, []);
+    void refreshVisitasActivas();
+  }, [refreshVisitasActivas]);
 
-  const openEditDialog = useCallback((visita: Visita) => {
-    setEditing(visita);
-    setForm({
-      personaId: toCandidateValue("postgres", visita.personaId),
-      motivo: visita.motivo,
-      responsableValue: visita.responsableNombre,
-      estado: visita.estado,
-      credencialNumero: visita.credencialNumero ?? "",
-      tarjetaColor: isVisitaTarjetaColor(visita.tarjetaColor) ? visita.tarjetaColor : "",
-      entradaAt: toDateTimeInput(visita.entradaAt),
-      salidaAt: toDateTimeInput(visita.salidaAt),
-      observaciones: visita.observaciones ?? "",
-      zonasPermitidas: isVisitaTarjetaColor(visita.tarjetaColor)
-        ? resolveZonasFromTarjetaColor(visita.tarjetaColor)
-        : visita.zonasPermitidas,
-    });
-    setDialogOpen(true);
-  }, []);
+  const openEditDialog = useCallback(
+    (visita: Visita) => {
+      setEditing(visita);
+      setForm({
+        personaId: toCandidateValue("postgres", visita.personaId),
+        motivo: visita.motivo,
+        responsableValue: visita.responsableNombre,
+        estado: visita.estado,
+        credencialNumero: visita.credencialNumero ?? "",
+        tarjetaColor: isVisitaTarjetaColor(visita.tarjetaColor) ? visita.tarjetaColor : "",
+        entradaAt: toDateTimeInput(visita.entradaAt),
+        salidaAt: toDateTimeInput(visita.salidaAt),
+        observaciones: visita.observaciones ?? "",
+        zonasPermitidas: isVisitaTarjetaColor(visita.tarjetaColor)
+          ? resolveZonasFromTarjetaColor(visita.tarjetaColor)
+          : visita.zonasPermitidas,
+      });
+      setDialogOpen(true);
+      void refreshVisitasActivas();
+    },
+    [refreshVisitasActivas],
+  );
 
   const handleTarjetaColorChange = useCallback((tarjetaColor: VisitaTarjetaColor) => {
     setForm((current) => ({
@@ -201,6 +232,16 @@ export default function VisitasPage() {
       return;
     }
 
+    const credencialNumero = normalizeCredencialNumero(form.credencialNumero);
+    if (
+      form.estado === "activa" &&
+      credencialNumero &&
+      isCredencialOcupada(credencialNumero, occupiedCredenciales)
+    ) {
+      toast.error(credencialOcupadaMessage(credencialNumero), "Visitas");
+      return;
+    }
+
     setSaving(true);
     try {
       let personaId: number;
@@ -211,6 +252,14 @@ export default function VisitasPage() {
         personaId = parsed.id;
       }
 
+      if (form.estado === "activa") {
+        const visitaActiva = findVisitaActivaDePersona(visitasActivas, personaId, editing?.id);
+        if (visitaActiva) {
+          toast.error(personaEnVisitaActivaMessage(visitaActiva.visitante, visitaActiva.id), "Visitas");
+          return;
+        }
+      }
+
       const responsableNombre = await resolveCandidateFullName(form.responsableValue);
 
       const payload: CrearVisitaPayload = {
@@ -219,7 +268,7 @@ export default function VisitasPage() {
         responsableNombre,
         estado: form.estado,
         zonasPermitidas: resolveZonasFromTarjetaColor(form.tarjetaColor),
-        credencialNumero: form.credencialNumero.trim() || undefined,
+        credencialNumero: credencialNumero || undefined,
         tarjetaColor: form.tarjetaColor,
         entradaAt: fromDateTimeInput(form.entradaAt),
         salidaAt: fromDateTimeInput(form.salidaAt),
@@ -242,7 +291,7 @@ export default function VisitasPage() {
     } finally {
       setSaving(false);
     }
-  }, [editing, form, reload, toast]);
+  }, [editing, form, occupiedCredenciales, reload, toast, visitasActivas]);
 
   const handleDelete = useCallback(async () => {
     if (!confirmVisita) return;
@@ -449,7 +498,7 @@ export default function VisitasPage() {
                 </Select>
               </Field>
             ) : null}
-            <Field id="visita-credencial" label="Número de credencial">
+            <Field id="visita-credencial" label="Número de Tarjeta">
               <Input
                 id="visita-credencial"
                 value={form.credencialNumero}

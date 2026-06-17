@@ -2,7 +2,7 @@
  * @file PersonasTable.tsx
  * @description Tabla de personas con orden por columnas.
  */
-import { ArrowDown, ArrowUp, ArrowUpDown, Pencil, Power, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Image, Pencil, Power, Trash2 } from "lucide-react";
 import type { Persona, PersonaSortColumn, PersonaSortOrder } from "@/api/personas";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -14,6 +14,7 @@ interface PersonasTableProps {
   sortOrder?: PersonaSortOrder | null;
   onSortColumnChange?: (column: PersonaSortColumn) => void;
   onEdit: (persona: Persona) => void;
+  onViewPhoto: (persona: Persona) => void;
   onActivate: (persona: Persona) => void;
   onDeactivate: (persona: Persona) => void;
   onDelete: (persona: Persona) => void;
@@ -78,6 +79,7 @@ export function PersonasTable({
   sortOrder,
   onSortColumnChange,
   onEdit,
+  onViewPhoto,
   onActivate,
   onDeactivate,
   onDelete,
@@ -125,6 +127,17 @@ export function PersonasTable({
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-nowrap items-center gap-1.5">
+                    {persona.hasFoto ? (
+                      <button
+                        type="button"
+                        aria-label="Ver foto"
+                        title="Ver foto"
+                        onClick={() => onViewPhoto(persona)}
+                        className={cn(actionIconButtonClass, "border-border hover:bg-muted")}
+                      >
+                        <Image className="h-3.5 w-3.5" aria-hidden="true" />
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       aria-label="Editar"

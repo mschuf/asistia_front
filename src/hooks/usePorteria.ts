@@ -34,10 +34,17 @@ import type {
 /** @returns Cards de métricas inicializadas en cero. */
 function createEmptyMetricCards(): PorteriaMetricCard[] {
   return [
-    { id: "month", title: "Total visitantes en el mes", value: "0" },
-    { id: "day", title: "Total visitas en el dia", value: "0" },
-    { id: "plant", title: "Visitantes en fabrica", value: "0" },
-    { id: "admin", title: "Visitantes en administracion", value: "0" },
+    { id: "month", title: "Ingresos en el mes", value: "0", subtitle: "Incluye finalizadas" },
+    { id: "day", title: "Ingresos hoy", value: "0" },
+    { id: "adminOnly", title: "Solo administración", value: "0", subtitle: "Activas ahora" },
+    { id: "factoryOnly", title: "Solo fábrica", value: "0", subtitle: "Activas ahora" },
+    { id: "bothZones", title: "Fábrica y administración", value: "0", subtitle: "Activas ahora" },
+    {
+      id: "staleCheckout",
+      title: "Sin salida de días anteriores",
+      value: "0",
+      subtitle: "Requieren marcar salida",
+    },
   ];
 }
 
@@ -45,14 +52,43 @@ function createEmptyMetricCards(): PorteriaMetricCard[] {
 function mapMetricsToCards(data: {
   monthVisits: number;
   dayVisits: number;
-  plantVisitors: number;
-  adminVisitors: number;
+  activeOnlyAdmin: number;
+  activeOnlyFactory: number;
+  activeBothZones: number;
+  activeStaleWithoutCheckout: number;
 }): PorteriaMetricCard[] {
   return [
-    { id: "month", title: "Total visitantes en el mes", value: String(data.monthVisits) },
-    { id: "day", title: "Total visitas en el dia", value: String(data.dayVisits) },
-    { id: "plant", title: "Visitantes en fabrica", value: String(data.plantVisitors) },
-    { id: "admin", title: "Visitantes en administracion", value: String(data.adminVisitors) },
+    {
+      id: "month",
+      title: "Ingresos en el mes",
+      value: String(data.monthVisits),
+      subtitle: "Incluye finalizadas",
+    },
+    { id: "day", title: "Ingresos hoy", value: String(data.dayVisits) },
+    {
+      id: "adminOnly",
+      title: "Solo administración",
+      value: String(data.activeOnlyAdmin),
+      subtitle: "Activas ahora",
+    },
+    {
+      id: "factoryOnly",
+      title: "Solo fábrica",
+      value: String(data.activeOnlyFactory),
+      subtitle: "Activas ahora",
+    },
+    {
+      id: "bothZones",
+      title: "Fábrica y administración",
+      value: String(data.activeBothZones),
+      subtitle: "Activas ahora",
+    },
+    {
+      id: "staleCheckout",
+      title: "Sin salida de días anteriores",
+      value: String(data.activeStaleWithoutCheckout),
+      subtitle: "Requieren marcar salida",
+    },
   ];
 }
 

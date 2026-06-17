@@ -9,13 +9,17 @@ import {
   actualizarPersona,
   crearPersona,
   desactivarPersona,
+  eliminarFotoPersona,
   eliminarPersona,
+  obtenerFotoPersonaBlob,
   previewPersonaFromGlpi,
   searchVisitPersonCandidates,
+  subirFotoPersona,
   type CrearPersonaPayload,
   type Persona,
 } from "@/api/personas";
 import { ApiError } from "@/api/apiClient";
+import { PersonaPhotoField } from "@/components/personas/PersonaPhotoField";
 import { PersonasFilters } from "@/components/personas/PersonasFilters";
 import { PersonasTable } from "@/components/personas/PersonasTable";
 import { Button } from "@/components/ui/button";
@@ -60,6 +64,16 @@ const EMPTY_FORM: PersonaFormState = {
   activo: true,
 };
 
+const PERSONA_PHOTO_MAX_INPUT_BYTES = 50 * 1024 * 1024;
+const PERSONA_PHOTO_ACCEPTED_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/heic",
+  "image/heif",
+]);
+
 type TieneGlpiChoice = "si" | "no";
 
 /** CRUD de personas con filtros, orden y paginación. */
@@ -92,7 +106,82 @@ export default function PersonasPage() {
   const [glpiUserId, setGlpiUserId] = useState<number | null>(null);
   const [glpiSelectValue, setGlpiSelectValue] = useState("");
   const [glpiPreviewLoading, setGlpiPreviewLoading] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+  const [removeExistingPhoto, setRemoveExistingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState("");
+  const [photoLoading, setPhotoLoading] = useState(false);
   const glpiSelectRef = useRef<ServerSearchableSelectHandle>(null);
+  const photoPreviewUrlRef = useRef<string | null>(null);
+  const [photoViewOpen, setPhotoViewOpen] = useState(false);
+  const [photoViewPersona, setPhotoViewPersona] = useState<Persona | null>(null);
+  const [photoViewUrl, setPhotoViewUrl] = useState<string | null>(null);
+  const [photoViewLoading, setPhotoViewLoading] = useState(false);
+  const photoViewUrlRef = useRef<string | null>(null);
+
+  const revokePhotoPreview = useCallback((url: string | null) => {
+    if (url?.startsWith("blob:")) {
+      URL.revokeObjectURL(url);
+    }
+  }, []);
+
+  const resetPhotoState = useCallback(() => {
+    revokePhotoPreview(photoPreviewUrlRef.current);
+    photoPreviewUrlRef.current = null;
+    setPhotoFile(null);
+    setPhotoPreviewUrl(null);
+    setRemoveExistingPhoto(false);
+    setPhotoError("");
+    setPhotoLoading(false);
+  }, [revokePhotoPreview]);
+
+  const revokePhotoViewUrl = useCallback((url: string | null) => {
+    if (url?.startsWith("blob:")) {
+      URL.revokeObjectURL(url);
+    }
+  }, []);
+
+  const closePhotoView = useCallback(() => {
+    setPhotoViewOpen(false);
+    revokePhotoViewUrl(photoViewUrlRef.current);
+    photoViewUrlRef.current = null;
+    setPhotoViewUrl(null);
+    setPhotoViewPersona(null);
+    setPhotoViewLoading(false);
+  }, [revokePhotoViewUrl]);
+
+  const openPhotoView = useCallback(
+    (persona: Persona) => {
+      setPhotoViewPersona(persona);
+      setPhotoViewOpen(true);
+      setPhotoViewLoading(true);
+      revokePhotoViewUrl(photoViewUrlRef.current);
+      photoViewUrlRef.current = null;
+      setPhotoViewUrl(null);
+
+      void obtenerFotoPersonaBlob(persona.id)
+        .then((blob) => {
+          const objectUrl = URL.createObjectURL(blob);
+          photoViewUrlRef.current = objectUrl;
+          setPhotoViewUrl(objectUrl);
+        })
+        .catch(() => {
+          toast.error("No se pudo cargar la foto de la persona.", "Personas");
+          closePhotoView();
+        })
+        .finally(() => {
+          setPhotoViewLoading(false);
+        });
+    },
+    [closePhotoView, revokePhotoViewUrl, toast],
+  );
+
+  useEffect(() => {
+    return () => {
+      revokePhotoPreview(photoPreviewUrlRef.current);
+      revokePhotoViewUrl(photoViewUrlRef.current);
+    };
+  }, [revokePhotoPreview, revokePhotoViewUrl]);
 
   useEffect(() => {
     if (!editing && tieneGlpi === "si") {
@@ -114,12 +203,13 @@ export default function PersonasPage() {
   const openCreateDialog = useCallback(() => {
     setEditing(null);
     setForm(EMPTY_FORM);
+    resetPhotoState();
     setTieneGlpi("no");
     setGlpiUserId(null);
     setGlpiSelectValue("");
     setGlpiPreviewLoading(false);
     setDialogOpen(true);
-  }, []);
+  }, [resetPhotoState]);
 
   const loadGlpiUserOptions = useCallback(async (query: string, signal: AbortSignal) => {
     const result = await searchVisitPersonCandidates(query, 20, { signal });
@@ -211,18 +301,72 @@ export default function PersonasPage() {
     }
   }, []);
 
-  const openEditDialog = useCallback((persona: Persona) => {
-    setEditing(persona);
-    setForm({
-      nombre: persona.nombre,
-      documento: persona.documento,
-      empresa: persona.empresa ?? "",
-      email: persona.email ?? "",
-      telefono: persona.telefono ?? "",
-      activo: persona.activo,
-    });
-    setDialogOpen(true);
-  }, []);
+  const openEditDialog = useCallback(
+    (persona: Persona) => {
+      resetPhotoState();
+      setEditing(persona);
+      setForm({
+        nombre: persona.nombre,
+        documento: persona.documento,
+        empresa: persona.empresa ?? "",
+        email: persona.email ?? "",
+        telefono: persona.telefono ?? "",
+        activo: persona.activo,
+      });
+      setDialogOpen(true);
+
+      if (!persona.hasFoto) {
+        return;
+      }
+
+      setPhotoLoading(true);
+      void obtenerFotoPersonaBlob(persona.id)
+        .then((blob) => {
+          const objectUrl = URL.createObjectURL(blob);
+          photoPreviewUrlRef.current = objectUrl;
+          setPhotoPreviewUrl(objectUrl);
+        })
+        .catch(() => {
+          toast.error("No se pudo cargar la foto de la persona.", "Personas");
+        })
+        .finally(() => {
+          setPhotoLoading(false);
+        });
+    },
+    [resetPhotoState, toast],
+  );
+
+  const handlePhotoSelect = useCallback(
+    (file: File) => {
+      if (!PERSONA_PHOTO_ACCEPTED_TYPES.has(file.type) && !file.type.startsWith("image/")) {
+        setPhotoError("Seleccioná un archivo de imagen válido (JPG, PNG, WEBP o GIF).");
+        return;
+      }
+
+      if (file.size > PERSONA_PHOTO_MAX_INPUT_BYTES) {
+        setPhotoError("La imagen supera el tamaño máximo de 50 MB antes de procesarse.");
+        return;
+      }
+
+      revokePhotoPreview(photoPreviewUrlRef.current);
+      const objectUrl = URL.createObjectURL(file);
+      photoPreviewUrlRef.current = objectUrl;
+      setPhotoFile(file);
+      setPhotoPreviewUrl(objectUrl);
+      setRemoveExistingPhoto(false);
+      setPhotoError("");
+    },
+    [revokePhotoPreview],
+  );
+
+  const handlePhotoRemove = useCallback(() => {
+    revokePhotoPreview(photoPreviewUrlRef.current);
+    photoPreviewUrlRef.current = null;
+    setPhotoFile(null);
+    setPhotoPreviewUrl(null);
+    setRemoveExistingPhoto(Boolean(editing?.hasFoto));
+    setPhotoError("");
+  }, [editing?.hasFoto, revokePhotoPreview]);
 
   const openConfirm = useCallback((persona: Persona, action: "activate" | "deactivate" | "delete") => {
     setConfirmPersona(persona);
@@ -233,6 +377,11 @@ export default function PersonasPage() {
   const handleSave = useCallback(async () => {
     if (!form.nombre.trim() || !form.documento.trim()) {
       toast.error("Nombre y documento son obligatorios.", "Personas");
+      return;
+    }
+
+    if (photoError) {
+      toast.error(photoError, "Personas");
       return;
     }
 
@@ -248,15 +397,24 @@ export default function PersonasPage() {
         ...(glpiUserId != null ? { glpiUserId } : {}),
       };
 
+      let savedPersona: Persona;
       if (editing) {
-        await actualizarPersona(editing.id, payload);
-        toast.success("Persona actualizada.", "Personas");
+        savedPersona = await actualizarPersona(editing.id, payload);
       } else {
-        await crearPersona(payload);
-        toast.success("Persona creada.", "Personas");
+        savedPersona = await crearPersona(payload);
       }
 
+      if (editing && removeExistingPhoto && editing.hasFoto && !photoFile) {
+        savedPersona = await eliminarFotoPersona(savedPersona.id);
+      }
+
+      if (photoFile) {
+        savedPersona = await subirFotoPersona(savedPersona.id, photoFile);
+      }
+
+      toast.success(editing ? "Persona actualizada." : "Persona creada.", "Personas");
       setDialogOpen(false);
+      resetPhotoState();
       await reload();
     } catch (saveError) {
       const message = saveError instanceof ApiError ? saveError.message : "No se pudo guardar la persona.";
@@ -264,7 +422,7 @@ export default function PersonasPage() {
     } finally {
       setSaving(false);
     }
-  }, [editing, form, glpiUserId, reload, toast]);
+  }, [editing, form, glpiUserId, photoError, photoFile, reload, removeExistingPhoto, resetPhotoState, toast]);
 
   const handleConfirm = useCallback(async () => {
     if (!confirmPersona || !confirmAction) return;
@@ -325,6 +483,7 @@ export default function PersonasPage() {
           sortOrder={sort?.order ?? null}
           onSortColumnChange={setSortColumn}
           onEdit={openEditDialog}
+          onViewPhoto={openPhotoView}
           onActivate={(persona) => openConfirm(persona, "activate")}
           onDeactivate={(persona) => openConfirm(persona, "deactivate")}
           onDelete={(persona) => openConfirm(persona, "delete")}
@@ -450,6 +609,17 @@ export default function PersonasPage() {
               ) : null}
             </div>
           ) : null}
+          <PersonaPhotoField
+            previewUrl={photoPreviewUrl}
+            onSelectFile={handlePhotoSelect}
+            onRemove={handlePhotoRemove}
+            disabled={saving || photoLoading}
+            showCameraButton={Boolean(editing)}
+            error={photoError}
+          />
+          {photoLoading ? (
+            <p className="text-xs text-muted-foreground">Cargando foto existente…</p>
+          ) : null}
           <div className="grid gap-4 sm:grid-cols-2">
             <Field id="persona-nombre" label="Nombre">
               <Input
@@ -510,6 +680,25 @@ export default function PersonasPage() {
             </Button>
           </div>
         </form>
+      </Dialog>
+
+      <Dialog
+        open={photoViewOpen}
+        onOpenChange={(open) => {
+          if (!open) closePhotoView();
+        }}
+        title={photoViewPersona ? `Foto — ${photoViewPersona.nombre}` : "Foto"}
+        contentClassName="flex items-center justify-center"
+      >
+        {photoViewLoading ? (
+          <p className="py-8 text-sm text-muted-foreground">Cargando foto…</p>
+        ) : photoViewUrl ? (
+          <img
+            src={photoViewUrl}
+            alt={`Foto de ${photoViewPersona?.nombre ?? "persona"}`}
+            className="max-h-[min(60vh,480px)] w-auto max-w-full rounded-md object-contain"
+          />
+        ) : null}
       </Dialog>
 
       <Dialog
