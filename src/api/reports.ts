@@ -13,6 +13,12 @@ import type {
   PorteriaReportSortColumn,
   PorteriaReportSortOrder,
 } from "@/types/pages/porteria-report.types";
+import type {
+  PorteriaAuditAction,
+  PorteriaAuditLog,
+  PorteriaAuditSortColumn,
+  PorteriaAuditSortOrder,
+} from "@/types/pages/porteria-audit-report.types";
 import type { VisitaEstado } from "@/api/visitas";
 
 export type TicketCreatedReportExportFormat = "pdf" | "xlsx";
@@ -83,6 +89,31 @@ export interface VisitaReportListResponse {
   total: number;
   page: number;
   limit: number;
+}
+
+export interface ListPorteriaAuditLogsQuery {
+  page?: number;
+  limit?: number;
+  q?: string;
+  action?: PorteriaAuditAction;
+  actorUserId?: number;
+  visitaId?: number;
+  visitante?: string;
+  documento?: string;
+  occurredFrom?: string;
+  occurredTo?: string;
+  estadoBefore?: VisitaEstado;
+  estadoAfter?: VisitaEstado;
+  sortBy?: PorteriaAuditSortColumn;
+  sortOrder?: PorteriaAuditSortOrder;
+}
+
+export interface PorteriaAuditLogsListResponse {
+  items: PorteriaAuditLog[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 type ReadRequestOptions = { signal?: AbortSignal; showBackdrop?: boolean };
@@ -164,6 +195,38 @@ export async function listVisitasReport(
       documento: query.documento || undefined,
       motivo: query.motivo || undefined,
       responsable: query.responsable || undefined,
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+    },
+  });
+}
+
+/**
+ * Lista auditoría de portería con paginación, orden y filtros avanzados.
+ * @param query - Parámetros de consulta.
+ * @param options - Opciones de petición HTTP.
+ * @returns Página de auditoría.
+ */
+export async function listPorteriaAuditLogs(
+  query: ListPorteriaAuditLogsQuery = {},
+  options?: ReadRequestOptions,
+): Promise<PorteriaAuditLogsListResponse> {
+  return apiClient.get<PorteriaAuditLogsListResponse>("/reports/porteria-audit", {
+    ...options,
+    showBackdrop: options?.showBackdrop ?? true,
+    query: {
+      page: query.page ?? 1,
+      limit: query.limit ?? 15,
+      q: query.q || undefined,
+      action: query.action,
+      actorUserId: query.actorUserId,
+      visitaId: query.visitaId,
+      visitante: query.visitante || undefined,
+      documento: query.documento || undefined,
+      occurredFrom: query.occurredFrom,
+      occurredTo: query.occurredTo,
+      estadoBefore: query.estadoBefore,
+      estadoAfter: query.estadoAfter,
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
     },

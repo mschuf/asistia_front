@@ -38,6 +38,12 @@ const superAdminNavItems: Array<{
   { label: "Prompts", icon: MessageSquareText, path: "/admin/prompts", enabled: true },
   { label: "Tickets creados", icon: History, path: "/admin/reporte-tickets", enabled: true },
   { label: "Visitas portería", icon: MapPin, path: "/admin/reporte-porteria", enabled: true },
+  {
+    label: "Auditoría portería",
+    icon: ClipboardList,
+    path: "/admin/reporte-porteria-auditoria",
+    enabled: true,
+  },
 ];
 
 const porteriaNavItems: Array<{
