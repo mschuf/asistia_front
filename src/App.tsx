@@ -112,7 +112,7 @@ export default function App() {
           <Route index element={<Navigate to={defaultAuthenticatedPath} replace />} />
 
           <Route
-            path="tickets"
+            path="irs"
             element={
               <TicketsRoute>
                 <TicketsPage />

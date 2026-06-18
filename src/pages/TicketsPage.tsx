@@ -36,6 +36,8 @@ import { useTickets } from "@/hooks/useTickets";
 
 import {
   buildSiteHistorialFilters,
+  buildStatusHistorialFilters,
+  buildMyGroupHistorialFilters,
   findLocationById,
   isTicketsAllPageSize,
   locationCompanyName,
@@ -297,16 +299,37 @@ export default function TicketsPage() {
         <TiMetrics
           metrics={tiMetrics}
           loading={metricsLoading}
+          showMySite={isTechnician}
+          isTechnician={isTechnician}
           onGoToHistorial={() => setTab("historial")}
-          onGoToHistorialForSite={() => {
-            const preset = buildSiteHistorialFilters(user);
-            if (preset) goToHistorialWithFilters(preset);
-          }}
+          onGoToHistorialForSite={
+            isTechnician
+              ? () => {
+                  const preset = buildSiteHistorialFilters(user);
+                  if (preset) goToHistorialWithFilters(preset);
+                }
+              : undefined
+          }
+          onGoToHistorialForGroup={
+            isTechnician
+              ? () => goToHistorialWithFilters(buildMyGroupHistorialFilters())
+              : undefined
+          }
+          onGoToHistorialForSolved={
+            !isTechnician
+              ? () => goToHistorialWithFilters(buildStatusHistorialFilters("solved"))
+              : undefined
+          }
+          onGoToHistorialForClosed={
+            !isTechnician
+              ? () => goToHistorialWithFilters(buildStatusHistorialFilters("closed"))
+              : undefined
+          }
           onRefresh={() => void refreshMetrics()}
           openBySiteChartDescription={
             isTechnician
               ? undefined
-              : "Mis tickets abiertos por sede"
+              : "Mis servicios abiertos por sede"
           }
         />
       ) : null}

@@ -21,6 +21,7 @@ export interface Visita {
   id: number;
   personaId: number;
   visitante: string;
+  hasFoto: boolean;
   documento: string;
   empresa: string | null;
   motivo: string;
@@ -91,6 +92,11 @@ export interface CrearVisitaPayload {
 
 export type ActualizarVisitaPayload = Partial<CrearVisitaPayload>;
 
+export interface VisitaMetricsQuery {
+  entradaFrom?: string;
+  entradaTo?: string;
+}
+
 export interface VisitaMetrics {
   monthVisits: number;
   dayVisits: number;
@@ -108,8 +114,10 @@ export async function listarVisitas(query: ListarVisitasQuery = {}): Promise<Vis
 }
 
 /** Obtiene métricas agregadas de visitas para cards de Portería. */
-export async function obtenerMetricasVisitas(): Promise<VisitaMetrics> {
-  return apiClient.get<VisitaMetrics>("/visitas/metrics");
+export async function obtenerMetricasVisitas(query: VisitaMetricsQuery = {}): Promise<VisitaMetrics> {
+  return apiClient.get<VisitaMetrics>("/visitas/metrics", {
+    query: query as Record<string, string | number | boolean | undefined | null>,
+  });
 }
 
 /** Lista visitas activas para el panel de seguimiento en Portería. */

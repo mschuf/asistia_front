@@ -14,13 +14,11 @@ import {
   type CrearVisitaPayload,
   type Visita,
   type VisitaEstado,
-  type VisitaZona,
 } from "@/api/visitas";
 import { ApiError } from "@/api/apiClient";
 import { VisitasFilters } from "@/components/visitas/VisitasFilters";
 import { VisitasTable } from "@/components/visitas/VisitasTable";
 import { VisitaTarjetaColorSelector } from "@/components/visitas/VisitaTarjetaColorSelector";
-import { VisitaZonasSelector } from "@/components/visitas/VisitaZonasSelector";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
@@ -70,7 +68,6 @@ interface VisitaFormState {
   entradaAt: string;
   salidaAt: string;
   observaciones: string;
-  zonasPermitidas: VisitaZona[];
 }
 
 const EMPTY_FORM: VisitaFormState = {
@@ -83,7 +80,6 @@ const EMPTY_FORM: VisitaFormState = {
   entradaAt: "",
   salidaAt: "",
   observaciones: "",
-  zonasPermitidas: [],
 };
 
 /** Convierte ISO a valor para input datetime-local. */
@@ -106,6 +102,30 @@ function fromDateTimeInput(value: string): string | undefined {
   const parsed = new Date(trimmed);
   if (Number.isNaN(parsed.getTime())) return undefined;
   return parsed.toISOString();
+}
+
+/** Extrae HH:mm de un valor datetime-local. */
+function toTimeInput(value: string): string {
+  if (!value) return "";
+  const timePart = value.split("T")[1];
+  return timePart?.slice(0, 5) ?? "";
+}
+
+/** Actualiza solo la hora de un valor datetime-local conservando la fecha. */
+function withTime(value: string, time: string): string {
+  const datePart = value.includes("T") ? value.split("T")[0]! : toDateTimeInput(new Date().toISOString()).split("T")[0]!;
+  return `${datePart}T${time}`;
+}
+
+/** Valores por defecto de entrada y salida al abrir el modal de creación. */
+function defaultCreateDateTimes(): Pick<VisitaFormState, "entradaAt" | "salidaAt"> {
+  const now = new Date();
+  const entradaAt = toDateTimeInput(now.toISOString());
+  const datePart = entradaAt.split("T")[0]!;
+  return {
+    entradaAt,
+    salidaAt: `${datePart}T18:00`,
+  };
 }
 
 /** CRUD de visitas con filtros, orden y paginación. */
@@ -181,7 +201,7 @@ export default function VisitasPage() {
 
   const openCreateDialog = useCallback(() => {
     setEditing(null);
-    setForm(EMPTY_FORM);
+    setForm({ ...EMPTY_FORM, ...defaultCreateDateTimes() });
     setDialogOpen(true);
     void refreshVisitasActivas();
   }, [refreshVisitasActivas]);
@@ -199,9 +219,6 @@ export default function VisitasPage() {
         entradaAt: toDateTimeInput(visita.entradaAt),
         salidaAt: toDateTimeInput(visita.salidaAt),
         observaciones: visita.observaciones ?? "",
-        zonasPermitidas: isVisitaTarjetaColor(visita.tarjetaColor)
-          ? resolveZonasFromTarjetaColor(visita.tarjetaColor)
-          : visita.zonasPermitidas,
       });
       setDialogOpen(true);
       void refreshVisitasActivas();
@@ -213,7 +230,6 @@ export default function VisitasPage() {
     setForm((current) => ({
       ...current,
       tarjetaColor,
-      zonasPermitidas: resolveZonasFromTarjetaColor(tarjetaColor),
     }));
   }, []);
 
@@ -435,9 +451,7 @@ export default function VisitasPage() {
             ? "Edite el ingreso y los permisos de la visita."
             : "Registre el ingreso y los permisos de la visita."
         }
-        className="max-h-[95vh] max-w-4xl"
-        contentClassName="overflow-visible"
-        allowOverflow
+        className="max-h-[calc(100dvh-2rem)] max-w-4xl"
       >
         <form
           className="min-w-0 space-y-4"
@@ -508,17 +522,17 @@ export default function VisitasPage() {
             <Field id="visita-entrada" label="Entrada">
               <Input
                 id="visita-entrada"
-                type="datetime-local"
-                value={form.entradaAt}
-                onChange={(e) => setForm({ ...form, entradaAt: e.target.value })}
+                type="time"
+                value={toTimeInput(form.entradaAt)}
+                onChange={(e) => setForm({ ...form, entradaAt: withTime(form.entradaAt, e.target.value) })}
               />
             </Field>
             <Field id="visita-salida" label="Salida">
               <Input
                 id="visita-salida"
-                type="datetime-local"
-                value={form.salidaAt}
-                onChange={(e) => setForm({ ...form, salidaAt: e.target.value })}
+                type="time"
+                value={toTimeInput(form.salidaAt)}
+                onChange={(e) => setForm({ ...form, salidaAt: withTime(form.salidaAt, e.target.value) })}
               />
             </Field>
           </div>
@@ -529,14 +543,13 @@ export default function VisitasPage() {
             disabled={saving}
           />
 
-          <VisitaZonasSelector value={form.zonasPermitidas} readOnly />
-
           <Field id="visita-observaciones" label="Observaciones">
             <Textarea
               id="visita-observaciones"
               value={form.observaciones}
               onChange={(e) => setForm({ ...form, observaciones: e.target.value })}
-              rows={3}
+              rows={2}
+              className="min-h-10 h-10"
             />
           </Field>
 

@@ -17,8 +17,8 @@ export const VISITA_TARJETA_COLOR_LABELS: Record<VisitaTarjetaColor, string> = {
 
 /** Descripción de accesos por color de tarjeta. */
 export const VISITA_TARJETA_COLOR_ACCESOS: Record<VisitaTarjetaColor, string> = {
-  rojo: "Solo administración",
-  amarillo: "Solo fábrica",
+  rojo: "Administración",
+  amarillo: "Fábrica",
   verde: "Administración y fábrica",
 };
 

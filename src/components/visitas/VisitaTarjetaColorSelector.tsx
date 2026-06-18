@@ -2,7 +2,7 @@
  * @file VisitaTarjetaColorSelector.tsx
  * @description Selector visual de color de tarjeta para el formulario de visitas.
  */
-import { Check } from "lucide-react";
+import { Building2, Check, Factory, type LucideIcon } from "lucide-react";
 import {
   VISITA_TARJETA_COLOR_ACCESOS,
   VISITA_TARJETA_COLOR_LABELS,
@@ -19,41 +19,47 @@ interface VisitaTarjetaColorSelectorProps {
 
 interface ColorOption {
   id: VisitaTarjetaColor;
+  zoneIcons: LucideIcon[];
   coloredCardClassName: string;
   coloredRingClassName: string;
-  coloredSwatchClassName: string;
+  coloredIconClassName: string;
   idleHoverClassName: string;
 }
 
 const NEUTRAL_CARD_CLASSNAME =
   "border-border/80 bg-card text-foreground shadow-sm opacity-60 saturate-0";
-const NEUTRAL_SWATCH_CLASSNAME = "bg-muted ring-border/70";
+const NEUTRAL_ICON_CLASSNAME = "bg-muted text-muted-foreground ring-border/70";
 
 const COLOR_OPTIONS: ColorOption[] = [
   {
     id: "rojo",
+    zoneIcons: [Building2],
     coloredCardClassName:
       "border-red-200/90 bg-gradient-to-br from-red-50 via-red-50/70 to-white text-red-900 dark:border-red-800/70 dark:from-red-950/60 dark:via-red-900/35 dark:to-red-950/45 dark:text-red-100",
     coloredRingClassName: "ring-red-400/70 dark:ring-red-500/60",
-    coloredSwatchClassName: "bg-red-500 ring-red-300/60 dark:bg-red-600 dark:ring-red-700/45",
+    coloredIconClassName: "bg-red-500/15 text-red-700 ring-red-300/60 dark:bg-red-900/40 dark:text-red-200 dark:ring-red-700/45",
     idleHoverClassName:
       "hover:border-red-200/80 hover:bg-red-50/35 dark:hover:border-red-800/60 dark:hover:bg-red-950/25",
   },
   {
     id: "amarillo",
+    zoneIcons: [Factory],
     coloredCardClassName:
       "border-amber-200/90 bg-gradient-to-br from-amber-50 via-amber-50/70 to-white text-amber-900 dark:border-amber-800/70 dark:from-amber-950/60 dark:via-amber-900/35 dark:to-amber-950/45 dark:text-amber-100",
     coloredRingClassName: "ring-amber-400/70 dark:ring-amber-500/60",
-    coloredSwatchClassName: "bg-amber-400 ring-amber-300/60 dark:bg-amber-500 dark:ring-amber-700/45",
+    coloredIconClassName:
+      "bg-amber-400/15 text-amber-800 ring-amber-300/60 dark:bg-amber-900/40 dark:text-amber-200 dark:ring-amber-700/45",
     idleHoverClassName:
       "hover:border-amber-200/80 hover:bg-amber-50/35 dark:hover:border-amber-800/60 dark:hover:bg-amber-950/25",
   },
   {
     id: "verde",
+    zoneIcons: [Building2, Factory],
     coloredCardClassName:
       "border-emerald-200/90 bg-gradient-to-br from-emerald-50 via-emerald-50/70 to-white text-emerald-900 dark:border-emerald-800/70 dark:from-emerald-950/60 dark:via-emerald-900/35 dark:to-emerald-950/45 dark:text-emerald-100",
     coloredRingClassName: "ring-emerald-400/70 dark:ring-emerald-500/60",
-    coloredSwatchClassName: "bg-emerald-500 ring-emerald-300/60 dark:bg-emerald-600 dark:ring-emerald-700/45",
+    coloredIconClassName:
+      "bg-emerald-500/15 text-emerald-700 ring-emerald-300/60 dark:bg-emerald-900/40 dark:text-emerald-200 dark:ring-emerald-700/45",
     idleHoverClassName:
       "hover:border-emerald-200/80 hover:bg-emerald-50/35 dark:hover:border-emerald-800/60 dark:hover:bg-emerald-950/25",
   },
@@ -99,11 +105,15 @@ export function VisitaTarjetaColorSelector({ value, onChange, disabled }: Visita
             >
               <span
                 className={cn(
-                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ring-1 transition-all duration-200",
-                  showColor ? option.coloredSwatchClassName : NEUTRAL_SWATCH_CLASSNAME,
+                  "flex h-14 w-14 shrink-0 items-center justify-center gap-1 rounded-lg ring-1 transition-all duration-200",
+                  showColor ? option.coloredIconClassName : NEUTRAL_ICON_CLASSNAME,
                 )}
                 aria-hidden
-              />
+              >
+                {option.zoneIcons.map((Icon, index) => (
+                  <Icon key={`${option.id}-${index}`} className="h-6 w-6" />
+                ))}
+              </span>
 
               <span className="min-w-0 flex-1 space-y-0.5 pr-6">
                 <span className="block text-sm font-semibold leading-none">

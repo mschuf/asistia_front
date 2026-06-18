@@ -17,7 +17,7 @@ interface TiOpenBySiteChartProps {
  */
 export function TiOpenBySiteChart({
   data,
-  description = "Tickets abiertos totales por sede",
+  description = "Servicios abiertos totales por sede",
 }: TiOpenBySiteChartProps) {
   const sorted = [...data]
     .filter((row) => row.open > 0)
@@ -29,7 +29,7 @@ export function TiOpenBySiteChart({
       <div className="rounded-md border bg-card p-4">
         <p className="text-sm font-medium">Indicadores</p>
         <p className="mt-1 text-xs text-muted-foreground">{description}</p>
-        <p className="mt-2 text-sm text-muted-foreground">No hay tickets abiertos por sede.</p>
+        <p className="mt-2 text-sm text-muted-foreground">No hay servicios abiertos por sede.</p>
       </div>
     );
   }

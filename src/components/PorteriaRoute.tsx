@@ -18,7 +18,7 @@ interface PorteriaRouteProps {
  */
 export default function PorteriaRoute({
   children,
-  fallbackPath = "/tickets",
+  fallbackPath = "/irs",
 }: PorteriaRouteProps) {
   const { isPorteriaUser } = useAuth();
   const location = useLocation();

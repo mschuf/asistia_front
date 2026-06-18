@@ -105,7 +105,7 @@ export function TicketDetailModal({
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      title={`Ticket #${displayTicket.id}`}
+      title={`Caso #${displayTicket.id}`}
       description={displayTicket.subject}
     >
       {loadingDetail && !detail ? (

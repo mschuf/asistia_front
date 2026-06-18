@@ -173,7 +173,7 @@ export function TicketTable({
   };
 
   if (!tickets.length) {
-    return <EmptyState title="Sin tickets" description="No hay tickets para los filtros actuales." />;
+    return <EmptyState title="Sin casos" description="No hay casos para los filtros actuales." />;
   }
 
   return (

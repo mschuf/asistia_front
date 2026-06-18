@@ -59,6 +59,10 @@ export interface PorteriaHistoryFilterState {
 
   responsable: string;
 
+  entradaFrom: string;
+
+  entradaTo: string;
+
 }
 
 
@@ -115,6 +119,26 @@ export interface PorteriaMetricCard {
 
 
 
+/** Presets de período para métricas de Portería. */
+
+export type PorteriaMetricsPeriodPreset = "hoy" | "7d" | "30d" | "custom";
+
+
+
+/** Estado del filtro de fechas de métricas. */
+
+export interface PorteriaMetricsDateFilterState {
+
+  preset: PorteriaMetricsPeriodPreset;
+
+  desde: string;
+
+  hasta: string;
+
+}
+
+
+
 /** Tipo de acceso de visitante en seguimiento. */
 
 export type PorteriaTrackingAccessType = "solo_administracion" | "solo_fabrica" | "ambas";
@@ -127,9 +151,15 @@ export interface PorteriaTrackingVisitor {
 
   id: number;
 
+  personaId: number;
+
+  hasFoto: boolean;
+
   name: string;
 
   company: string;
+
+  responsable: string;
 
   accessType: PorteriaTrackingAccessType;
 
@@ -165,6 +195,8 @@ export interface PorteriaHistoryPagination {
 export interface UsePorteriaIndicadoresResult {
   metrics: PorteriaMetricCard[];
   trackingVisitors: PorteriaTrackingVisitor[];
+  metricsDateFilter: PorteriaMetricsDateFilterState;
+  setMetricsDateFilter: (filter: PorteriaMetricsDateFilterState) => void;
   loading: boolean;
   refresh: () => Promise<void>;
 }
@@ -177,7 +209,7 @@ export interface UsePorteriaHistorialResult {
   historyError: string;
   filters: PorteriaHistoryFilterState;
   setFilters: (filters: PorteriaHistoryFilterState) => void;
-  applyFilters: (filters?: PorteriaHistoryFilterState) => void;
+  applyFilters: (filters?: PorteriaHistoryFilterState) => Promise<void>;
   sort: PorteriaHistorySortState | null;
   setSortColumn: (column: PorteriaHistorySortColumn) => void;
   setPage: (page: number) => void;

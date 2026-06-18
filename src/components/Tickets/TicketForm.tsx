@@ -25,6 +25,7 @@ import {
   getTicketDescriptionValidationContent,
   findLocationById,
   locationDisplayName,
+  typeLabel,
   updateTicketDescriptionPrefix,
 } from "@/lib/tickets";
 import { getUserById, searchTechnicians, searchUsers } from "@/services/ticketsService";
@@ -193,6 +194,10 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
   }, [attachments, categoryId, description, effectiveType, isTechnician, selectedCategory, technicianId]);
 
   const canSubmit = Object.keys(errors).length === 0 && !submitting;
+  const createActionLabel = useMemo(
+    () => `Crear ${typeLabel(effectiveType).toLowerCase()}`,
+    [effectiveType],
+  );
 
   /** @returns void */
   const focusInitialField = useCallback(() => {
@@ -245,7 +250,9 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
     }
 
     pendingDescriptionFocusRef.current = false;
-    descriptionRef.current?.focusAtEnd();
+    window.requestAnimationFrame(() => {
+      descriptionRef.current?.focusAtEnd();
+    });
   }, [categoryId, description]);
 
   /** @param fullDescription - HTML completo del editor. @returns void */
@@ -299,7 +306,7 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
   return (
     <form className="space-y-5 rounded-md border bg-card p-4 shadow-soft" onSubmit={handleSubmit}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">Crear ticket</h2>
+        <h2 className="text-lg font-semibold">{createActionLabel}</h2>
         <Badge variant={ticketType === "incident" ? "danger" : "success"}>
           {ticketType === "incident" ? "Incidente" : "Solicitud"}
         </Badge>
@@ -425,7 +432,7 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
           ) : (
             <>
               <SendHorizontal className="h-4 w-4" aria-hidden="true" />
-              Crear ticket
+              {createActionLabel}
             </>
           )}
         </Button>

@@ -21,7 +21,7 @@ export default function SuperAdminRoute({ children }: SuperAdminRouteProps) {
 
   return (
     <ProtectedRoute>
-      {isSuperAdmin ? children : <Navigate to="/tickets" replace state={{ from: location.pathname }} />}
+      {isSuperAdmin ? children : <Navigate to="/irs" replace state={{ from: location.pathname }} />}
     </ProtectedRoute>
   );
 }

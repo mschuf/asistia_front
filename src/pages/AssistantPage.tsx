@@ -28,7 +28,7 @@ export default function AssistantPage() {
             tickets, consultar estado y recibir sugerencias de solución.
           </p>
           <Button asChild className="mt-8">
-            <Link to="/tickets">Volver a tickets</Link>
+            <Link to="/irs">Volver a IRS</Link>
           </Button>
         </div>
       </div>

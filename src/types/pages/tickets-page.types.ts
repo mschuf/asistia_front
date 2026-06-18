@@ -29,7 +29,7 @@ export interface TicketFilterState {
   createdTo: string;
   /** Conjunto de estados preseleccionados al navegar desde métricas. */
   statusesPreset?: AsistiaTicketStatus[];
-  /** Solo TI: tickets donde soy asignado o solicitante (por defecto true). */
+  /** Solo TI: vista amplia sin filtro de actor (p. ej. búsqueda de equipo). */
   involvingMe?: boolean;
 }
 

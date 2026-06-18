@@ -12,82 +12,103 @@ import {
 } from "@/api/visitas";
 import {
   createInitialPorteriaHistoryFilters,
+  createInitialPorteriaMetricsDateFilter,
+  getMetricsActiveSubtitle,
+  getMetricsDayIngressTitle,
+  getMetricsPeriodIngressTitle,
   isPorteriaAllPageSize,
   isValidPorteriaPageSize,
   mapVisitaToHistoryRecord,
   mapVisitaToTrackingVisitor,
   PORTERIA_PAGE_SIZE,
+  resolveCalendarMonthDateRange,
+  resolveMetricsDateRange,
   resolvePorteriaApiLimit,
   type PorteriaPageSize,
 } from "@/lib/porteria";
+import { resolveCandidateFullName } from "@/lib/porteria-personas";
+import { toApiDateFrom, toApiDateTo } from "@/lib/tickets";
 import type {
   PorteriaHistoryFilterState,
   PorteriaHistoryRecord,
   PorteriaHistorySortColumn,
   PorteriaHistorySortState,
   PorteriaMetricCard,
+  PorteriaMetricsDateFilterState,
+  PorteriaMetricsPeriodPreset,
   PorteriaTrackingVisitor,
   UsePorteriaHistorialResult,
   UsePorteriaIndicadoresResult,
 } from "@/types/pages/porteria-page.types";
 
-/** @returns Cards de métricas inicializadas en cero. */
-function createEmptyMetricCards(): PorteriaMetricCard[] {
+/** @param preset - Preset de período activo. @returns Cards de métricas inicializadas en cero. */
+function createEmptyMetricCards(preset: PorteriaMetricsPeriodPreset = "7d"): PorteriaMetricCard[] {
+  const activeSubtitle = getMetricsActiveSubtitle();
   return [
-    { id: "month", title: "Ingresos en el mes", value: "0", subtitle: "Incluye finalizadas" },
-    { id: "day", title: "Ingresos hoy", value: "0" },
-    { id: "adminOnly", title: "Solo administración", value: "0", subtitle: "Activas ahora" },
-    { id: "factoryOnly", title: "Solo fábrica", value: "0", subtitle: "Activas ahora" },
-    { id: "bothZones", title: "Fábrica y administración", value: "0", subtitle: "Activas ahora" },
+    {
+      id: "month",
+      title: getMetricsPeriodIngressTitle(preset),
+      value: "0",
+      subtitle: "Incluye finalizadas",
+    },
+    { id: "day", title: getMetricsDayIngressTitle(preset), value: "0" },
     {
       id: "staleCheckout",
       title: "Sin salida de días anteriores",
       value: "0",
       subtitle: "Requieren marcar salida",
     },
+    { id: "bothZones", title: "Fábrica y administración", value: "0", subtitle: activeSubtitle },
+    { id: "adminOnly", title: "Administración", value: "0", subtitle: activeSubtitle },
+    { id: "factoryOnly", title: "Fábrica", value: "0", subtitle: activeSubtitle },
   ];
 }
 
-/** @param data - Métricas de la API. @returns Cards listas para PorteriaCards. */
-function mapMetricsToCards(data: {
-  monthVisits: number;
-  dayVisits: number;
-  activeOnlyAdmin: number;
-  activeOnlyFactory: number;
-  activeBothZones: number;
-  activeStaleWithoutCheckout: number;
-}): PorteriaMetricCard[] {
+/** @param data - Métricas de la API. @param preset - Preset de período activo. @param periodIngressOverride - Valor opcional para la card de ingresos del período. @returns Cards listas para PorteriaCards. */
+function mapMetricsToCards(
+  data: {
+    monthVisits: number;
+    dayVisits: number;
+    activeOnlyAdmin: number;
+    activeOnlyFactory: number;
+    activeBothZones: number;
+    activeStaleWithoutCheckout: number;
+  },
+  preset: PorteriaMetricsPeriodPreset,
+  periodIngressOverride?: number,
+): PorteriaMetricCard[] {
+  const activeSubtitle = getMetricsActiveSubtitle();
   return [
     {
       id: "month",
-      title: "Ingresos en el mes",
-      value: String(data.monthVisits),
+      title: getMetricsPeriodIngressTitle(preset),
+      value: String(periodIngressOverride ?? data.monthVisits),
       subtitle: "Incluye finalizadas",
     },
-    { id: "day", title: "Ingresos hoy", value: String(data.dayVisits) },
-    {
-      id: "adminOnly",
-      title: "Solo administración",
-      value: String(data.activeOnlyAdmin),
-      subtitle: "Activas ahora",
-    },
-    {
-      id: "factoryOnly",
-      title: "Solo fábrica",
-      value: String(data.activeOnlyFactory),
-      subtitle: "Activas ahora",
-    },
-    {
-      id: "bothZones",
-      title: "Fábrica y administración",
-      value: String(data.activeBothZones),
-      subtitle: "Activas ahora",
-    },
+    { id: "day", title: getMetricsDayIngressTitle(preset), value: String(data.dayVisits) },
     {
       id: "staleCheckout",
       title: "Sin salida de días anteriores",
       value: String(data.activeStaleWithoutCheckout),
       subtitle: "Requieren marcar salida",
+    },
+    {
+      id: "bothZones",
+      title: "Fábrica y administración",
+      value: String(data.activeBothZones),
+      subtitle: activeSubtitle,
+    },
+    {
+      id: "adminOnly",
+      title: "Administración",
+      value: String(data.activeOnlyAdmin),
+      subtitle: activeSubtitle,
+    },
+    {
+      id: "factoryOnly",
+      title: "Fábrica",
+      value: String(data.activeOnlyFactory),
+      subtitle: activeSubtitle,
     },
   ];
 }
@@ -108,6 +129,8 @@ function toHistoryListParams(
     empresa: filters.empresa || undefined,
     motivo: filters.motivo || undefined,
     responsable: filters.responsable || undefined,
+    entradaFrom: toApiDateFrom(filters.entradaFrom),
+    entradaTo: toApiDateTo(filters.entradaTo),
     sortBy: sort?.column as ListarVisitasQuery["sortBy"],
     sortOrder: sort?.order,
   };
@@ -118,32 +141,61 @@ function toHistoryListParams(
  * @returns Estado de indicadores de Porteria.
  */
 export function usePorteriaIndicadores(): UsePorteriaIndicadoresResult {
-  const [metrics, setMetrics] = useState<PorteriaMetricCard[]>(createEmptyMetricCards);
+  const [metricsDateFilter, setMetricsDateFilterState] = useState(createInitialPorteriaMetricsDateFilter);
+  const [metrics, setMetrics] = useState<PorteriaMetricCard[]>(() => createEmptyMetricCards("7d"));
   const [trackingVisitors, setTrackingVisitors] = useState<PorteriaTrackingVisitor[]>([]);
   const [loading, setLoading] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
+
+  const metricsDateRange = useMemo(
+    () => resolveMetricsDateRange(metricsDateFilter),
+    [metricsDateFilter],
+  );
 
   const refresh = useCallback(async () => {
     setReloadToken((value) => value + 1);
   }, []);
 
+  const setMetricsDateFilter = useCallback((filter: PorteriaMetricsDateFilterState) => {
+    setMetricsDateFilterState(filter);
+  }, []);
+
   useEffect(() => {
+    const dateRange = metricsDateRange;
+    if (!dateRange) {
+      setMetrics(createEmptyMetricCards(metricsDateFilter.preset));
+      return;
+    }
+
+    const metricsQuery = {
+      entradaFrom: dateRange.entradaFrom,
+      entradaTo: dateRange.entradaTo,
+    };
+
     let cancelled = false;
 
     async function loadIndicadores() {
       setLoading(true);
 
       try {
-        const [metricsData, activeVisits] = await Promise.all([
-          obtenerMetricasVisitas(),
+        const isTodayPreset = metricsDateFilter.preset === "hoy";
+        const [metricsData, monthMetricsData, activeVisits] = await Promise.all([
+          obtenerMetricasVisitas(metricsQuery),
+          isTodayPreset ? obtenerMetricasVisitas(resolveCalendarMonthDateRange()) : Promise.resolve(null),
           listarVisitasActivas(),
         ]);
         if (cancelled) return;
-        setMetrics(mapMetricsToCards(metricsData));
+        setMetrics(
+          mapMetricsToCards(
+            metricsData,
+            metricsDateFilter.preset,
+            isTodayPreset ? monthMetricsData?.monthVisits : undefined,
+          ),
+        );
         setTrackingVisitors(activeVisits.map(mapVisitaToTrackingVisitor));
       } catch {
         if (!cancelled) {
-          setMetrics(createEmptyMetricCards());
+          setMetrics(createEmptyMetricCards(metricsDateFilter.preset));
           setTrackingVisitors([]);
         }
       } finally {
@@ -156,9 +208,16 @@ export function usePorteriaIndicadores(): UsePorteriaIndicadoresResult {
     return () => {
       cancelled = true;
     };
-  }, [reloadToken]);
+  }, [metricsDateRange, metricsDateFilter.preset, reloadToken]);
 
-  return { metrics, trackingVisitors, loading, refresh };
+  return {
+    metrics,
+    trackingVisitors,
+    metricsDateFilter,
+    setMetricsDateFilter,
+    loading,
+    refresh,
+  };
 }
 
 /**
@@ -229,8 +288,15 @@ export function usePorteriaHistorial(): UsePorteriaHistorialResult {
   }, []);
 
   const applyFilters = useCallback(
-    (nextFilters?: PorteriaHistoryFilterState) => {
-      setAppliedFilters(nextFilters ?? filters);
+    async (nextFilters?: PorteriaHistoryFilterState) => {
+      const filtersToApply = nextFilters ?? filters;
+      const responsableNombre = filtersToApply.responsable
+        ? await resolveCandidateFullName(filtersToApply.responsable)
+        : "";
+      setAppliedFilters({
+        ...filtersToApply,
+        responsable: responsableNombre,
+      });
       setPageState(1);
     },
     [filters],

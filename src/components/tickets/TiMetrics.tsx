@@ -3,7 +3,7 @@
  * @description Panel de indicadores TI con tarjetas y gráfico por sede.
  */
 import type { ReactNode } from "react";
-import { AlertTriangle, Building2, ClipboardList, History, Ticket } from "lucide-react";
+import { Archive, Building2, CheckCircle2, History, Ticket, Users } from "lucide-react";
 import { MobileRefreshFab } from "@/components/layout/MobileRefreshFab";
 import { Loading } from "@/components/ui/loading";
 import { TiOpenBySiteChart } from "@/components/tickets/TiOpenBySiteChart";
@@ -13,8 +13,13 @@ import { cn } from "@/lib/utils";
 interface TiMetricsProps {
   metrics: TiMetricsResponse | null;
   loading?: boolean;
+  showMySite?: boolean;
+  isTechnician?: boolean;
   onGoToHistorial: () => void;
   onGoToHistorialForSite?: () => void;
+  onGoToHistorialForGroup?: () => void;
+  onGoToHistorialForSolved?: () => void;
+  onGoToHistorialForClosed?: () => void;
   onRefresh?: () => void;
   openBySiteChartDescription?: string;
 }
@@ -41,11 +46,17 @@ interface MetricCardProps {
   subtitle?: ReactNode;
   onClick?: () => void;
   ariaLabel?: string;
+  countLabel?: (count: number) => string;
 }
 
 /** @param count - Cantidad abierta. @returns Etiqueta singular/plural. */
 function openCountLabel(count: number): string {
   return count === 1 ? "abierto" : "abiertos";
+}
+
+/** @param count - Cantidad. @param singular - Etiqueta singular. @param plural - Etiqueta plural. @returns Etiqueta según cantidad. */
+function statusCountLabel(count: number, singular: string, plural: string): string {
+  return count === 1 ? singular : plural;
 }
 
 /**
@@ -60,7 +71,8 @@ function MetricCard({
   className,
   subtitle,
   onClick,
-  ariaLabel
+  ariaLabel,
+  countLabel = openCountLabel,
 }: MetricCardProps) {
   const content = (
     <>
@@ -72,7 +84,7 @@ function MetricCard({
         {typeof value === "number" ? (
           <>
             {value}{" "}
-            <span className="text-base font-medium">{openCountLabel(value)}</span>
+            <span className="text-base font-medium">{countLabel(value)}</span>
           </>
         ) : (
           value
@@ -109,8 +121,13 @@ function MetricCard({
 export function TiMetrics({
   metrics,
   loading,
+  showMySite = false,
+  isTechnician = false,
   onGoToHistorial,
   onGoToHistorialForSite,
+  onGoToHistorialForGroup,
+  onGoToHistorialForSolved,
+  onGoToHistorialForClosed,
   onRefresh,
   openBySiteChartDescription,
 }: TiMetricsProps) {
@@ -143,21 +160,43 @@ export function TiMetrics({
   return (
     <>
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div
+        className={cn(
+          "grid gap-3 sm:grid-cols-2",
+          showMySite
+            ? "xl:grid-cols-3"
+            : isTechnician
+              ? "xl:grid-cols-2"
+              : "xl:grid-cols-3"
+        )}
+      >
+        {isTechnician ? (
+          <MetricCard
+            label="Mi Grupo"
+            value={metrics.myGroup.open}
+            icon={Users}
+            className="cursor-pointer border-indigo-200 bg-indigo-50 text-indigo-800 dark:border-indigo-900 dark:bg-indigo-950/30 dark:text-indigo-200"
+            onClick={onGoToHistorialForGroup}
+            ariaLabel="Ir a historial filtrado por mi grupo"
+            subtitle={<MetricPercent slice={metrics.myGroup} />}
+          />
+        ) : null}
+        {showMySite ? (
+          <MetricCard
+            label="Mi Sede"
+            value={siteValue}
+            icon={Building2}
+            className={cn(
+              "border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-900 dark:bg-violet-950/30 dark:text-violet-200",
+              metrics.mySite && "cursor-pointer"
+            )}
+            onClick={metrics.mySite ? onGoToHistorialForSite : undefined}
+            ariaLabel="Ir a historial filtrado por mi sede"
+            subtitle={siteSubtitle}
+          />
+        ) : null}
         <MetricCard
-          label="Mi Sede"
-          value={siteValue}
-          icon={Building2}
-          className={cn(
-            "border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-900 dark:bg-violet-950/30 dark:text-violet-200",
-            metrics.mySite && "cursor-pointer"
-          )}
-          onClick={metrics.mySite ? onGoToHistorialForSite : undefined}
-          ariaLabel="Ir a historial filtrado por mi sede"
-          subtitle={siteSubtitle}
-        />
-        <MetricCard
-          label="Mis Tickets"
+          label="Mis Servicios"
           value={metrics.myTickets.inProgress}
           icon={Ticket}
           className="cursor-pointer border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-200"
@@ -165,20 +204,30 @@ export function TiMetrics({
           ariaLabel="Ir a historial"
           subtitle={<MetricPercent slice={metrics.myTickets} />}
         />
-        <MetricCard
-          label="Mis Incidentes"
-          value={metrics.myIncidents.open}
-          icon={AlertTriangle}
-          className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100"
-          subtitle={<MetricPercent slice={metrics.myIncidents} />}
-        />
-        <MetricCard
-          label="Mis Solicitudes"
-          value={metrics.myRequests.open}
-          icon={ClipboardList}
-          className="border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"
-          subtitle={<MetricPercent slice={metrics.myRequests} />}
-        />
+        {!isTechnician ? (
+          <>
+            <MetricCard
+              label="Resueltos"
+              value={metrics.mySolved.open}
+              icon={CheckCircle2}
+              className="cursor-pointer border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200"
+              onClick={onGoToHistorialForSolved}
+              ariaLabel="Ir a historial filtrado por resueltos"
+              countLabel={(count) => statusCountLabel(count, "resuelto", "resueltos")}
+              subtitle={<MetricPercent slice={metrics.mySolved} />}
+            />
+            <MetricCard
+              label="Cerrados"
+              value={metrics.myClosed.open}
+              icon={Archive}
+              className="cursor-pointer border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"
+              onClick={onGoToHistorialForClosed}
+              ariaLabel="Ir a historial filtrado por cerrados"
+              countLabel={(count) => statusCountLabel(count, "cerrado", "cerrados")}
+              subtitle={<MetricPercent slice={metrics.myClosed} />}
+            />
+          </>
+        ) : null}
       </div>
 
       <TiOpenBySiteChart
@@ -188,7 +237,11 @@ export function TiMetrics({
 
       <p className="flex items-center gap-1 text-xs text-muted-foreground">
         <History className="h-3.5 w-3.5" aria-hidden="true" />
-        Mi Sede y Mis Tickets abren Historial con filtros aplicados
+        {showMySite
+          ? "Mi Grupo, Mi Sede y Mis Servicios abren Historial con filtros aplicados"
+          : isTechnician
+            ? "Mi Grupo y Mis Servicios abren Historial con filtros aplicados"
+            : "Mis Servicios, Resueltos y Cerrados abren Historial con filtros aplicados"}
       </p>
     </div>
     {onRefresh ? (

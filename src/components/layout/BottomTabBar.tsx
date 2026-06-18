@@ -37,7 +37,7 @@ export function BottomTabBar() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { isAuthenticated } = useAuth();
 
-  if (!isAuthenticated || !location.pathname.startsWith("/tickets")) {
+  if (!isAuthenticated || !location.pathname.startsWith("/irs")) {
     return null;
   }
 

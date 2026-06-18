@@ -9,13 +9,24 @@ import { usePorteriaIndicadores } from "@/hooks/usePorteria";
 
 /** @returns Metricas y visitantes activos de Porteria. */
 export default function PorteriaIndicadoresPage() {
-  const { metrics, trackingVisitors, loading, refresh } = usePorteriaIndicadores();
+  const {
+    metrics,
+    trackingVisitors,
+    metricsDateFilter,
+    setMetricsDateFilter,
+    loading,
+    refresh,
+  } = usePorteriaIndicadores();
 
   useRegisterPorteriaRefresh(refresh, loading);
 
   return (
     <div className="space-y-6">
-      <PorteriaCards metrics={metrics} />
+      <PorteriaCards
+        metrics={metrics}
+        metricsDateFilter={metricsDateFilter}
+        onMetricsDateFilterChange={setMetricsDateFilter}
+      />
       <PorteriaSeguimientoCards visitors={trackingVisitors} />
     </div>
   );

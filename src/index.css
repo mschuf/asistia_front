@@ -194,4 +194,27 @@
     margin-top: 0.75rem;
   }
 
+  @media (max-width: 639px) {
+    .date-input-mobile-picker-end {
+      position: relative;
+      padding-right: 2rem;
+    }
+
+    .date-input-mobile-picker-end::-webkit-calendar-picker-indicator {
+      position: absolute;
+      right: 0.375rem;
+      top: 50%;
+      transform: translateY(-50%);
+      margin: 0;
+      padding: 0;
+      width: 1.25rem;
+      height: 1.25rem;
+      cursor: pointer;
+    }
+
+    .date-input-mobile-picker-end::-webkit-date-and-time-value {
+      text-align: left;
+    }
+  }
+
 }

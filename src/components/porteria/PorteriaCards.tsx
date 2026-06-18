@@ -10,11 +10,15 @@ import {
   PORTERIA_ALERT_COLORS,
   PORTERIA_AMBAS_ZONAS_COLORS,
   PORTERIA_FABRICA_COLORS,
+  PORTERIA_SKY_METRIC_COLORS,
 } from "@/lib/porteria.constants";
-import type { PorteriaMetricCard } from "@/types/pages/porteria-page.types";
+import type { PorteriaMetricCard, PorteriaMetricsDateFilterState } from "@/types/pages/porteria-page.types";
+import { PorteriaMetricsDateFilter } from "@/components/porteria/PorteriaMetricsDateFilter";
 
 interface PorteriaCardsProps {
   metrics: PorteriaMetricCard[];
+  metricsDateFilter: PorteriaMetricsDateFilterState;
+  onMetricsDateFilterChange: (filter: PorteriaMetricsDateFilterState) => void;
 }
 
 const METRIC_STYLES: Record<
@@ -27,10 +31,8 @@ const METRIC_STYLES: Record<
 > = {
   month: {
     icon: Users,
-    cardClassName:
-      "border-sky-200/90 bg-gradient-to-br from-sky-50 via-sky-50/70 to-white text-sky-900 shadow-sm shadow-sky-200/30 dark:border-sky-800/70 dark:from-sky-950/60 dark:via-sky-900/35 dark:to-sky-950/45 dark:text-sky-100 dark:shadow-sm dark:shadow-sky-950/35",
-    iconClassName:
-      "bg-sky-100 text-sky-700 ring-1 ring-sky-200/50 dark:bg-sky-900/55 dark:text-sky-200 dark:ring-sky-700/45",
+    cardClassName: PORTERIA_AMBAS_ZONAS_COLORS.metricCard,
+    iconClassName: PORTERIA_AMBAS_ZONAS_COLORS.metricIcon,
   },
   day: {
     icon: CalendarDays,
@@ -51,8 +53,8 @@ const METRIC_STYLES: Record<
   },
   bothZones: {
     icon: Layers,
-    cardClassName: PORTERIA_AMBAS_ZONAS_COLORS.metricCard,
-    iconClassName: PORTERIA_AMBAS_ZONAS_COLORS.metricIcon,
+    cardClassName: PORTERIA_SKY_METRIC_COLORS.metricCard,
+    iconClassName: PORTERIA_SKY_METRIC_COLORS.metricIcon,
   },
   staleCheckout: {
     icon: AlertTriangle,
@@ -68,7 +70,11 @@ const DEFAULT_STYLE = METRIC_STYLES.month;
  * @param props - Coleccion de metricas.
  * @returns Grid responsive de cards.
  */
-export function PorteriaCards({ metrics }: PorteriaCardsProps) {
+export function PorteriaCards({
+  metrics,
+  metricsDateFilter,
+  onMetricsDateFilterChange,
+}: PorteriaCardsProps) {
   return (
     <section className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -108,10 +114,12 @@ export function PorteriaCards({ metrics }: PorteriaCardsProps) {
         })}
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        Los ingresos cuentan cada entrada registrada. Las tarjetas de acceso muestran solo visitas
-        activas ahora. Las verdes no se suman dos veces.
-      </p>
+      <div className="flex flex-wrap items-end gap-3">
+        
+        <div className="ml-auto shrink-0">
+          <PorteriaMetricsDateFilter value={metricsDateFilter} onChange={onMetricsDateFilterChange} />
+        </div>
+      </div>
     </section>
   );
 }

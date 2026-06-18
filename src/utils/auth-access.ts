@@ -34,8 +34,8 @@ export function canAccessTickets(flags: AccessFlags): boolean {
  * @param flags - Flags de sesión del usuario.
  * @returns Ruta por defecto para usuarios autenticados.
  */
-export function resolveDefaultAuthenticatedPath(flags: AccessFlags): "/porteria" | "/tickets" {
-  return isPorteriaOnlyUser(flags) ? "/porteria" : "/tickets";
+export function resolveDefaultAuthenticatedPath(flags: AccessFlags): "/porteria" | "/irs" {
+  return isPorteriaOnlyUser(flags) ? "/porteria" : "/irs";
 }
 
 /**

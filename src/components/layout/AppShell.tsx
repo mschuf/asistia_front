@@ -73,7 +73,7 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const currentTab = readNavTab(searchParams.get("tab"));
-  const onTicketsRoute = location.pathname.startsWith("/tickets");
+  const onTicketsRoute = location.pathname.startsWith("/irs");
   const isTicketsHistorialLayout = onTicketsRoute && currentTab === "historial";
 
   /** Cierra sesión con toast y cierra el menú. @returns void */
@@ -89,7 +89,7 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   /** @param tab - Pestaña de tickets destino. @returns void */
   function goToTab(tab: NavTab) {
     const search = tab === "metricas" ? "" : `?tab=${tab}`;
-    navigate(`/tickets${search}`);
+    navigate(`/irs${search}`);
     setOpen(false);
   }
 
@@ -156,7 +156,7 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
           {canAccessTickets ? (
             <div className="space-y-1">
               <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Tickets
+                IRS
               </p>
               {ticketNavItems.map((item) => {
                 const Icon = item.icon;

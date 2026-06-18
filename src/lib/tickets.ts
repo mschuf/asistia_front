@@ -230,6 +230,12 @@ export function categoryFirstWord(fullPath: string): string {
 }
 
 const TICKET_DESCRIPTION_PREFIX_PATTERN = /^<p>(?:Incidente|Solicitud)(?: [^<]*)?<\/p>/;
+const TICKET_DESCRIPTION_CATEGORY_SUFFIX = "\u00A0";
+
+/** @param html - Fragmento HTML de descripción. @returns HTML con entidades normalizadas. */
+function normalizeDescriptionHtml(html: string): string {
+  return html.replace(/&nbsp;/gi, TICKET_DESCRIPTION_CATEGORY_SUFFIX);
+}
 
 /** @param type - Tipo de ticket. @param category - Categoría seleccionada. @returns Texto plano del prefijo. */
 export function buildTicketDescriptionPrefixText(
@@ -240,7 +246,9 @@ export function buildTicketDescriptionPrefixText(
   if (!typeText) return "";
 
   const firstWord = categoryFirstWord(category?.fullPath ?? "");
-  return firstWord ? `${typeText} ${firstWord}` : typeText;
+  return firstWord
+    ? `${typeText} ${firstWord}${TICKET_DESCRIPTION_CATEGORY_SUFFIX}`
+    : typeText;
 }
 
 /** @param type - Tipo de ticket. @param category - Categoría seleccionada. @returns Prefijo HTML para la descripción. */
@@ -249,7 +257,12 @@ export function buildTicketDescriptionPrefix(
   category: { fullPath?: string; name?: string } | null | undefined,
 ): string {
   const prefixText = buildTicketDescriptionPrefixText(type, category);
-  return prefixText ? `<p>${prefixText}</p>` : "";
+  if (!prefixText) return "";
+
+  const htmlText = prefixText.endsWith(TICKET_DESCRIPTION_CATEGORY_SUFFIX)
+    ? `${prefixText.slice(0, -1)}&nbsp;`
+    : prefixText;
+  return `<p>${htmlText}</p>`;
 }
 
 /** @param body - Texto libre de la descripción. @param type - Tipo de ticket. @param category - Categoría. @returns Descripción con prefijo visible. */
@@ -274,10 +287,12 @@ export function hasTicketDescriptionPrefix(
   category: { fullPath?: string; name?: string } | null | undefined,
 ): boolean {
   const prefix = buildTicketDescriptionPrefix(type, category);
-  if (prefix && description.startsWith(prefix)) {
+  const normalizedDescription = normalizeDescriptionHtml(description);
+  const normalizedPrefix = normalizeDescriptionHtml(prefix);
+  if (normalizedPrefix && normalizedDescription.startsWith(normalizedPrefix)) {
     return true;
   }
-  return TICKET_DESCRIPTION_PREFIX_PATTERN.test(description);
+  return TICKET_DESCRIPTION_PREFIX_PATTERN.test(normalizedDescription);
 }
 
 /**
@@ -351,13 +366,15 @@ export function extractTicketDescriptionBody(
   category: { fullPath?: string; name?: string } | null | undefined,
 ): string {
   const prefix = buildTicketDescriptionPrefix(type, category);
-  if (prefix && description.startsWith(prefix)) {
-    return description.slice(prefix.length);
+  const normalizedDescription = normalizeDescriptionHtml(description);
+  const normalizedPrefix = normalizeDescriptionHtml(prefix);
+  if (normalizedPrefix && normalizedDescription.startsWith(normalizedPrefix)) {
+    return normalizedDescription.slice(normalizedPrefix.length);
   }
 
-  const match = description.match(TICKET_DESCRIPTION_PREFIX_PATTERN);
+  const match = normalizedDescription.match(TICKET_DESCRIPTION_PREFIX_PATTERN);
   if (match) {
-    return description.slice(match[0].length);
+    return normalizedDescription.slice(match[0].length);
   }
 
   return description;
@@ -387,16 +404,17 @@ export function buildRequesterDisplayLabel(
 
 /** @param user - Usuario autenticado o null. @returns Filtros iniciales del historial. */
 export function buildInitialTicketFilters(user: AuthUser | null): TicketFilterState {
+  const isTechnician = user?.role === "technician";
   return {
     search: "",
     status: "",
     type: "",
-    assignedToId: "",
+    assignedToId: isTechnician && user.id != null ? String(user.id) : "",
     requesterId: "",
-    locationId: "",
+    locationId: !isTechnician && user?.locationId != null ? String(user.locationId) : "",
     createdFrom: "",
     createdTo: "",
-    involvingMe: user?.role === "technician" ? true : undefined,
+    involvingMe: undefined,
   };
 }
 
@@ -432,6 +450,37 @@ export function buildSiteHistorialFilters(user: AuthUser | null): TicketFilterSt
     createdTo: "",
     involvingMe: false,
     statusesPreset: [...OPEN_STATUSES],
+  };
+}
+
+/** @param status - Estado de ticket. @returns Preset de historial filtrado por estado. */
+export function buildStatusHistorialFilters(
+  status: "solved" | "closed",
+): TicketFilterState {
+  return {
+    search: "",
+    status,
+    type: "",
+    assignedToId: "",
+    requesterId: "",
+    locationId: "",
+    createdFrom: "",
+    createdTo: "",
+  };
+}
+
+/** @returns Preset de historial del equipo (Estado Abiertos, sin filtros de actor/sede). */
+export function buildMyGroupHistorialFilters(): TicketFilterState {
+  return {
+    search: "",
+    status: "",
+    type: "",
+    assignedToId: "",
+    requesterId: "",
+    locationId: "",
+    createdFrom: "",
+    createdTo: "",
+    involvingMe: false,
   };
 }
 

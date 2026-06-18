@@ -31,7 +31,7 @@ const ADVANCED_FILTER_GRID_TECHNICIAN =
   "min-[1120px]:grid-cols-[minmax(8.75rem,1.05fr)_minmax(8.75rem,1.05fr)_minmax(7rem,0.85fr)_minmax(7rem,0.9fr)_minmax(9rem,1.1fr)_minmax(9rem,1.1fr)_minmax(9rem,1.1fr)_auto]";
 
 const ADVANCED_FILTER_GRID_USER =
-  "min-[1120px]:grid-cols-[minmax(8.75rem,1.05fr)_minmax(8.75rem,1.05fr)_minmax(7rem,0.85fr)_minmax(7rem,0.9fr)_minmax(9rem,1.15fr)_minmax(9rem,1.15fr)_auto]";
+  "min-[1120px]:grid-cols-[minmax(8.75rem,1.05fr)_minmax(8.75rem,1.05fr)_minmax(7rem,0.85fr)_minmax(7rem,0.9fr)_minmax(9rem,1.15fr)_auto]";
 
 const REQUESTER_EMPTY_OPTION = { value: "", label: "Todos los solicitantes" };
 
@@ -88,9 +88,13 @@ export function TicketFilters({
   );
 
   const locationOptions = useMemo(() => buildLocationFilterOptions(locations), [locations]);
+  const visibleTechnicians = useMemo(() => {
+    if (isTechnician || user?.locationId == null) return technicians;
+    return technicians.filter((technician) => technician.locationId === user.locationId);
+  }, [technicians, isTechnician, user]);
   const technicianOptions = useMemo(
-    () => buildTechnicianFilterOptions(technicians, user, locations),
-    [technicians, user, locations]
+    () => buildTechnicianFilterOptions(visibleTechnicians, user, locations),
+    [visibleTechnicians, user, locations]
   );
 
   /** @param query - Texto de búsqueda. @param signal - Señal de aborto. @returns Opciones de solicitante. */
@@ -247,19 +251,21 @@ export function TicketFilters({
             </label>
           ) : null}
 
-          <label className="relative z-10 flex min-w-0 flex-col gap-1 text-sm">
-            <span className="text-muted-foreground">Sede</span>
-            <SearchableSelect
-              id="ticket-filter-location"
-              value={filters.locationId}
-              onChange={(value) => update("locationId", value)}
-              options={locationOptions}
-              placeholder={locationsLoading ? "Cargando sedes..." : "Todas las sedes"}
-              searchPlaceholder="Buscar sede..."
-              emptyOption={{ value: "", label: "Todas las sedes" }}
-              disabled={locationsLoading}
-            />
-          </label>
+          {isTechnician ? (
+            <label className="relative z-10 flex min-w-0 flex-col gap-1 text-sm">
+              <span className="text-muted-foreground">Sede</span>
+              <SearchableSelect
+                id="ticket-filter-location"
+                value={filters.locationId}
+                onChange={(value) => update("locationId", value)}
+                options={locationOptions}
+                placeholder={locationsLoading ? "Cargando sedes..." : "Todas las sedes"}
+                searchPlaceholder="Buscar sede..."
+                emptyOption={{ value: "", label: "Todas las sedes" }}
+                disabled={locationsLoading}
+              />
+            </label>
+          ) : null}
 
           <Button
             type="button"

@@ -187,5 +187,8 @@ export interface TiMetricsResponse {
   mySite: TicketMetricSlice | null;
   myIncidents: TicketMetricSlice;
   myRequests: TicketMetricSlice;
+  myGroup: TicketMetricSlice;
+  mySolved: TicketMetricSlice;
+  myClosed: TicketMetricSlice;
   openByLocation: OpenByLocationMetric[];
 }

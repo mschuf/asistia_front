@@ -20,6 +20,7 @@ import {
 } from "../services/ticketsService";
 import type { ListTicketsParams } from "../services/ticketsService";
 import type { AsistiaTicket, AsistiaTicketStatus, AsistiaUser } from "../types/asistia";
+import type { AuthUser } from "../types/auth";
 import type { HistorySortColumn, HistorySortState, TicketFilterState, TicketsTab, UseTicketsOptions, UseTicketsResult } from "../types/pages/tickets-page.types";
 import { ApiError } from "../api/apiClient";
 import { isAbortError } from "../lib/http";
@@ -81,6 +82,17 @@ function toListTicketParams(
     sortBy: sort?.column,
     sortOrder: sort?.order,
   };
+}
+
+/** Fuerza la sede del usuario final en filtros de historial cuando aplica. */
+function withFinalUserLocationFilter(
+  filters: TicketFilterState,
+  user: AuthUser | null,
+): TicketFilterState {
+  if (user?.role === "technician" || user?.locationId == null) {
+    return filters;
+  }
+  return { ...filters, locationId: String(user.locationId) };
 }
 
 /**
@@ -171,13 +183,14 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
 
   const goToHistorialWithFilters = useCallback(
     (preset: TicketFilterState) => {
-      setFiltersState(preset);
-      setAppliedFilters(preset);
+      const nextPreset = withFinalUserLocationFilter(preset, user);
+      setFiltersState(nextPreset);
+      setAppliedFilters(nextPreset);
       setPageState(1);
       loadedTicketsKeyRef.current = null;
       setSearchParams({ tab: "historial" });
     },
-    [setSearchParams]
+    [setSearchParams, user]
   );
 
   const setPage = useCallback((nextPage: number) => {
@@ -240,6 +253,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
     ) {
       candidate = { ...candidate, involvingMe: false };
     }
+    candidate = withFinalUserLocationFilter(candidate, user);
     setFiltersState(candidate);
     setAppliedFilters(candidate);
     setPageState(1);
@@ -478,23 +492,23 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
 
         if (failedCount === attachments.length) {
           toast.info(
-            `Ticket #${created.id} creado, pero no se pudieron subir los adjuntos.`,
+            `Caso #${created.id} creado, pero no se pudieron subir los adjuntos.`,
             "Aviso",
           );
         } else if (failedCount > 0) {
           toast.info(
-            `Ticket #${created.id} creado. No se subieron ${failedCount} de ${attachments.length} adjuntos.`,
+            `Caso #${created.id} creado. No se subieron ${failedCount} de ${attachments.length} adjuntos.`,
             "Aviso",
           );
         } else {
           const mailNote = created.mail.sent ? "" : " (correo no enviado)";
           toast.success(
-            `Ticket #${created.id} creado con ${uploadedCount} adjunto${uploadedCount === 1 ? "" : "s"}${mailNote}.`,
+            `Caso #${created.id} creado con ${uploadedCount} adjunto${uploadedCount === 1 ? "" : "s"}${mailNote}.`,
           );
         }
       } else {
         const mailNote = created.mail.sent ? "" : " (correo no enviado)";
-        toast.success(`Ticket #${created.id} creado${mailNote}.`);
+        toast.success(`Caso #${created.id} creado${mailNote}.`);
       }
 
       await onTicketCreatedRef.current?.(created.id);
@@ -547,7 +561,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
               : ticket
           )
         );
-        toast.success(`Ticket #${normalizedTicketId}: ${statusLabel(status)}.`);
+        toast.success(`Caso #${normalizedTicketId}: ${statusLabel(status)}.`);
         return true;
       } catch (err) {
         setTickets((current) =>

@@ -16,7 +16,8 @@ export const TICKET_STATUS_LABELS: Record<string, string> = {
 /** Mapa de tipos de ticket a etiquetas legibles. */
 export const TICKET_TYPE_LABELS: Record<string, string> = {
   incident: "Incidente",
-  request: "Solicitud"
+  request: "Solicitud",
+  requirement: "Requerimiento"
 };
 
 /** Mapa de niveles de urgencia de ticket a etiquetas legibles. */

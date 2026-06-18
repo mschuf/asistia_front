@@ -30,9 +30,12 @@ export const RichDescriptionEditor = forwardRef<RichDescriptionEditorHandle, Ric
   function RichDescriptionEditor({ id, value, onChange, describedBy, disabled }, ref) {
   const editorRef = useRef<HTMLDivElement | null>(null);
 
+  /** @param html - HTML del editor. @returns HTML con entidades normalizadas para comparar. */
+  const normalizeEditorHtml = (html: string) => html.replace(/&nbsp;/gi, "\u00A0");
+
   useLayoutEffect(() => {
     const editor = editorRef.current;
-    if (editor && editor.innerHTML !== value) {
+    if (editor && normalizeEditorHtml(editor.innerHTML) !== normalizeEditorHtml(value)) {
       editor.innerHTML = value;
     }
   }, [value]);

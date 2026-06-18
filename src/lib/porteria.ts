@@ -13,9 +13,12 @@ import type {
   PorteriaHistoryRecord,
   PorteriaHistorySortColumn,
   PorteriaHistorySortState,
+  PorteriaMetricsDateFilterState,
+  PorteriaMetricsPeriodPreset,
   PorteriaTrackingAccessType,
   PorteriaTrackingVisitor,
 } from "@/types/pages/porteria-page.types";
+import { toApiDateFrom, toApiDateTo } from "@/lib/tickets";
 
 /** Opciones de tamano de pagina del historial. */
 export const PORTERIA_PAGE_SIZE_OPTIONS = [15, 50, 100] as const;
@@ -75,10 +78,111 @@ export function parsePorteriaPageSize(value: string): PorteriaPageSize | null {
 /** @returns Fecha local actual en formato YYYY-MM-DD. */
 export function getLocalTodayYmd(): string {
   const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
+  return formatLocalYmd(now);
+}
+
+/** @param date - Fecha local. @returns YYYY-MM-DD. */
+function formatLocalYmd(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+/** @param ymd - Fecha YYYY-MM-DD. @param days - Días a sumar (negativo hacia atrás). @returns Nueva fecha YYYY-MM-DD. */
+function offsetLocalYmd(ymd: string, days: number): string {
+  const [year, month, day] = ymd.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  date.setDate(date.getDate() + days);
+  return formatLocalYmd(date);
+}
+
+/** @returns Filtro de fechas de métricas con preset 7 días por defecto. */
+export function createInitialPorteriaMetricsDateFilter(): PorteriaMetricsDateFilterState {
+  return { preset: "7d", desde: "", hasta: "" };
+}
+
+/** @param desde - Fecha desde YYYY-MM-DD. @param hasta - Fecha hasta YYYY-MM-DD. @returns `true` si el rango es válido. */
+export function isValidPorteriaMetricsCustomRange(desde: string, hasta: string): boolean {
+  const from = desde.trim();
+  const to = hasta.trim();
+  if (!from || !to) return false;
+  return from <= to;
+}
+
+/**
+ * Resuelve el rango API según el preset o fechas personalizadas.
+ * @param filter - Estado del filtro de métricas.
+ * @returns Parámetros ISO o `null` si el rango custom es incompleto/inválido.
+ */
+export function resolveMetricsDateRange(filter: PorteriaMetricsDateFilterState): {
+  entradaFrom: string;
+  entradaTo: string;
+} | null {
+  const today = getLocalTodayYmd();
+
+  switch (filter.preset) {
+    case "hoy":
+      return {
+        entradaFrom: toApiDateFrom(today)!,
+        entradaTo: toApiDateTo(today)!,
+      };
+    case "7d":
+      return {
+        entradaFrom: toApiDateFrom(offsetLocalYmd(today, -6))!,
+        entradaTo: toApiDateTo(today)!,
+      };
+    case "30d":
+      return {
+        entradaFrom: toApiDateFrom(offsetLocalYmd(today, -29))!,
+        entradaTo: toApiDateTo(today)!,
+      };
+    case "custom":
+      if (!isValidPorteriaMetricsCustomRange(filter.desde, filter.hasta)) return null;
+      return {
+        entradaFrom: toApiDateFrom(filter.desde)!,
+        entradaTo: toApiDateTo(filter.hasta)!,
+      };
+  }
+}
+
+/** @param preset - Preset activo. @returns Título de la card de ingresos del período. */
+export function getMetricsPeriodIngressTitle(preset: PorteriaMetricsPeriodPreset): string {
+  switch (preset) {
+    case "hoy":
+      return "Ingresos en el mes";
+    case "7d":
+      return "Ingresos (7 días)";
+    case "30d":
+      return "Ingresos (30 días)";
+    case "custom":
+      return "Ingresos en el período";
+  }
+}
+
+/** @returns Rango del mes calendario actual (desde el día 1 hasta hoy). */
+export function resolveCalendarMonthDateRange(): {
+  entradaFrom: string;
+  entradaTo: string;
+} {
+  const today = getLocalTodayYmd();
+  const firstDay = `${today.slice(0, 7)}-01`;
+
+  return {
+    entradaFrom: toApiDateFrom(firstDay)!,
+    entradaTo: toApiDateTo(today)!,
+  };
+}
+
+/** @param preset - Preset activo. @returns Título de la card de ingresos del último día. */
+export function getMetricsDayIngressTitle(preset: PorteriaMetricsPeriodPreset): string {
+  if (preset === "hoy") return "Ingresos hoy";
+  return "Ingresos (último día)";
+}
+
+/** @returns Subtítulo para cards de visitas activas en métricas filtradas. */
+export function getMetricsActiveSubtitle(): string {
+  return "Activas en el período";
 }
 
 /** @param zonasPermitidas - Zonas autorizadas de la visita. @returns Tipo de acceso para seguimiento. */
@@ -148,8 +252,11 @@ export function mapVisitaToTrackingVisitor(visita: Visita): PorteriaTrackingVisi
 
   return {
     id: visita.id,
+    personaId: visita.personaId,
+    hasFoto: visita.hasFoto ?? false,
     name: visita.visitante,
     company: visita.empresa ?? "—",
+    responsable: visita.responsableNombre,
     accessType,
     accessLabel,
     tarjetaColor,
@@ -255,6 +362,8 @@ export function createInitialPorteriaHistoryFilters(): PorteriaHistoryFilterStat
     empresa: "",
     motivo: "",
     responsable: "",
+    entradaFrom: "",
+    entradaTo: "",
   };
 }
 
