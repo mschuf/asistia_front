@@ -16,6 +16,7 @@ import {
   getMetricsActiveSubtitle,
   getMetricsDayIngressTitle,
   getMetricsPeriodIngressTitle,
+  getMetricsStaleCheckoutTitle,
   isPorteriaAllPageSize,
   isValidPorteriaPageSize,
   mapVisitaToHistoryRecord,
@@ -24,9 +25,13 @@ import {
   resolveCalendarMonthDateRange,
   resolveMetricsDateRange,
   resolvePorteriaApiLimit,
+  resolveTodayDateRange,
   type PorteriaPageSize,
 } from "@/lib/porteria";
+import { resolveMotivoVisitaNombre } from "@/lib/porteria-motivos-visita";
 import { resolveCandidateFullName } from "@/lib/porteria-personas";
+import { resolveProveedorNombre } from "@/lib/porteria-proveedores";
+import { resolveResponsableFullName } from "@/lib/visitas-responsables";
 import { toApiDateFrom, toApiDateTo } from "@/lib/tickets";
 import type {
   PorteriaHistoryFilterState,
@@ -42,7 +47,7 @@ import type {
 } from "@/types/pages/porteria-page.types";
 
 /** @param preset - Preset de período activo. @returns Cards de métricas inicializadas en cero. */
-function createEmptyMetricCards(preset: PorteriaMetricsPeriodPreset = "7d"): PorteriaMetricCard[] {
+function createEmptyMetricCards(preset: PorteriaMetricsPeriodPreset = "hoy"): PorteriaMetricCard[] {
   const activeSubtitle = getMetricsActiveSubtitle();
   return [
     {
@@ -54,7 +59,7 @@ function createEmptyMetricCards(preset: PorteriaMetricsPeriodPreset = "7d"): Por
     { id: "day", title: getMetricsDayIngressTitle(preset), value: "0" },
     {
       id: "staleCheckout",
-      title: "Sin salida de días anteriores",
+      title: getMetricsStaleCheckoutTitle(preset),
       value: "0",
       subtitle: "Requieren marcar salida",
     },
@@ -76,6 +81,7 @@ function mapMetricsToCards(
   },
   preset: PorteriaMetricsPeriodPreset,
   periodIngressOverride?: number,
+  staleCheckoutOverride?: number,
 ): PorteriaMetricCard[] {
   const activeSubtitle = getMetricsActiveSubtitle();
   return [
@@ -88,8 +94,8 @@ function mapMetricsToCards(
     { id: "day", title: getMetricsDayIngressTitle(preset), value: String(data.dayVisits) },
     {
       id: "staleCheckout",
-      title: "Sin salida de días anteriores",
-      value: String(data.activeStaleWithoutCheckout),
+      title: getMetricsStaleCheckoutTitle(preset),
+      value: String(staleCheckoutOverride ?? data.activeStaleWithoutCheckout),
       subtitle: "Requieren marcar salida",
     },
     {
@@ -142,7 +148,9 @@ function toHistoryListParams(
  */
 export function usePorteriaIndicadores(): UsePorteriaIndicadoresResult {
   const [metricsDateFilter, setMetricsDateFilterState] = useState(createInitialPorteriaMetricsDateFilter);
-  const [metrics, setMetrics] = useState<PorteriaMetricCard[]>(() => createEmptyMetricCards("7d"));
+  const [metrics, setMetrics] = useState<PorteriaMetricCard[]>(() =>
+    createEmptyMetricCards(createInitialPorteriaMetricsDateFilter().preset),
+  );
   const [trackingVisitors, setTrackingVisitors] = useState<PorteriaTrackingVisitor[]>([]);
   const [loading, setLoading] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
@@ -182,7 +190,7 @@ export function usePorteriaIndicadores(): UsePorteriaIndicadoresResult {
         const [metricsData, monthMetricsData, activeVisits] = await Promise.all([
           obtenerMetricasVisitas(metricsQuery),
           isTodayPreset ? obtenerMetricasVisitas(resolveCalendarMonthDateRange()) : Promise.resolve(null),
-          listarVisitasActivas(),
+          listarVisitasActivas(resolveTodayDateRange()),
         ]);
         if (cancelled) return;
         setMetrics(
@@ -190,6 +198,7 @@ export function usePorteriaIndicadores(): UsePorteriaIndicadoresResult {
             metricsData,
             metricsDateFilter.preset,
             isTodayPreset ? monthMetricsData?.monthVisits : undefined,
+            isTodayPreset ? monthMetricsData?.activeStaleWithoutCheckout : undefined,
           ),
         );
         setTrackingVisitors(activeVisits.map(mapVisitaToTrackingVisitor));
@@ -290,11 +299,17 @@ export function usePorteriaHistorial(): UsePorteriaHistorialResult {
   const applyFilters = useCallback(
     async (nextFilters?: PorteriaHistoryFilterState) => {
       const filtersToApply = nextFilters ?? filters;
-      const responsableNombre = filtersToApply.responsable
-        ? await resolveCandidateFullName(filtersToApply.responsable)
-        : "";
+      const [visitanteNombre, empresaNombre, motivoNombre, responsableNombre] = await Promise.all([
+        filtersToApply.visitante ? resolveCandidateFullName(filtersToApply.visitante) : "",
+        filtersToApply.empresa ? resolveProveedorNombre(filtersToApply.empresa) : "",
+        filtersToApply.motivo ? resolveMotivoVisitaNombre(filtersToApply.motivo) : "",
+        filtersToApply.responsable ? resolveResponsableFullName(filtersToApply.responsable) : "",
+      ]);
       setAppliedFilters({
         ...filtersToApply,
+        visitante: visitanteNombre,
+        empresa: empresaNombre,
+        motivo: motivoNombre,
         responsable: responsableNombre,
       });
       setPageState(1);

@@ -43,6 +43,10 @@ const AssistantPage = lazy(() => import("./pages/AssistantPage"));
 
 const PersonasPage = lazy(() => import("./pages/PersonasPage"));
 
+const ProveedoresPage = lazy(() => import("./pages/ProveedoresPage"));
+
+const MotivosVisitaPage = lazy(() => import("./pages/MotivosVisitaPage"));
+
 const VisitasPage = lazy(() => import("./pages/VisitasPage"));
 
 const EmpresasPage = lazy(() => import("./pages/EmpresasPage"));
@@ -154,6 +158,10 @@ export default function App() {
 
             <Route path="personas" element={<PersonasPage />} />
 
+            <Route path="motivos-visita" element={<MotivosVisitaPage />} />
+
+            <Route path="proveedores" element={<ProveedoresPage />} />
+
           </Route>
 
           <Route
@@ -190,7 +198,7 @@ export default function App() {
 
           <Route
 
-            path="admin/reporte-tickets"
+            path="admin/reporte-irs"
 
             element={
 

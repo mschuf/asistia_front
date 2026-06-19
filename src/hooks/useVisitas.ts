@@ -13,6 +13,10 @@ import {
   getLocalTodayYmd,
   type PorteriaPageSize,
 } from "@/lib/porteria";
+import { resolveMotivoVisitaNombre } from "@/lib/porteria-motivos-visita";
+import { resolveCandidateFullName } from "@/lib/porteria-personas";
+import { resolveProveedorNombre } from "@/lib/porteria-proveedores";
+import { resolveResponsableFullName } from "@/lib/visitas-responsables";
 import { toApiDateFrom, toApiDateTo } from "@/lib/tickets";
 import type {
   VisitasFilterState,
@@ -85,10 +89,26 @@ export function useVisitas(): UseVisitasResult {
     setFiltersState(value);
   }, []);
 
-  const applyFilters = useCallback((nextFilters?: VisitasFilterState) => {
-    setAppliedFilters(nextFilters ?? filters);
-    setPageState(1);
-  }, [filters]);
+  const applyFilters = useCallback(
+    async (nextFilters?: VisitasFilterState) => {
+      const filtersToApply = nextFilters ?? filters;
+      const [visitante, empresa, motivo, responsable] = await Promise.all([
+        filtersToApply.visitante ? resolveCandidateFullName(filtersToApply.visitante) : "",
+        filtersToApply.empresa ? resolveProveedorNombre(filtersToApply.empresa) : "",
+        filtersToApply.motivo ? resolveMotivoVisitaNombre(filtersToApply.motivo) : "",
+        filtersToApply.responsable ? resolveResponsableFullName(filtersToApply.responsable) : "",
+      ]);
+      setAppliedFilters({
+        ...filtersToApply,
+        visitante,
+        empresa,
+        motivo,
+        responsable,
+      });
+      setPageState(1);
+    },
+    [filters],
+  );
 
   const setPage = useCallback((nextPage: number) => {
     setPageState(Math.max(1, nextPage));

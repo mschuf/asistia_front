@@ -32,7 +32,7 @@ export function PorteriaMetricsDateFilter({ value, onChange }: PorteriaMetricsDa
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2">
+    <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
       <div className="flex flex-wrap gap-1">
         {PRESET_OPTIONS.map((option) => {
           const isActive = value.preset === option.id;
@@ -55,23 +55,23 @@ export function PorteriaMetricsDateFilter({ value, onChange }: PorteriaMetricsDa
       </div>
 
       {value.preset === "custom" ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-2 text-sm">
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-end">
+          <label className="flex min-w-0 flex-col gap-1 text-sm sm:w-[8.75rem] sm:shrink-0">
             <span className="text-muted-foreground">Desde</span>
             <Input
               type="date"
               value={value.desde}
               onChange={(event) => onChange({ ...value, desde: event.target.value })}
-              className="w-auto"
+              className="date-input-mobile-picker-end w-full min-w-0 px-2"
             />
           </label>
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex min-w-0 flex-col gap-1 text-sm sm:w-[8.75rem] sm:shrink-0">
             <span className="text-muted-foreground">Hasta</span>
             <Input
               type="date"
               value={value.hasta}
               onChange={(event) => onChange({ ...value, hasta: event.target.value })}
-              className="w-auto"
+              className="date-input-mobile-picker-end w-full min-w-0 px-2"
             />
           </label>
         </div>

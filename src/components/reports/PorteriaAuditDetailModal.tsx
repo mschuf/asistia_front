@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog } from "@/components/ui/dialog";
 import { PorteriaAuditStateComparison } from "@/components/reports/PorteriaAuditStateComparison";
 import { getHistoryEstadoLabel, getHistoryEstadoBadgeVariant } from "@/lib/porteria";
-import { formatAuditFieldValue, getAuditFieldLabel } from "@/lib/porteria-audit-state";
+import { formatAuditFieldValue, formatPorteriaAuditActorLabel, getAuditFieldLabel } from "@/lib/porteria-audit-state";
 import type { PorteriaAuditLog } from "@/types/pages/porteria-audit-report.types";
 
 interface PorteriaAuditDetailModalProps {
@@ -31,9 +31,7 @@ export function PorteriaAuditDetailModal({
 }: PorteriaAuditDetailModalProps) {
   if (!record) return null;
 
-  const actorLabel = record.actorName
-    ? `${record.actorName} (#${record.actorUserId})`
-    : `#${record.actorUserId}`;
+  const actorLabel = formatPorteriaAuditActorLabel(record.actorUserId, record.actorName);
 
   const metadataEntries = Object.entries(record.metadata ?? {}).filter(
     ([, value]) => value !== null && value !== undefined,

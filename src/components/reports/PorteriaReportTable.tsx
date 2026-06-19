@@ -31,6 +31,7 @@ const DISPLAY_COLUMNS: Array<{ label: string; key: keyof PorteriaReportLog }> = 
 const ESTADO_LABELS: Record<PorteriaReportLog["estado"], string> = {
   programada: "Programada",
   activa: "Activa",
+  sin_salida: "Sin salida",
   finalizada: "Finalizada",
   cancelada: "Cancelada",
 };

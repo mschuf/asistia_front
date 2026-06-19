@@ -9,9 +9,21 @@ import { Input } from "@/components/ui/input";
 import { ServerSearchableSelect } from "@/components/ui/server-searchable-select";
 import { cn } from "@/lib/utils";
 import {
+  loadMotivoVisitaSelectOptions,
+  resolveMotivoVisitaSelectOption,
+} from "@/lib/porteria-motivos-visita";
+import {
   loadVisitPersonCandidateOptions,
   resolveCandidateOption,
 } from "@/lib/porteria-personas";
+import {
+  loadProveedorSelectOptions,
+  resolveProveedorSelectOption,
+} from "@/lib/porteria-proveedores";
+import {
+  loadResponsableCandidateOptions,
+  resolveResponsableCandidateOption,
+} from "@/lib/visitas-responsables";
 import type { PorteriaHistoryFilterState } from "@/types/pages/porteria-page.types";
 
 interface PorteriaHistoryFiltersProps {
@@ -20,16 +32,9 @@ interface PorteriaHistoryFiltersProps {
   onApply: (filters?: PorteriaHistoryFilterState) => Promise<void>;
 }
 
-const ADVANCED_FIELDS: Array<{
-  key: keyof Omit<PorteriaHistoryFilterState, "search" | "responsable" | "entradaFrom" | "entradaTo">;
-  label: string;
-}> = [
-  { key: "visitante", label: "Visitante" },
-  { key: "documento", label: "Documento" },
-  { key: "empresa", label: "Empresa" },
-  { key: "motivo", label: "Motivo" },
-];
-
+const VISITANTE_EMPTY_OPTION = { value: "", label: "Todos los visitantes" };
+const EMPRESA_EMPTY_OPTION = { value: "", label: "Todas las empresas" };
+const MOTIVO_EMPTY_OPTION = { value: "", label: "Todos los motivos" };
 const RESPONSABLE_EMPTY_OPTION = { value: "", label: "Todos los responsables" };
 
 /**
@@ -111,32 +116,81 @@ export function PorteriaHistoryFilters({
             </label>
           </div>
 
-          {ADVANCED_FIELDS.map(({ key, label }) => (
-            <label key={key} className="flex min-w-0 flex-col gap-1 pb-0.5 text-sm">
-              <span className="text-muted-foreground">{label}</span>
-              <Input
-                value={filters[key]}
-                onChange={(event) => update(key, event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter") return;
-                  event.preventDefault();
-                  handleApply();
-                }}
-              />
-            </label>
-          ))}
+          <label className="relative z-10 flex min-w-0 flex-col gap-1 pb-0.5 text-sm">
+            <span className="text-muted-foreground">Visitante</span>
+            <ServerSearchableSelect
+              value={filters.visitante}
+              onChange={(value) => update("visitante", value)}
+              onLoadOptions={loadVisitPersonCandidateOptions}
+              resolveSelectedOption={(value, signal) =>
+                resolveCandidateOption(value, signal, { allowLegacyText: true })
+              }
+              placeholder="Todos los visitantes"
+              searchPlaceholder="Buscar por nombre…"
+              noResultsText="Sin resultados"
+              loadingText="Buscando…"
+              emptyOption={VISITANTE_EMPTY_OPTION}
+            />
+          </label>
+
+          <label className="flex min-w-0 flex-col gap-1 pb-0.5 text-sm">
+            <span className="text-muted-foreground">Documento</span>
+            <Input
+              value={filters.documento}
+              onChange={(event) => update("documento", event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter") return;
+                event.preventDefault();
+                handleApply();
+              }}
+            />
+          </label>
+
+          <label className="relative z-10 flex min-w-0 flex-col gap-1 pb-0.5 text-sm">
+            <span className="text-muted-foreground">Empresa</span>
+            <ServerSearchableSelect
+              value={filters.empresa}
+              onChange={(value) => update("empresa", value)}
+              onLoadOptions={loadProveedorSelectOptions}
+              resolveSelectedOption={(value, signal) =>
+                resolveProveedorSelectOption(value, signal, { allowLegacyText: true })
+              }
+              placeholder="Todas las empresas"
+              searchPlaceholder="Buscar empresa…"
+              noResultsText="Sin resultados"
+              loadingText="Buscando…"
+              emptyOption={EMPRESA_EMPTY_OPTION}
+            />
+          </label>
+
+          <label className="relative z-10 flex min-w-0 flex-col gap-1 pb-0.5 text-sm">
+            <span className="text-muted-foreground">Motivo</span>
+            <ServerSearchableSelect
+              value={filters.motivo}
+              onChange={(value) => update("motivo", value)}
+              onLoadOptions={loadMotivoVisitaSelectOptions}
+              resolveSelectedOption={(value, signal) =>
+                resolveMotivoVisitaSelectOption(value, signal, { allowLegacyText: true })
+              }
+              placeholder="Todos los motivos"
+              searchPlaceholder="Buscar motivo…"
+              noResultsText="Sin resultados"
+              loadingText="Buscando…"
+              emptyOption={MOTIVO_EMPTY_OPTION}
+            />
+          </label>
 
           <label className="relative z-10 flex min-w-0 flex-col gap-1 pb-0.5 text-sm">
             <span className="text-muted-foreground">Responsable</span>
             <ServerSearchableSelect
               value={filters.responsable}
               onChange={(value) => update("responsable", value)}
-              onLoadOptions={loadVisitPersonCandidateOptions}
+              onLoadOptions={loadResponsableCandidateOptions}
               resolveSelectedOption={(value, signal) =>
-                resolveCandidateOption(value, signal, { allowLegacyText: true })
+                resolveResponsableCandidateOption(value, signal, { allowLegacyText: true })
               }
               placeholder="Todos los responsables"
-              searchPlaceholder="Buscar por nombre…"
+              searchPlaceholder="Buscar usuario GLPI…"
               noResultsText="Sin resultados"
               loadingText="Buscando…"
               emptyOption={RESPONSABLE_EMPTY_OPTION}

@@ -30,6 +30,7 @@ const ACTION_OPTIONS: Array<{ value: PorteriaAuditAction; label: string }> = [
 const ESTADO_OPTIONS: Array<{ value: VisitaEstado; label: string }> = [
   { value: "programada", label: "Programada" },
   { value: "activa", label: "Activa" },
+  { value: "sin_salida", label: "Sin salida" },
   { value: "finalizada", label: "Finalizada" },
   { value: "cancelada", label: "Cancelada" },
 ];

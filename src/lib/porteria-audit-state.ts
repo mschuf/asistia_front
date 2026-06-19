@@ -57,6 +57,27 @@ const CHANGE_KIND_LABEL: Record<Exclude<AuditFieldChangeKind, "unchanged">, stri
   removed: "Eliminado",
 };
 
+/** ID reservado para acciones automáticas del sistema (sync sin salida, etc.). */
+export const PORTERIA_AUDIT_SYSTEM_ACTOR_USER_ID = 0;
+
+/** Etiqueta legible del actor sistema en auditoría. */
+export const PORTERIA_AUDIT_SYSTEM_ACTOR_LABEL = "Sistema";
+
+/**
+ * @param actorUserId - ID del usuario que ejecutó la acción.
+ * @param actorName - Nombre resuelto desde GLPI, si existe.
+ * @returns Texto para columna Actor en auditoría.
+ */
+export function formatPorteriaAuditActorLabel(actorUserId: number, actorName: string | null): string {
+  if (actorUserId === PORTERIA_AUDIT_SYSTEM_ACTOR_USER_ID) {
+    return PORTERIA_AUDIT_SYSTEM_ACTOR_LABEL;
+  }
+  if (actorName) {
+    return `${actorName} (#${actorUserId})`;
+  }
+  return `#${actorUserId}`;
+}
+
 /** @param field - Clave del snapshot. @returns Etiqueta legible para UI. */
 export function getAuditFieldLabel(field: string): string {
   return AUDIT_FIELD_LABELS[field as AuditStateFieldKey] ?? field;

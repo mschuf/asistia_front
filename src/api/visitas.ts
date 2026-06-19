@@ -5,7 +5,28 @@
 import { apiClient } from "./apiClient";
 import type { VisitaTarjetaColor } from "@/lib/visita-tarjeta-color";
 
-export type VisitaEstado = "programada" | "activa" | "finalizada" | "cancelada";
+export type VisitaEstado = "programada" | "activa" | "sin_salida" | "finalizada" | "cancelada";
+
+export type EliminarVisitaResult = { id: number; deleted: true } | { id: number; cancelled: true };
+
+/** Indica si la visita puede eliminarse desde la UI. */
+export function isVisitaEliminable(_estado: VisitaEstado): boolean {
+  return true;
+}
+
+/** Indica si eliminar cancelará la visita (activa/sin_salida) en lugar de borrarla. */
+export function requiereCancelacionAlEliminar(estado: VisitaEstado): boolean {
+  return estado === "activa" || estado === "sin_salida";
+}
+
+/** Etiquetas legibles de estado de visita para UI. */
+export const VISITA_ESTADO_LABELS: Record<VisitaEstado, string> = {
+  programada: "Programada",
+  activa: "Activa",
+  sin_salida: "Sin salida",
+  finalizada: "Finalizada",
+  cancelada: "Cancelada",
+};
 export const VISITA_ZONA = ["administración", "fábrica"] as const;
 
 export type VisitaZona = (typeof VISITA_ZONA)[number];
@@ -25,6 +46,7 @@ export interface Visita {
   documento: string;
   empresa: string | null;
   motivo: string;
+  motivoVisitaId: number | null;
   responsableNombre: string;
   estado: VisitaEstado;
   estadoSeguimiento: VisitaSeguimiento | null;
@@ -78,7 +100,7 @@ export interface ListarVisitasQuery {
 
 export interface CrearVisitaPayload {
   personaId: number;
-  motivo: string;
+  motivoVisitaId: number;
   responsableNombre: string;
   estado?: VisitaEstado;
   estadoSeguimiento?: VisitaSeguimiento;
@@ -106,6 +128,33 @@ export interface VisitaMetrics {
   activeStaleWithoutCheckout: number;
 }
 
+export interface ResponsableCandidate {
+  id: number;
+  fullName: string;
+  subtitle: string;
+}
+
+export interface ResponsableCandidateListado {
+  items: ResponsableCandidate[];
+  total: number;
+}
+
+/** Busca usuarios GLPI activos para el selector de responsable al crear visitas. */
+export async function searchResponsableCandidates(
+  search: string,
+  limit = 20,
+  options?: { signal?: AbortSignal; id?: number },
+): Promise<ResponsableCandidateListado> {
+  return apiClient.get<ResponsableCandidateListado>("/visitas/responsable-candidates", {
+    ...options,
+    query: {
+      search: search.trim() || undefined,
+      limit,
+      id: options?.id,
+    },
+  });
+}
+
 /** Lista visitas con paginación, filtros y orden. */
 export async function listarVisitas(query: ListarVisitasQuery = {}): Promise<VisitaListado> {
   return apiClient.get<VisitaListado>("/visitas", {
@@ -120,11 +169,22 @@ export async function obtenerMetricasVisitas(query: VisitaMetricsQuery = {}): Pr
   });
 }
 
+export interface ListarVisitasActivasOptions {
+  limit?: number;
+  entradaFrom?: string;
+  entradaTo?: string;
+}
+
 /** Lista visitas activas para el panel de seguimiento en Portería. */
-export async function listarVisitasActivas(limit = 100): Promise<Visita[]> {
+export async function listarVisitasActivas(
+  options: ListarVisitasActivasOptions = {},
+): Promise<Visita[]> {
+  const { limit = 100, entradaFrom, entradaTo } = options;
   const result = await listarVisitas({
     estado: "activa",
     limit,
+    entradaFrom,
+    entradaTo,
     sortBy: "entradaAt",
     sortOrder: "asc",
   });
@@ -146,12 +206,12 @@ export async function actualizarVisita(id: number, payload: ActualizarVisitaPayl
   return apiClient.patch<Visita>(`/visitas/${id}`, payload);
 }
 
-/** Elimina definitivamente una visita programada o cancelada. */
-export async function eliminarVisita(id: number): Promise<{ id: number; deleted: true }> {
-  return apiClient.delete<{ id: number; deleted: true }>(`/visitas/${id}`);
+/** Elimina una visita: cancela las activas o borra permanentemente el resto. */
+export async function eliminarVisita(id: number): Promise<EliminarVisitaResult> {
+  return apiClient.delete<EliminarVisitaResult>(`/visitas/${id}`);
 }
 
-/** Finaliza una visita activa registrando la salida y observaciones opcionales. */
+/** Finaliza una visita activa o sin salida registrando la salida y observaciones opcionales. */
 export async function finalizarVisita(id: number, observaciones: string): Promise<Visita> {
   return actualizarVisita(id, {
     estado: "finalizada",

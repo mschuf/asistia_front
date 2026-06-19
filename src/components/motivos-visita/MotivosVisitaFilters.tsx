@@ -1,6 +1,6 @@
 /**
- * @file PersonasFilters.tsx
- * @description Barra de búsqueda y filtros avanzados del CRUD de personas.
+ * @file MotivosVisitaFilters.tsx
+ * @description Barra de búsqueda y filtros avanzados del CRUD de motivos de visita.
  */
 import { useCallback, useState } from "react";
 import { ChevronDown, Search } from "lucide-react";
@@ -8,26 +8,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import type { PersonasFilterState } from "@/types/pages/personas-page.types";
+import type { MotivosVisitaFilterState } from "@/types/pages/motivos-visita-page.types";
 
-interface PersonasFiltersProps {
-  filters: PersonasFilterState;
-  onChange: (filters: PersonasFilterState) => void;
-  onApply: (filters?: PersonasFilterState) => void;
+interface MotivosVisitaFiltersProps {
+  filters: MotivosVisitaFilterState;
+  onChange: (filters: MotivosVisitaFilterState) => void;
+  onApply: (filters?: MotivosVisitaFilterState) => void;
 }
 
-const ADVANCED_FIELDS: Array<{ key: keyof Omit<PersonasFilterState, "search" | "activo">; label: string }> = [
-  { key: "nombre", label: "Nombre" },
-  { key: "documento", label: "Documento" },
-  { key: "proveedor", label: "Proveedor" },
-];
-
-/** Filtros de personas con búsqueda rápida y panel avanzado. */
-export function PersonasFilters({ filters, onChange, onApply }: PersonasFiltersProps) {
+/** Filtros de motivos de visita con búsqueda rápida y panel avanzado. */
+export function MotivosVisitaFilters({ filters, onChange, onApply }: MotivosVisitaFiltersProps) {
   const [expanded, setExpanded] = useState(false);
 
   const update = useCallback(
-    (key: keyof PersonasFilterState, value: string) => {
+    (key: keyof MotivosVisitaFilterState, value: string) => {
       onChange({ ...filters, [key]: value });
     },
     [filters, onChange],
@@ -45,7 +39,7 @@ export function PersonasFilters({ filters, onChange, onApply }: PersonasFiltersP
             event.preventDefault();
             onApply();
           }}
-          placeholder="Buscar por ID, nombre, documento, proveedor o email..."
+          placeholder="Buscar por ID o nombre..."
           className="pl-9 pr-10"
         />
         <button
@@ -63,21 +57,19 @@ export function PersonasFilters({ filters, onChange, onApply }: PersonasFiltersP
       </div>
 
       {expanded ? (
-        <div className="mt-3 grid grid-cols-[repeat(3,minmax(0,1fr))_minmax(0,1fr)_auto] items-end gap-2 overflow-visible pb-1">
-          {ADVANCED_FIELDS.map(({ key, label }) => (
-            <label key={key} className="flex min-w-0 flex-col gap-1 pb-0.5 text-sm">
-              <span className="text-muted-foreground">{label}</span>
-              <Input
-                value={filters[key]}
-                onChange={(event) => update(key, event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter") return;
-                  event.preventDefault();
-                  onApply();
-                }}
-              />
-            </label>
-          ))}
+        <div className="mt-3 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-2 overflow-visible pb-1">
+          <label className="flex min-w-0 flex-col gap-1 pb-0.5 text-sm">
+            <span className="text-muted-foreground">Nombre</span>
+            <Input
+              value={filters.nombre}
+              onChange={(event) => update("nombre", event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter") return;
+                event.preventDefault();
+                onApply();
+              }}
+            />
+          </label>
           <label className="flex min-w-0 flex-col gap-1 pb-0.5 text-sm">
             <span className="text-muted-foreground">Estado</span>
             <Select value={filters.activo} onChange={(event) => update("activo", event.target.value)}>

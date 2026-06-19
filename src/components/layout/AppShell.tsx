@@ -2,9 +2,9 @@
  * @file AppShell.tsx
  * @description Layout principal con header, menú lateral y barra inferior móvil.
  */
-import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import { BarChart3, Building2, FilePlus2, History, LogOut, Menu, MessageSquareText, Moon, Shield, Sun, Users, MapPin, ClipboardList, X } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { Link, useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { BarChart3, Building2, ChevronDown, FilePlus2, History, LogOut, Menu, MessageSquareText, Moon, Shield, Sun, Users, MapPin, ClipboardList, X, Truck, ListChecks } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { BottomTabBar } from "@/components/layout/BottomTabBar";
 import { InstallAppButton } from "@/components/layout/InstallAppButton";
@@ -36,8 +36,8 @@ const superAdminNavItems: Array<{
 }> = [
   { label: "Empresas", icon: Building2, path: "/admin/empresas", enabled: true },
   { label: "Prompts", icon: MessageSquareText, path: "/admin/prompts", enabled: true },
-  { label: "Tickets creados", icon: History, path: "/admin/reporte-tickets", enabled: true },
-  { label: "Visitas portería", icon: MapPin, path: "/admin/reporte-porteria", enabled: true },
+  { label: "Reporte irs", icon: History, path: "/admin/reporte-irs", enabled: true },
+  { label: "Reporte portería", icon: MapPin, path: "/admin/reporte-porteria", enabled: true },
   {
     label: "Auditoría portería",
     icon: ClipboardList,
@@ -61,10 +61,41 @@ const porteriaCrudItems: Array<{
   path: string | null;
   enabled: boolean;
 }> = [
+  { label: "Proveedores", icon: Truck, path: "/porteria/proveedores", enabled: true },
   { label: "Personas", icon: Users, path: "/porteria/personas", enabled: true },
+  { label: "Motivos de visita", icon: ListChecks, path: "/porteria/motivos-visita", enabled: true },
   { label: "Visitas", icon: ClipboardList, path: "/porteria/visitas", enabled: true },
   { label: "Historial", icon: History, path: "/porteria/historial", enabled: true },
 ];
+
+interface NavSectionProps {
+  title: string;
+  expanded: boolean;
+  onToggle: () => void;
+  showBorder?: boolean;
+  children: ReactNode;
+}
+
+/** Sección colapsable del menú lateral con chevron. */
+function NavSection({ title, expanded, onToggle, showBorder = false, children }: NavSectionProps) {
+  return (
+    <div className={cn("space-y-1", showBorder && "border-t pt-3")}>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={expanded}
+        className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      >
+        <span>{title}</span>
+        <ChevronDown
+          className={cn("h-4 w-4 shrink-0 transition-transform duration-200", expanded && "rotate-180")}
+          aria-hidden="true"
+        />
+      </button>
+      {expanded ? <div className="space-y-1">{children}</div> : null}
+    </div>
+  );
+}
 
 /**
  * Shell de la aplicación con navegación, tema y cierre de sesión.
@@ -80,7 +111,24 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   const [searchParams] = useSearchParams();
   const currentTab = readNavTab(searchParams.get("tab"));
   const onTicketsRoute = location.pathname.startsWith("/irs");
+  const onPorteriaRoute = location.pathname.startsWith("/porteria");
+  const onSuperAdminRoute = location.pathname.startsWith("/admin");
   const isTicketsHistorialLayout = onTicketsRoute && currentTab === "historial";
+  const [irsExpanded, setIrsExpanded] = useState(onTicketsRoute);
+  const [porteriaExpanded, setPorteriaExpanded] = useState(onPorteriaRoute);
+  const [superAdminExpanded, setSuperAdminExpanded] = useState(onSuperAdminRoute);
+
+  useEffect(() => {
+    if (onTicketsRoute) setIrsExpanded(true);
+  }, [onTicketsRoute]);
+
+  useEffect(() => {
+    if (onPorteriaRoute) setPorteriaExpanded(true);
+  }, [onPorteriaRoute]);
+
+  useEffect(() => {
+    if (onSuperAdminRoute) setSuperAdminExpanded(true);
+  }, [onSuperAdminRoute]);
 
   /** Cierra sesión con toast y cierra el menú. @returns void */
   function handleLogout() {
@@ -119,12 +167,16 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
             >
               <Menu className="h-5 w-5" aria-hidden="true" />
             </Button>
-            <div className="min-w-0">
+            <Link
+              to="/irs"
+              className="min-w-0 rounded-sm text-left transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              aria-label="Ir a IRS — asistIA Gestión Inteligente de Servicios"
+            >
               <p className="truncate text-base font-semibold leading-tight">asistIA</p>
               <p className="truncate text-xs text-muted-foreground">
                 Gestión Inteligente de Servicios
               </p>
-            </div>
+            </Link>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -153,17 +205,26 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
         aria-hidden={!open}
       >
         <div className="flex h-16 items-center justify-between border-b px-4">
-          <span className="font-semibold">asistIA</span>
+          <Link
+            to="/irs"
+            className="min-w-0 rounded-sm text-left transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            onClick={() => setOpen(false)}
+            aria-label="Ir a IRS — asistIA Gestión Inteligente de Servicios"
+          >
+            <p className="truncate font-semibold leading-tight">asistIA</p>
+            <p className="truncate text-xs text-muted-foreground">Gestión Inteligente de Servicios</p>
+          </Link>
           <Button variant="ghost" size="icon" type="button" aria-label="Cerrar menú" onClick={() => setOpen(false)}>
             <X className="h-5 w-5" aria-hidden="true" />
           </Button>
         </div>
         <nav className="flex-1 space-y-1 p-3">
           {canAccessTickets ? (
-            <div className="space-y-1">
-              <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                IRS
-              </p>
+            <NavSection
+              title="IRS"
+              expanded={irsExpanded}
+              onToggle={() => setIrsExpanded((current) => !current)}
+            >
               {ticketNavItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = onTicketsRoute && currentTab === item.tab;
@@ -183,13 +244,15 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
                   </button>
                 );
               })}
-            </div>
+            </NavSection>
           ) : null}
           {isPorteriaUser ? (
-            <div className="space-y-1 border-t pt-3">
-              <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Portería
-              </p>
+            <NavSection
+              title="Portería"
+              expanded={porteriaExpanded}
+              onToggle={() => setPorteriaExpanded((current) => !current)}
+              showBorder
+            >
               {porteriaNavItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = resolvePorteriaTab(location.pathname) === item.tab;
@@ -213,7 +276,7 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
 
               {porteriaCrudItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = item.path ? location.pathname.startsWith(item.path) : false;
+                const isActive = item.path ? isNavPathActive(location.pathname, item.path) : false;
 
                 if (!item.enabled || !item.path) {
                   return (
@@ -246,16 +309,18 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
                   </button>
                 );
               })}
-            </div>
+            </NavSection>
           ) : null}
           {isSuperAdmin ? (
-            <div className="space-y-1 border-t pt-3">
-              <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Super-Admin
-              </p>
+            <NavSection
+              title="Super-Admin"
+              expanded={superAdminExpanded}
+              onToggle={() => setSuperAdminExpanded((current) => !current)}
+              showBorder
+            >
               {superAdminNavItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = item.path ? location.pathname.startsWith(item.path) : false;
+                const isActive = item.path ? isNavPathActive(location.pathname, item.path) : false;
 
                 if (!item.enabled || !item.path) {
                   return (
@@ -288,7 +353,7 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
                   </button>
                 );
               })}
-            </div>
+            </NavSection>
           ) : null}
         </nav>
         {isAuthenticated ? (
@@ -345,6 +410,11 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
       <BottomTabBar />
     </div>
   );
+}
+
+/** @param pathname - Ruta actual. @param path - Ruta del ítem. @returns Si coincide exacta o como prefijo con `/`. */
+function isNavPathActive(pathname: string, path: string): boolean {
+  return pathname === path || pathname.startsWith(`${path}/`);
 }
 
 /** @param value - Query `tab`. @returns Pestaña de navegación normalizada. */

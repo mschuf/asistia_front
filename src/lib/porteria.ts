@@ -97,9 +97,9 @@ function offsetLocalYmd(ymd: string, days: number): string {
   return formatLocalYmd(date);
 }
 
-/** @returns Filtro de fechas de métricas con preset 7 días por defecto. */
+/** @returns Filtro de fechas de métricas con preset Hoy por defecto. */
 export function createInitialPorteriaMetricsDateFilter(): PorteriaMetricsDateFilterState {
-  return { preset: "7d", desde: "", hasta: "" };
+  return { preset: "hoy", desde: "", hasta: "" };
 }
 
 /** @param desde - Fecha desde YYYY-MM-DD. @param hasta - Fecha hasta YYYY-MM-DD. @returns `true` si el rango es válido. */
@@ -174,10 +174,29 @@ export function resolveCalendarMonthDateRange(): {
   };
 }
 
+/** @returns Rango del día actual (inicio a fin en hora local). */
+export function resolveTodayDateRange(): {
+  entradaFrom: string;
+  entradaTo: string;
+} {
+  const today = getLocalTodayYmd();
+
+  return {
+    entradaFrom: toApiDateFrom(today)!,
+    entradaTo: toApiDateTo(today)!,
+  };
+}
+
 /** @param preset - Preset activo. @returns Título de la card de ingresos del último día. */
 export function getMetricsDayIngressTitle(preset: PorteriaMetricsPeriodPreset): string {
   if (preset === "hoy") return "Ingresos hoy";
   return "Ingresos (último día)";
+}
+
+/** @param preset - Preset activo. @returns Título de la card de visitas activas sin salida. */
+export function getMetricsStaleCheckoutTitle(preset: PorteriaMetricsPeriodPreset): string {
+  if (preset === "hoy") return "Sin salida en el mes";
+  return "Sin salida de días anteriores";
 }
 
 /** @returns Subtítulo para cards de visitas activas en métricas filtradas. */
@@ -287,6 +306,7 @@ export function mapVisitaToHistoryRecord(visita: Visita): PorteriaHistoryRecord 
 const HISTORY_ESTADO_LABEL: Record<VisitaEstado, string> = {
   programada: "Programada",
   activa: "Activa",
+  sin_salida: "Sin salida",
   finalizada: "Finalizada",
   cancelada: "Cancelada",
 };
@@ -297,6 +317,7 @@ const HISTORY_ESTADO_VARIANT: Record<
 > = {
   programada: "info",
   activa: "success",
+  sin_salida: "danger",
   finalizada: "warning",
   cancelada: "danger",
 };

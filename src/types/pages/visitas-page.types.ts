@@ -31,7 +31,7 @@ export interface UseVisitasResult {
   items: Visita[];
   filters: VisitasFilterState;
   setFilters: (filters: VisitasFilterState) => void;
-  applyFilters: (filters?: VisitasFilterState) => void;
+  applyFilters: (filters?: VisitasFilterState) => Promise<void>;
   sort: VisitasSortState | null;
   setSortColumn: (column: VisitaSortColumn) => void;
   pagination: VisitasPagination;

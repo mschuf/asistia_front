@@ -4,16 +4,30 @@
  */
 import type { Visita } from "@/api/visitas";
 
-/** Busca una visita activa de la persona, excluyendo la visita en edición. */
+/** Indica si una fecha ISO cae en el mismo día calendario local que la referencia. */
+export function isSameLocalDay(isoDate: string | null, referenceDate: Date): boolean {
+  if (!isoDate) return false;
+
+  const date = new Date(isoDate);
+  return (
+    date.getFullYear() === referenceDate.getFullYear() &&
+    date.getMonth() === referenceDate.getMonth() &&
+    date.getDate() === referenceDate.getDate()
+  );
+}
+
+/** Busca una visita activa de la persona el mismo día local, excluyendo la visita en edición. */
 export function findVisitaActivaDePersona(
   visitasActivas: Visita[],
   personaId: number,
   excludeVisitaId?: number,
+  referenceDate: Date = new Date(),
 ): Visita | undefined {
   return visitasActivas.find(
     (visita) =>
       visita.personaId === personaId &&
-      (excludeVisitaId === undefined || visita.id !== excludeVisitaId),
+      (excludeVisitaId === undefined || visita.id !== excludeVisitaId) &&
+      isSameLocalDay(visita.entradaAt, referenceDate),
   );
 }
 

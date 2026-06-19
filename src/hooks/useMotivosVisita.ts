@@ -1,10 +1,14 @@
 /**
- * @file usePersonas.ts
- * @description Hook del listado CRUD de personas con filtros, orden y paginación.
+ * @file useMotivosVisita.ts
+ * @description Hook del listado CRUD de motivos de visita con filtros, orden y paginación.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ApiError } from "@/api/apiClient";
-import { listarPersonas, type ListarPersonasQuery, type PersonaSortColumn } from "@/api/personas";
+import {
+  listarMotivosVisita,
+  type ListarMotivosVisitaQuery,
+  type MotivoVisitaSortColumn,
+} from "@/api/motivos-visita";
 import {
   PORTERIA_PAGE_SIZE,
   isPorteriaAllPageSize,
@@ -13,53 +17,46 @@ import {
   type PorteriaPageSize,
 } from "@/lib/porteria";
 import type {
-  PersonasFilterState,
-  PersonasSortState,
-  UsePersonasResult,
-} from "@/types/pages/personas-page.types";
+  MotivosVisitaFilterState,
+  MotivosVisitaSortState,
+  UseMotivosVisitaResult,
+} from "@/types/pages/motivos-visita-page.types";
 
-/** @returns Estado inicial de filtros de personas. */
-function createInitialFilters(): PersonasFilterState {
+/** @returns Estado inicial de filtros de motivos de visita. */
+function createInitialFilters(): MotivosVisitaFilterState {
   return {
     search: "",
     nombre: "",
-    documento: "",
-    proveedor: "",
     activo: "",
   };
 }
 
 /** Mapea filtros UI a query params del backend. */
 function toListParams(
-  filters: PersonasFilterState,
+  filters: MotivosVisitaFilterState,
   page: number,
   limit: number,
-  sort: PersonasSortState | null,
-): ListarPersonasQuery {
+  sort: MotivosVisitaSortState | null,
+): ListarMotivosVisitaQuery {
   return {
     page,
     limit,
     search: filters.search || undefined,
     nombre: filters.nombre || undefined,
-    documento: filters.documento || undefined,
-    proveedor: filters.proveedor || undefined,
     activo: filters.activo === "" ? undefined : filters.activo === "true",
     sortBy: sort?.column,
     sortOrder: sort?.order,
   };
 }
 
-/** Orquesta estado, listado y paginación de personas. */
-export function usePersonas(): UsePersonasResult {
-  const [items, setItems] = useState<UsePersonasResult["items"]>([]);
-  const [filters, setFiltersState] = useState<PersonasFilterState>(createInitialFilters);
-  const [appliedFilters, setAppliedFilters] = useState<PersonasFilterState>(createInitialFilters);
+/** Orquesta estado, listado y paginación de motivos de visita. */
+export function useMotivosVisita(): UseMotivosVisitaResult {
+  const [items, setItems] = useState<UseMotivosVisitaResult["items"]>([]);
+  const [filters, setFiltersState] = useState<MotivosVisitaFilterState>(createInitialFilters);
+  const [appliedFilters, setAppliedFilters] = useState<MotivosVisitaFilterState>(createInitialFilters);
   const [page, setPageState] = useState(1);
   const [pageLimit, setPageLimitState] = useState<PorteriaPageSize>(PORTERIA_PAGE_SIZE);
-  const [sort, setSortState] = useState<PersonasSortState | null>({
-    column: "id",
-    order: "desc",
-  });
+  const [sort, setSortState] = useState<MotivosVisitaSortState | null>(null);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -74,11 +71,11 @@ export function usePersonas(): UsePersonasResult {
     ? 1
     : Math.max(1, Math.ceil(total / pageLimit));
 
-  const setFilters = useCallback((value: PersonasFilterState) => {
+  const setFilters = useCallback((value: MotivosVisitaFilterState) => {
     setFiltersState(value);
   }, []);
 
-  const applyFilters = useCallback((nextFilters?: PersonasFilterState) => {
+  const applyFilters = useCallback((nextFilters?: MotivosVisitaFilterState) => {
     setAppliedFilters(nextFilters ?? filters);
     setPageState(1);
   }, [filters]);
@@ -93,7 +90,7 @@ export function usePersonas(): UsePersonasResult {
     setPageState(1);
   }, []);
 
-  const setSortColumn = useCallback((column: PersonaSortColumn) => {
+  const setSortColumn = useCallback((column: MotivoVisitaSortColumn) => {
     setSortState((current) => {
       if (!current || current.column !== column) {
         return { column, order: "asc" };
@@ -117,14 +114,16 @@ export function usePersonas(): UsePersonasResult {
       setLoading(true);
       setError("");
       try {
-        const result = await listarPersonas(listParams);
+        const result = await listarMotivosVisita(listParams);
         if (cancelled) return;
         setItems(result.items);
         setTotal(result.total);
       } catch (fetchError) {
         if (cancelled) return;
         const message =
-          fetchError instanceof ApiError ? fetchError.message : "No se pudieron cargar las personas.";
+          fetchError instanceof ApiError
+            ? fetchError.message
+            : "No se pudieron cargar los motivos de visita.";
         setError(message);
         setItems([]);
         setTotal(0);

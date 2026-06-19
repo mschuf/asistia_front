@@ -1,31 +1,25 @@
 /**
  * @file porteria-personas.ts
- * @description Utilidades para el selector unificado de persona (Postgres + GLPI) en visitas.
+ * @description Utilidades para el selector de persona en visitas (tabla prt_persona).
  */
-import { obtenerPersona, searchVisitPersonCandidates, type VisitPersonCandidate, type VisitPersonCandidateSource } from "@/api/personas";
+import { obtenerPersona, searchVisitPersonCandidates, type VisitPersonCandidate } from "@/api/personas";
 import type { SearchableSelectOption } from "@/components/ui/searchable-select";
 
-/** Valor compuesto del selector: pg:12 o glpi:188. */
-export type VisitPersonCandidateValue = `pg:${number}` | `glpi:${number}`;
-
 /**
- * Construye el valor compuesto del selector a partir de origen e ID.
- * @param source - Origen del candidato.
- * @param id - ID en Postgres o GLPI.
+ * Construye el valor del selector a partir del ID de persona.
+ * @param id - ID en Postgres.
  * @returns Valor serializado para el selector.
  */
-export function toCandidateValue(source: VisitPersonCandidateSource, id: number): VisitPersonCandidateValue {
-  return source === "postgres" ? `pg:${id}` : `glpi:${id}`;
+export function toPersonaSelectValue(id: number): string {
+  return String(id);
 }
 
 /**
- * Parsea el valor compuesto del selector.
- * @param value - Valor del selector (pg:*, glpi:* o legacy numérico).
- * @returns Origen e ID, o null si el valor es inválido.
+ * Parsea el valor del selector.
+ * @param value - Valor numérico, prefijo legacy pg:* o texto libre.
+ * @returns ID de persona o null si el valor es inválido.
  */
-export function parseCandidateValue(
-  value: string,
-): { source: VisitPersonCandidateSource; id: number } | null {
+export function parsePersonaSelectValue(value: string): number | null {
   const trimmed = value.trim();
   if (!trimmed) {
     return null;
@@ -34,18 +28,12 @@ export function parseCandidateValue(
   const pgMatch = trimmed.match(/^pg:(\d+)$/);
   if (pgMatch) {
     const id = Number(pgMatch[1]);
-    return Number.isFinite(id) && id > 0 ? { source: "postgres", id } : null;
+    return Number.isFinite(id) && id > 0 ? id : null;
   }
 
-  const glpiMatch = trimmed.match(/^glpi:(\d+)$/);
-  if (glpiMatch) {
-    const id = Number(glpiMatch[1]);
-    return Number.isFinite(id) && id > 0 ? { source: "glpi", id } : null;
-  }
-
-  const legacyId = Number(trimmed);
-  if (Number.isFinite(legacyId) && legacyId > 0) {
-    return { source: "postgres", id: legacyId };
+  const id = Number(trimmed);
+  if (Number.isFinite(id) && id > 0) {
+    return id;
   }
 
   return null;
@@ -54,7 +42,7 @@ export function parseCandidateValue(
 /**
  * Construye la etiqueta visible de un candidato.
  * @param candidate - Candidato de búsqueda.
- * @returns Nombre completo con documento o ubicación.
+ * @returns Nombre completo con documento.
  */
 export function buildCandidateLabel(candidate: Pick<VisitPersonCandidate, "fullName" | "subtitle">): string {
   const subtitle = candidate.subtitle.trim();
@@ -62,7 +50,7 @@ export function buildCandidateLabel(candidate: Pick<VisitPersonCandidate, "fullN
 }
 
 /**
- * Construye la etiqueta visible a partir de nombre y documento (Postgres).
+ * Construye la etiqueta visible a partir de nombre y documento.
  * @param nombre - Nombre de la persona.
  * @param documento - Documento de la persona.
  * @returns Etiqueta formateada.
@@ -78,7 +66,7 @@ export function buildPersonaLabel(nombre: string, documento: string): string {
  */
 export function mapCandidatesToSelectOptions(candidates: VisitPersonCandidate[]): SearchableSelectOption[] {
   return candidates.map((candidate) => {
-    const value = toCandidateValue(candidate.source, candidate.id);
+    const value = toPersonaSelectValue(candidate.id);
     const label = buildCandidateLabel(candidate);
     return {
       value,
@@ -89,7 +77,7 @@ export function mapCandidatesToSelectOptions(candidates: VisitPersonCandidate[])
 }
 
 /**
- * Carga opciones del selector desde Postgres y GLPI.
+ * Carga opciones del selector desde prt_persona.
  * @param query - Texto de búsqueda.
  * @param signal - Señal de cancelación.
  * @param limit - Cantidad máxima de resultados.
@@ -106,7 +94,7 @@ export async function loadVisitPersonCandidateOptions(
 
 /**
  * Resuelve la etiqueta visible de un valor del selector.
- * @param value - Valor pg:*, glpi:* o texto legacy.
+ * @param value - ID numérico, prefijo legacy pg:* o texto libre.
  * @param signal - Señal de cancelación.
  * @param options - Permite mostrar texto libre guardado previamente.
  * @returns Opción resuelta o null.
@@ -116,8 +104,8 @@ export async function resolveCandidateOption(
   signal: AbortSignal,
   options?: { allowLegacyText?: boolean },
 ): Promise<SearchableSelectOption | null> {
-  const parsed = parseCandidateValue(value);
-  if (!parsed) {
+  const personaId = parsePersonaSelectValue(value);
+  if (personaId == null) {
     if (options?.allowLegacyText && value.trim()) {
       const trimmed = value.trim();
       return { value: trimmed, label: trimmed, searchText: trimmed.toLowerCase() };
@@ -125,37 +113,17 @@ export async function resolveCandidateOption(
     return null;
   }
 
-  if (parsed.source === "postgres") {
-    const persona = await obtenerPersona(parsed.id, { signal });
-    return {
-      value: toCandidateValue("postgres", persona.id),
-      label: buildPersonaLabel(persona.nombre, persona.documento),
-      searchText: `${persona.nombre} ${persona.documento}`.toLowerCase(),
-    };
-  }
-
-  const result = await searchVisitPersonCandidates("", 50, { signal });
-  const match = result.items.find(
-    (candidate) => candidate.source === "glpi" && candidate.id === parsed.id,
-  );
-  if (match) {
-    return {
-      value: toCandidateValue("glpi", match.id),
-      label: buildCandidateLabel(match),
-      searchText: `${match.fullName} ${match.subtitle}`.toLowerCase(),
-    };
-  }
-
+  const persona = await obtenerPersona(personaId, { signal });
   return {
-    value: toCandidateValue("glpi", parsed.id),
-    label: `Usuario GLPI #${parsed.id}`,
-    searchText: String(parsed.id),
+    value: toPersonaSelectValue(persona.id),
+    label: buildPersonaLabel(persona.nombre, persona.documento),
+    searchText: `${persona.nombre} ${persona.documento}`.toLowerCase(),
   };
 }
 
 /**
  * Resuelve el nombre legible a persistir a partir del valor del selector.
- * @param value - Valor pg:*, glpi:* o texto legacy.
+ * @param value - ID numérico, prefijo legacy pg:* o texto libre.
  * @param signal - Señal de cancelación opcional.
  * @returns Nombre del responsable o visitante.
  */
@@ -165,23 +133,11 @@ export async function resolveCandidateFullName(value: string, signal?: AbortSign
     return "";
   }
 
-  const parsed = parseCandidateValue(trimmed);
-  if (!parsed) {
+  const personaId = parsePersonaSelectValue(trimmed);
+  if (personaId == null) {
     return trimmed;
   }
 
-  if (parsed.source === "postgres") {
-    const persona = await obtenerPersona(parsed.id, { signal });
-    return persona.nombre.trim();
-  }
-
-  const result = await searchVisitPersonCandidates("", 50, { signal });
-  const match = result.items.find(
-    (candidate) => candidate.source === "glpi" && candidate.id === parsed.id,
-  );
-  if (match) {
-    return match.fullName.trim();
-  }
-
-  return `Usuario GLPI #${parsed.id}`;
+  const persona = await obtenerPersona(personaId, { signal });
+  return persona.nombre.trim();
 }

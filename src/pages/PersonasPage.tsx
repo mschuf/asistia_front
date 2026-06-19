@@ -12,8 +12,6 @@ import {
   eliminarFotoPersona,
   eliminarPersona,
   obtenerFotoPersonaBlob,
-  previewPersonaFromGlpi,
-  searchVisitPersonCandidates,
   subirFotoPersona,
   type CrearPersonaPayload,
   type Persona,
@@ -27,18 +25,13 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import type { SearchableSelectOption } from "@/components/ui/searchable-select";
-import {
-  ServerSearchableSelect,
-  type ServerSearchableSelectHandle,
-} from "@/components/ui/server-searchable-select";
+import { ServerSearchableSelect } from "@/components/ui/server-searchable-select";
 import { useToast } from "@/context/ToastContext";
 import { usePersonas } from "@/hooks/usePersonas";
 import {
-  buildCandidateLabel,
-  parseCandidateValue,
-  toCandidateValue,
-} from "@/lib/porteria-personas";
+  loadProveedorSelectOptions,
+  resolveProveedorSelectOption,
+} from "@/lib/porteria-proveedores";
 import {
   isPorteriaAllPageSize,
   parsePorteriaPageSize,
@@ -49,7 +42,7 @@ import {
 interface PersonaFormState {
   nombre: string;
   documento: string;
-  empresa: string;
+  proveedorId: string;
   email: string;
   telefono: string;
   activo: boolean;
@@ -58,7 +51,7 @@ interface PersonaFormState {
 const EMPTY_FORM: PersonaFormState = {
   nombre: "",
   documento: "",
-  empresa: "",
+  proveedorId: "",
   email: "",
   telefono: "",
   activo: true,
@@ -73,8 +66,6 @@ const PERSONA_PHOTO_ACCEPTED_TYPES = new Set([
   "image/heic",
   "image/heif",
 ]);
-
-type TieneGlpiChoice = "si" | "no";
 
 /** CRUD de personas con filtros, orden y paginación. */
 export default function PersonasPage() {
@@ -102,16 +93,11 @@ export default function PersonasPage() {
   const [form, setForm] = useState<PersonaFormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
-  const [tieneGlpi, setTieneGlpi] = useState<TieneGlpiChoice>("no");
-  const [glpiUserId, setGlpiUserId] = useState<number | null>(null);
-  const [glpiSelectValue, setGlpiSelectValue] = useState("");
-  const [glpiPreviewLoading, setGlpiPreviewLoading] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [removeExistingPhoto, setRemoveExistingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState("");
   const [photoLoading, setPhotoLoading] = useState(false);
-  const glpiSelectRef = useRef<ServerSearchableSelectHandle>(null);
   const photoPreviewUrlRef = useRef<string | null>(null);
   const [photoViewOpen, setPhotoViewOpen] = useState(false);
   const [photoViewPersona, setPhotoViewPersona] = useState<Persona | null>(null);
@@ -183,14 +169,6 @@ export default function PersonasPage() {
     };
   }, [revokePhotoPreview, revokePhotoViewUrl]);
 
-  useEffect(() => {
-    if (!editing && tieneGlpi === "si") {
-      window.requestAnimationFrame(() => {
-        glpiSelectRef.current?.focusAndOpen();
-      });
-    }
-  }, [editing, tieneGlpi]);
-
   const numericLimit =
     typeof pagination.limit === "number" ? pagination.limit : PORTERIA_PAGE_SIZE_OPTIONS[0];
   const showingAll = isPorteriaAllPageSize(pagination.limit);
@@ -204,102 +182,8 @@ export default function PersonasPage() {
     setEditing(null);
     setForm(EMPTY_FORM);
     resetPhotoState();
-    setTieneGlpi("no");
-    setGlpiUserId(null);
-    setGlpiSelectValue("");
-    setGlpiPreviewLoading(false);
     setDialogOpen(true);
   }, [resetPhotoState]);
-
-  const loadGlpiUserOptions = useCallback(async (query: string, signal: AbortSignal) => {
-    const result = await searchVisitPersonCandidates(query, 20, { signal });
-    return result.items
-      .filter((candidate) => candidate.source === "glpi")
-      .map((candidate): SearchableSelectOption => {
-        const value = toCandidateValue("glpi", candidate.id);
-        const label = buildCandidateLabel(candidate);
-        return {
-          value,
-          label,
-          searchText: `${candidate.fullName} ${candidate.subtitle}`.toLowerCase(),
-        };
-      });
-  }, []);
-
-  const resolveGlpiUserOption = useCallback(
-    async (value: string, signal: AbortSignal): Promise<SearchableSelectOption | null> => {
-      const parsed = parseCandidateValue(value);
-      if (!parsed || parsed.source !== "glpi") {
-        return null;
-      }
-
-      const result = await searchVisitPersonCandidates("", 50, { signal });
-      const match = result.items.find(
-        (candidate) => candidate.source === "glpi" && candidate.id === parsed.id,
-      );
-      if (match) {
-        return {
-          value: toCandidateValue("glpi", match.id),
-          label: buildCandidateLabel(match),
-          searchText: `${match.fullName} ${match.subtitle}`.toLowerCase(),
-        };
-      }
-
-      return {
-        value: toCandidateValue("glpi", parsed.id),
-        label: `Usuario GLPI #${parsed.id}`,
-        searchText: String(parsed.id),
-      };
-    },
-    [],
-  );
-
-  const handleGlpiUserSelect = useCallback(
-    async (value: string) => {
-      setGlpiSelectValue(value);
-
-      const parsed = parseCandidateValue(value);
-      if (!parsed || parsed.source !== "glpi") {
-        setGlpiUserId(null);
-        return;
-      }
-
-      setGlpiPreviewLoading(true);
-      try {
-        const preview = await previewPersonaFromGlpi(parsed.id);
-        setGlpiUserId(preview.glpiUserId);
-        setForm({
-          nombre: preview.nombre,
-          documento: "",
-          empresa: preview.empresa ?? "",
-          email: preview.email ?? "",
-          telefono: preview.telefono ?? "",
-          activo: true,
-        });
-      } catch (previewError) {
-        setGlpiUserId(null);
-        setGlpiSelectValue("");
-        const message =
-          previewError instanceof ApiError
-            ? previewError.message
-            : "No se pudieron cargar los datos del usuario GLPI.";
-        toast.error(message, "Personas");
-      } finally {
-        setGlpiPreviewLoading(false);
-      }
-    },
-    [toast],
-  );
-
-  const handleTieneGlpiChange = useCallback((choice: TieneGlpiChoice) => {
-    setTieneGlpi(choice);
-    if (choice === "no") {
-      setGlpiUserId(null);
-      setGlpiSelectValue("");
-      setGlpiPreviewLoading(false);
-      setForm(EMPTY_FORM);
-    }
-  }, []);
 
   const openEditDialog = useCallback(
     (persona: Persona) => {
@@ -308,7 +192,7 @@ export default function PersonasPage() {
       setForm({
         nombre: persona.nombre,
         documento: persona.documento,
-        empresa: persona.empresa ?? "",
+        proveedorId: String(persona.proveedorId),
         email: persona.email ?? "",
         telefono: persona.telefono ?? "",
         activo: persona.activo,
@@ -380,6 +264,12 @@ export default function PersonasPage() {
       return;
     }
 
+    const proveedorId = Number(form.proveedorId);
+    if (!Number.isFinite(proveedorId) || proveedorId <= 0) {
+      toast.error("Seleccione un proveedor.", "Personas");
+      return;
+    }
+
     if (photoError) {
       toast.error(photoError, "Personas");
       return;
@@ -390,11 +280,10 @@ export default function PersonasPage() {
       const payload: CrearPersonaPayload = {
         nombre: form.nombre.trim(),
         documento: form.documento.trim(),
-        empresa: form.empresa.trim() || undefined,
+        proveedorId,
         email: form.email.trim() || undefined,
         telefono: form.telefono.trim() || undefined,
         activo: form.activo,
-        ...(glpiUserId != null ? { glpiUserId } : {}),
       };
 
       let savedPersona: Persona;
@@ -415,6 +304,9 @@ export default function PersonasPage() {
       toast.success(editing ? "Persona actualizada." : "Persona creada.", "Personas");
       setDialogOpen(false);
       resetPhotoState();
+      if (!editing) {
+        setPage(1);
+      }
       await reload();
     } catch (saveError) {
       const message = saveError instanceof ApiError ? saveError.message : "No se pudo guardar la persona.";
@@ -422,7 +314,7 @@ export default function PersonasPage() {
     } finally {
       setSaving(false);
     }
-  }, [editing, form, glpiUserId, photoError, photoFile, reload, removeExistingPhoto, resetPhotoState, toast]);
+  }, [editing, form, photoError, photoFile, reload, removeExistingPhoto, resetPhotoState, setPage, toast]);
 
   const handleConfirm = useCallback(async () => {
     if (!confirmPersona || !confirmAction) return;
@@ -549,8 +441,6 @@ export default function PersonasPage() {
         onOpenChange={setDialogOpen}
         title={editing ? "Editar persona" : "Nueva persona"}
         description="Complete los datos del visitante o empleado."
-        contentClassName={editing ? undefined : "overflow-visible"}
-        allowOverflow={!editing}
       >
         <form
           className="space-y-4"
@@ -559,56 +449,6 @@ export default function PersonasPage() {
             void handleSave();
           }}
         >
-          {!editing ? (
-            <div className="space-y-3 rounded-md border bg-muted/30 p-4">
-              <fieldset>
-                <legend className="text-sm font-medium">¿Tiene usuario de GLPI?</legend>
-                <div className="mt-2 flex flex-wrap gap-4">
-                  <label className="flex cursor-pointer items-center gap-2 text-sm">
-                    <input
-                      type="radio"
-                      name="persona-tiene-glpi"
-                      value="si"
-                      checked={tieneGlpi === "si"}
-                      onChange={() => handleTieneGlpiChange("si")}
-                      className="h-4 w-4 accent-primary"
-                    />
-                    Sí
-                  </label>
-                  <label className="flex cursor-pointer items-center gap-2 text-sm">
-                    <input
-                      type="radio"
-                      name="persona-tiene-glpi"
-                      value="no"
-                      checked={tieneGlpi === "no"}
-                      onChange={() => handleTieneGlpiChange("no")}
-                      className="h-4 w-4 accent-primary"
-                    />
-                    No
-                  </label>
-                </div>
-              </fieldset>
-              {tieneGlpi === "si" ? (
-                <Field id="persona-glpi-usuario" label="Usuario GLPI">
-                  <ServerSearchableSelect
-                    ref={glpiSelectRef}
-                    id="persona-glpi-usuario"
-                    value={glpiSelectValue}
-                    onChange={(value) => void handleGlpiUserSelect(value)}
-                    onLoadOptions={loadGlpiUserOptions}
-                    resolveSelectedOption={resolveGlpiUserOption}
-                    placeholder="Seleccionar usuario GLPI"
-                    searchPlaceholder="Buscar por nombre…"
-                    noResultsText="Sin resultados"
-                    disabled={glpiPreviewLoading}
-                  />
-                  {glpiPreviewLoading ? (
-                    <p className="mt-1 text-xs text-muted-foreground">Cargando datos de GLPI…</p>
-                  ) : null}
-                </Field>
-              ) : null}
-            </div>
-          ) : null}
           <PersonaPhotoField
             previewUrl={photoPreviewUrl}
             onSelectFile={handlePhotoSelect}
@@ -637,11 +477,20 @@ export default function PersonasPage() {
                 required
               />
             </Field>
-            <Field id="persona-empresa" label="Empresa">
-              <Input
-                id="persona-empresa"
-                value={form.empresa}
-                onChange={(e) => setForm({ ...form, empresa: e.target.value })}
+            <Field id="persona-proveedor" label="Proveedor">
+              <ServerSearchableSelect
+                id="persona-proveedor"
+                value={form.proveedorId}
+                onChange={(value) => setForm({ ...form, proveedorId: value })}
+                onLoadOptions={loadProveedorSelectOptions}
+                resolveSelectedOption={resolveProveedorSelectOption}
+                defaultSelectedOption={
+                  editing
+                    ? { value: String(editing.proveedorId), label: editing.proveedorNombre }
+                    : null
+                }
+                placeholder="Seleccione un proveedor"
+                searchPlaceholder="Buscar proveedor..."
               />
             </Field>
             <Field id="persona-email" label="Email">

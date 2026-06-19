@@ -4,17 +4,18 @@
  */
 import { Plus } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
-import { ensurePersonaFromGlpi } from "@/api/personas";
 import {
   actualizarVisita,
   crearVisita,
   eliminarVisita,
   finalizarVisita,
   listarVisitasActivas,
+  requiereCancelacionAlEliminar,
   type CrearVisitaPayload,
   type Visita,
   type VisitaEstado,
 } from "@/api/visitas";
+import { obtenerPersona } from "@/api/personas";
 import { ApiError } from "@/api/apiClient";
 import { VisitasFilters } from "@/components/visitas/VisitasFilters";
 import { VisitasTable } from "@/components/visitas/VisitasTable";
@@ -31,11 +32,23 @@ import { useRegisterPorteriaRefresh } from "@/context/PorteriaRefreshContext";
 import { useVisitas } from "@/hooks/useVisitas";
 import {
   loadVisitPersonCandidateOptions,
-  parseCandidateValue,
-  resolveCandidateFullName,
+  parsePersonaSelectValue,
   resolveCandidateOption,
-  toCandidateValue,
+  toPersonaSelectValue,
 } from "@/lib/porteria-personas";
+import {
+  loadMotivoVisitaSelectOptions,
+  parseMotivoVisitaSelectValue,
+  resolveMotivoVisitaSelectOption,
+  toMotivoVisitaSelectValue,
+} from "@/lib/porteria-motivos-visita";
+import {
+  loadResponsableCandidateOptions,
+  parseResponsableSelectValue,
+  resolveResponsableCandidateOption,
+  resolveResponsableFullName,
+} from "@/lib/visitas-responsables";
+import { personaTieneProveedorValido } from "@/lib/porteria-proveedores";
 import {
   isVisitaTarjetaColor,
   resolveZonasFromTarjetaColor,
@@ -60,7 +73,7 @@ import {
 
 interface VisitaFormState {
   personaId: string;
-  motivo: string;
+  motivoVisitaId: string;
   responsableValue: string;
   estado: VisitaEstado;
   credencialNumero: string;
@@ -72,7 +85,7 @@ interface VisitaFormState {
 
 const EMPTY_FORM: VisitaFormState = {
   personaId: "",
-  motivo: "",
+  motivoVisitaId: "",
   responsableValue: "",
   estado: "activa",
   credencialNumero: "",
@@ -175,13 +188,40 @@ export default function VisitasPage() {
     [],
   );
 
+  const loadCreateResponsableOptions = useCallback(
+    (query: string, signal: AbortSignal) => loadResponsableCandidateOptions(query, signal),
+    [],
+  );
+
   const resolvePersonCandidateOption = useCallback(
     (value: string, signal: AbortSignal) => resolveCandidateOption(value, signal),
     [],
   );
 
-  const resolveResponsableCandidateOption = useCallback(
-    (value: string, signal: AbortSignal) => resolveCandidateOption(value, signal, { allowLegacyText: true }),
+  const resolveCreateResponsableOption = useCallback(
+    (value: string, signal: AbortSignal) => resolveResponsableCandidateOption(value, signal),
+    [],
+  );
+
+  const resolveEditResponsableOption = useCallback(
+    (value: string, signal: AbortSignal) =>
+      resolveResponsableCandidateOption(value, signal, { allowLegacyText: true }),
+    [],
+  );
+
+  const loadMotivoSelectOptions = useCallback(
+    (query: string, signal: AbortSignal) => loadMotivoVisitaSelectOptions(query, signal),
+    [],
+  );
+
+  const resolveMotivoSelectOption = useCallback(
+    (value: string, signal: AbortSignal) => resolveMotivoVisitaSelectOption(value, signal),
+    [],
+  );
+
+  const resolveEditMotivoSelectOption = useCallback(
+    (value: string, signal: AbortSignal) =>
+      resolveMotivoVisitaSelectOption(value, signal, { allowLegacyText: true }),
     [],
   );
 
@@ -210,8 +250,10 @@ export default function VisitasPage() {
     (visita: Visita) => {
       setEditing(visita);
       setForm({
-        personaId: toCandidateValue("postgres", visita.personaId),
-        motivo: visita.motivo,
+        personaId: toPersonaSelectValue(visita.personaId),
+        motivoVisitaId: visita.motivoVisitaId
+          ? toMotivoVisitaSelectValue(visita.motivoVisitaId)
+          : visita.motivo,
         responsableValue: visita.responsableNombre,
         estado: visita.estado,
         credencialNumero: visita.credencialNumero ?? "",
@@ -234,13 +276,22 @@ export default function VisitasPage() {
   }, []);
 
   const handleSave = useCallback(async () => {
-    const parsed = parseCandidateValue(form.personaId);
-    if (!parsed) {
+    const personaId = parsePersonaSelectValue(form.personaId);
+    if (personaId == null) {
       toast.error("Seleccione una persona.", "Visitas");
       return;
     }
-    if (!form.motivo.trim() || !form.responsableValue.trim()) {
-      toast.error("Motivo y responsable son obligatorios.", "Visitas");
+    const motivoVisitaId = parseMotivoVisitaSelectValue(form.motivoVisitaId);
+    if (motivoVisitaId == null) {
+      toast.error("Seleccione un motivo de visita.", "Visitas");
+      return;
+    }
+    if (!form.responsableValue.trim()) {
+      toast.error("El responsable es obligatorio.", "Visitas");
+      return;
+    }
+    if (!editing && parseResponsableSelectValue(form.responsableValue) == null) {
+      toast.error("Seleccione un responsable de GLPI.", "Visitas");
       return;
     }
     if (!form.tarjetaColor) {
@@ -260,27 +311,31 @@ export default function VisitasPage() {
 
     setSaving(true);
     try {
-      let personaId: number;
-      if (parsed.source === "glpi") {
-        const persona = await ensurePersonaFromGlpi(parsed.id);
-        personaId = persona.id;
-      } else {
-        personaId = parsed.id;
+      const persona = await obtenerPersona(personaId);
+      if (!personaTieneProveedorValido(persona.proveedorNombre)) {
+        toast.error(
+          "La persona seleccionada no tiene proveedor asignado. Edítela en Personas y seleccione un proveedor.",
+          "Visitas",
+        );
+        return;
       }
 
       if (form.estado === "activa") {
-        const visitaActiva = findVisitaActivaDePersona(visitasActivas, personaId, editing?.id);
+        const entradaRef = form.entradaAt ? new Date(form.entradaAt) : new Date();
+        const visitaActiva = findVisitaActivaDePersona(visitasActivas, personaId, editing?.id, entradaRef);
         if (visitaActiva) {
           toast.error(personaEnVisitaActivaMessage(visitaActiva.visitante, visitaActiva.id), "Visitas");
           return;
         }
       }
 
-      const responsableNombre = await resolveCandidateFullName(form.responsableValue);
+      const responsableNombre = editing
+        ? (await resolveResponsableFullName(form.responsableValue)) || form.responsableValue.trim()
+        : await resolveResponsableFullName(form.responsableValue);
 
       const payload: CrearVisitaPayload = {
         personaId,
-        motivo: form.motivo.trim(),
+        motivoVisitaId,
         responsableNombre,
         estado: form.estado,
         zonasPermitidas: resolveZonasFromTarjetaColor(form.tarjetaColor),
@@ -314,8 +369,11 @@ export default function VisitasPage() {
 
     setConfirmLoading(true);
     try {
-      await eliminarVisita(confirmVisita.id);
-      toast.success("Visita eliminada.", "Visitas");
+      const result = await eliminarVisita(confirmVisita.id);
+      toast.success(
+        "cancelled" in result ? "Visita cancelada." : "Visita eliminada.",
+        "Visitas",
+      );
       setConfirmOpen(false);
       await reload();
     } catch (deleteError) {
@@ -477,11 +535,17 @@ export default function VisitasPage() {
 
           <div className="grid gap-4 sm:grid-cols-3">
             <Field id="visita-motivo" label="Motivo" className="sm:col-span-2">
-              <Input
+              <ServerSearchableSelect
                 id="visita-motivo"
-                value={form.motivo}
-                onChange={(e) => setForm({ ...form, motivo: e.target.value })}
-                required
+                value={form.motivoVisitaId}
+                onChange={(value) => setForm({ ...form, motivoVisitaId: value })}
+                onLoadOptions={loadMotivoSelectOptions}
+                resolveSelectedOption={editing ? resolveEditMotivoSelectOption : resolveMotivoSelectOption}
+                placeholder="Seleccionar motivo"
+                searchPlaceholder="Buscar motivo…"
+                noResultsText="Sin resultados"
+                loadingText="Buscando…"
+                disabled={saving}
               />
             </Field>
             <Field id="visita-responsable" label="Responsable">
@@ -489,10 +553,12 @@ export default function VisitasPage() {
                 id="visita-responsable"
                 value={form.responsableValue}
                 onChange={(value) => setForm({ ...form, responsableValue: value })}
-                onLoadOptions={loadPersonCandidateOptions}
-                resolveSelectedOption={resolveResponsableCandidateOption}
+                onLoadOptions={loadCreateResponsableOptions}
+                resolveSelectedOption={
+                  editing ? resolveEditResponsableOption : resolveCreateResponsableOption
+                }
                 placeholder="Seleccionar responsable"
-                searchPlaceholder="Buscar por nombre…"
+                searchPlaceholder="Buscar usuario GLPI…"
                 noResultsText="Sin resultados"
                 loadingText="Buscando…"
                 disabled={saving}
@@ -600,9 +666,20 @@ export default function VisitasPage() {
 
       <Dialog
         open={confirmOpen}
-        onOpenChange={setConfirmOpen}
-        title="Eliminar visita"
-        description={`¿Eliminar la visita #${confirmVisita?.id} de ${confirmVisita?.visitante}?`}
+        onOpenChange={(open) => {
+          setConfirmOpen(open);
+          if (!open) setConfirmVisita(null);
+        }}
+        title={
+          confirmVisita && requiereCancelacionAlEliminar(confirmVisita.estado)
+            ? "Eliminar visita activa"
+            : "Eliminar visita"
+        }
+        description={
+          confirmVisita && requiereCancelacionAlEliminar(confirmVisita.estado)
+            ? `¿Eliminar la visita #${confirmVisita.id} - ${confirmVisita.visitante}? Pasará al estado Cancelada.`
+            : `¿Eliminar permanentemente la visita #${confirmVisita?.id} - ${confirmVisita?.visitante}? La acción no se puede deshacer.`
+        }
       >
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={() => setConfirmOpen(false)} disabled={confirmLoading}>

@@ -116,7 +116,7 @@ export function PorteriaCards({
 
       <div className="flex flex-wrap items-end gap-3">
         
-        <div className="ml-auto shrink-0">
+        <div className="w-full sm:ml-auto sm:w-auto">
           <PorteriaMetricsDateFilter value={metricsDateFilter} onChange={onMetricsDateFilterChange} />
         </div>
       </div>

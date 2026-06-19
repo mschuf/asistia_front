@@ -16,16 +16,55 @@ import type { HistorySortColumn, HistorySortOrder } from "@/types/pages/tickets-
 
 type TicketStatusActionId = "solved" | "closed" | "waiting";
 
-const SORTABLE_COLUMNS: Array<{ id: HistorySortColumn; label: string }> = [
-  { id: "id", label: "Ticket" },
-  { id: "createdAt", label: "Apertura" },
-  { id: "requester", label: "Solicitante" },
-  { id: "location", label: "Ubicación" },
-  { id: "type", label: "Tipo" },
-  { id: "subject", label: "Título" },
-  { id: "status", label: "Estado" },
-  { id: "technician", label: "Asignado a" },
+const HISTORY_COLUMN_LABELS: Record<HistorySortColumn, string> = {
+  id: "Ticket",
+  createdAt: "Apertura",
+  requester: "Solicitante",
+  location: "Ubicación",
+  type: "Tipo",
+  subject: "Título",
+  status: "Estado",
+  technician: "Asignado a",
+};
+
+const HISTORY_COLUMN_ORDER_DESKTOP: HistorySortColumn[] = [
+  "id",
+  "createdAt",
+  "requester",
+  "location",
+  "type",
+  "subject",
+  "status",
+  "technician",
 ];
+
+/** Mobile: estado visible temprano al hacer scroll horizontal. */
+const HISTORY_COLUMN_ORDER_MOBILE: HistorySortColumn[] = [
+  "id",
+  "createdAt",
+  "status",
+  "requester",
+  "location",
+  "type",
+  "subject",
+  "technician",
+];
+
+function useIsMobileHistorialLayout() {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 767px)").matches : false,
+  );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const syncLayout = () => setIsMobile(mediaQuery.matches);
+    syncLayout();
+    mediaQuery.addEventListener("change", syncLayout);
+    return () => mediaQuery.removeEventListener("change", syncLayout);
+  }, []);
+
+  return isMobile;
+}
 
 interface TicketTableProps {
   tickets: AsistiaTicket[];
@@ -62,6 +101,49 @@ function NameCell({ value }: { value: string | null | undefined }) {
       {secondLine ? <span className="mt-1.5 block whitespace-nowrap">{secondLine}</span> : null}
     </div>
   );
+}
+
+/** @param ticket - Ticket de la fila. @param column - Columna a renderizar. @returns Contenido de celda de datos. */
+function renderTicketCell(ticket: AsistiaTicket, column: HistorySortColumn) {
+  switch (column) {
+    case "id":
+      return <>#{ticket.id}</>;
+    case "createdAt":
+      return <AperturaCell value={ticket.createdAt} />;
+    case "requester":
+      return <NameCell value={ticket.requester.name} />;
+    case "location":
+      return <span className="line-clamp-2">{ticket.location?.name ?? "—"}</span>;
+    case "type":
+      return typeLabel(ticket.type);
+    case "subject":
+      return ticket.subject;
+    case "status":
+      return <Badge variant={statusBadgeVariant(ticket.status)}>{statusLabel(ticket.status)}</Badge>;
+    case "technician":
+      return <NameCell value={ticket.technician?.name} />;
+  }
+}
+
+function ticketCellClassName(column: HistorySortColumn) {
+  switch (column) {
+    case "id":
+      return "whitespace-nowrap px-4 py-3 font-medium";
+    case "createdAt":
+      return "px-4 py-3 text-muted-foreground";
+    case "requester":
+      return "px-4 py-3";
+    case "location":
+      return "max-w-xs px-4 py-3 text-muted-foreground";
+    case "type":
+      return "whitespace-nowrap px-4 py-3";
+    case "subject":
+      return "min-w-56 px-4 py-3";
+    case "status":
+      return "whitespace-nowrap px-4 py-3";
+    case "technician":
+      return "px-4 py-3";
+  }
 }
 
 /** @param props - Columna, sort activo y callback. @returns Celda de cabecera ordenable. */
@@ -130,6 +212,8 @@ export function TicketTable({
   statusActionIds,
 }: TicketTableProps) {
   const showActionsColumn = Boolean(onStatusChange || onAssignClick);
+  const isMobileLayout = useIsMobileHistorialLayout();
+  const columnOrder = isMobileLayout ? HISTORY_COLUMN_ORDER_MOBILE : HISTORY_COLUMN_ORDER_DESKTOP;
   const [selectedTicket, setSelectedTicket] = useState<AsistiaTicket | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(() => new Set());
 
@@ -189,11 +273,11 @@ export function TicketTable({
           <thead className="bg-muted text-xs uppercase tracking-normal text-muted-foreground">
             <tr>
               <th className="w-10 px-2 py-3" aria-hidden="true" />
-              {SORTABLE_COLUMNS.map(({ id, label }) => (
+              {columnOrder.map((column) => (
                 <SortableHeader
-                  key={id}
-                  column={id}
-                  label={label}
+                  key={column}
+                  column={column}
+                  label={HISTORY_COLUMN_LABELS[column]}
                   sortColumn={sortColumn}
                   sortOrder={sortOrder}
                   onSortColumnChange={onSortColumnChange}
@@ -209,7 +293,7 @@ export function TicketTable({
           <tbody className="[&>tr:not(:last-child)>td]:border-b [&>tr:not(:last-child)>td]:border-muted-foreground/25 [&>tr[data-expanded-row]>td]:!border-b-0">
             {tickets.map((ticket) => {
               const isExpanded = expandedIds.has(ticket.id);
-              const detailColSpan = SORTABLE_COLUMNS.length + (showActionsColumn ? 1 : 0) + 1;
+              const detailColSpan = columnOrder.length + (showActionsColumn ? 1 : 0) + 1;
 
               return (
               <Fragment key={ticket.id}>
@@ -245,24 +329,11 @@ export function TicketTable({
                     />
                   </button>
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 font-medium">#{ticket.id}</td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  <AperturaCell value={ticket.createdAt} />
-                </td>
-                <td className="px-4 py-3">
-                  <NameCell value={ticket.requester.name} />
-                </td>
-                <td className="max-w-xs px-4 py-3 text-muted-foreground">
-                  <span className="line-clamp-2">{ticket.location?.name ?? "—"}</span>
-                </td>
-                <td className="whitespace-nowrap px-4 py-3">{typeLabel(ticket.type)}</td>
-                <td className="min-w-56 px-4 py-3">{ticket.subject}</td>
-                <td className="whitespace-nowrap px-4 py-3">
-                  <Badge variant={statusBadgeVariant(ticket.status)}>{statusLabel(ticket.status)}</Badge>
-                </td>
-                <td className="px-4 py-3">
-                  <NameCell value={ticket.technician?.name} />
-                </td>
+                {columnOrder.map((column) => (
+                  <td key={column} className={ticketCellClassName(column)}>
+                    {renderTicketCell(ticket, column)}
+                  </td>
+                ))}
                 {showActionsColumn ? (
                   <td
                     className={cn(

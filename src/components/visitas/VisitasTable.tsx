@@ -4,6 +4,7 @@
  */
 import { ArrowDown, ArrowUp, ArrowUpDown, LogOut, Pencil, Trash2 } from "lucide-react";
 import type { Visita, VisitaSortColumn, VisitaSortOrder } from "@/api/visitas";
+import { VISITA_ESTADO_LABELS, isVisitaEliminable, requiereCancelacionAlEliminar } from "@/api/visitas";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -43,6 +44,7 @@ const TARJETA_SWATCH_CLASS: Record<VisitaTarjetaColor, string> = {
 const ESTADO_VARIANT: Record<Visita["estado"], "info" | "success" | "warning" | "danger"> = {
   programada: "info",
   activa: "success",
+  sin_salida: "danger",
   finalizada: "warning",
   cancelada: "danger",
 };
@@ -166,7 +168,7 @@ export function VisitasTable({
                 <td className="px-4 py-3">{visita.motivo}</td>
                 <td className="px-4 py-3">{visita.responsableNombre}</td>
                 <td className="px-4 py-3">
-                  <Badge variant={ESTADO_VARIANT[visita.estado]}>{visita.estado}</Badge>
+                  <Badge variant={ESTADO_VARIANT[visita.estado]}>{VISITA_ESTADO_LABELS[visita.estado]}</Badge>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap tabular-nums">{formatTime(visita.entradaAt)}</td>
                 <td className="px-4 py-3 tabular-nums">{visita.credencialNumero ?? "—"}</td>
@@ -184,7 +186,7 @@ export function VisitasTable({
                     >
                       <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
-                    {visita.estado === "activa" ? (
+                    {visita.estado === "activa" || visita.estado === "sin_salida" ? (
                       <button
                         type="button"
                         aria-label="Finalizar visita"
@@ -195,11 +197,11 @@ export function VisitasTable({
                         <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
                       </button>
                     ) : null}
-                    {visita.estado === "programada" || visita.estado === "cancelada" ? (
+                    {isVisitaEliminable(visita.estado) ? (
                       <button
                         type="button"
-                        aria-label="Eliminar"
-                        title="Eliminar"
+                        aria-label={requiereCancelacionAlEliminar(visita.estado) ? "Eliminar visita activa" : "Eliminar"}
+                        title={requiereCancelacionAlEliminar(visita.estado) ? "Eliminar visita activa" : "Eliminar"}
                         onClick={() => onDelete(visita)}
                         className={cn(actionIconButtonClass, "border-red-300 text-red-700 hover:bg-red-50")}
                       >

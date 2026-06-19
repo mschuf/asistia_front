@@ -1,30 +1,27 @@
 /**
- * @file PersonasTable.tsx
- * @description Tabla de personas con orden por columnas.
+ * @file MotivosVisitaTable.tsx
+ * @description Tabla de motivos de visita con orden por columnas.
  */
-import { ArrowDown, ArrowUp, ArrowUpDown, Image, Pencil, Power, Trash2 } from "lucide-react";
-import type { Persona, PersonaSortColumn, PersonaSortOrder } from "@/api/personas";
+import { ArrowDown, ArrowUp, ArrowUpDown, Pencil, Power, Trash2 } from "lucide-react";
+import type { MotivoVisita, MotivoVisitaSortColumn, MotivoVisitaSortOrder } from "@/api/motivos-visita";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 
-interface PersonasTableProps {
-  rows: Persona[];
-  sortColumn?: PersonaSortColumn | null;
-  sortOrder?: PersonaSortOrder | null;
-  onSortColumnChange?: (column: PersonaSortColumn) => void;
-  onEdit: (persona: Persona) => void;
-  onViewPhoto: (persona: Persona) => void;
-  onActivate: (persona: Persona) => void;
-  onDeactivate: (persona: Persona) => void;
-  onDelete: (persona: Persona) => void;
+interface MotivosVisitaTableProps {
+  rows: MotivoVisita[];
+  sortColumn?: MotivoVisitaSortColumn | null;
+  sortOrder?: MotivoVisitaSortOrder | null;
+  onSortColumnChange?: (column: MotivoVisitaSortColumn) => void;
+  onEdit: (motivo: MotivoVisita) => void;
+  onActivate: (motivo: MotivoVisita) => void;
+  onDeactivate: (motivo: MotivoVisita) => void;
+  onDelete: (motivo: MotivoVisita) => void;
 }
 
-const SORTABLE_COLUMNS: Array<{ id: PersonaSortColumn; label: string }> = [
+const SORTABLE_COLUMNS: Array<{ id: MotivoVisitaSortColumn; label: string }> = [
   { id: "id", label: "ID" },
   { id: "nombre", label: "Nombre" },
-  { id: "documento", label: "Documento" },
-  { id: "proveedorNombre", label: "Proveedor" },
 ];
 
 const actionIconButtonClass =
@@ -37,11 +34,11 @@ function SortableHeader({
   sortOrder,
   onSortColumnChange,
 }: {
-  column: PersonaSortColumn;
+  column: MotivoVisitaSortColumn;
   label: string;
-  sortColumn?: PersonaSortColumn | null;
-  sortOrder?: PersonaSortOrder | null;
-  onSortColumnChange?: (column: PersonaSortColumn) => void;
+  sortColumn?: MotivoVisitaSortColumn | null;
+  sortOrder?: MotivoVisitaSortOrder | null;
+  onSortColumnChange?: (column: MotivoVisitaSortColumn) => void;
 }) {
   const isActive = sortColumn === column;
   const ariaSort = isActive ? (sortOrder === "asc" ? "ascending" : "descending") : "none";
@@ -72,23 +69,22 @@ function SortableHeader({
   );
 }
 
-/** Tabla ordenable de personas con acciones CRUD. */
-export function PersonasTable({
+/** Tabla ordenable de motivos de visita con acciones CRUD. */
+export function MotivosVisitaTable({
   rows,
   sortColumn,
   sortOrder,
   onSortColumnChange,
   onEdit,
-  onViewPhoto,
   onActivate,
   onDeactivate,
   onDelete,
-}: PersonasTableProps) {
+}: MotivosVisitaTableProps) {
   if (rows.length === 0) {
     return (
       <EmptyState
-        title="Sin personas"
-        description="No hay personas registradas o no coinciden con los filtros aplicados."
+        title="Sin motivos de visita"
+        description="No hay motivos registrados o no coinciden con los filtros aplicados."
       />
     );
   }
@@ -96,7 +92,7 @@ export function PersonasTable({
   return (
     <div className="overflow-hidden rounded-md border bg-card shadow-soft">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[800px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[640px] border-collapse text-left text-sm">
           <thead className="bg-muted text-xs uppercase tracking-normal text-muted-foreground">
             <tr>
               {SORTABLE_COLUMNS.map(({ id, label }) => (
@@ -114,45 +110,32 @@ export function PersonasTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {rows.map((persona) => (
-              <tr key={persona.id} className="hover:bg-muted/40">
-                <td className="px-4 py-3 tabular-nums">{persona.id}</td>
-                <td className="px-4 py-3 font-medium">{persona.nombre}</td>
-                <td className="px-4 py-3">{persona.documento}</td>
-                <td className="px-4 py-3">{persona.proveedorNombre ?? "—"}</td>
+            {rows.map((motivo) => (
+              <tr key={motivo.id} className="hover:bg-muted/40">
+                <td className="px-4 py-3 tabular-nums">{motivo.id}</td>
+                <td className="px-4 py-3 font-medium">{motivo.nombre}</td>
                 <td className="px-4 py-3">
-                  <Badge variant={persona.activo ? "success" : "danger"}>
-                    {persona.activo ? "Activo" : "Inactivo"}
+                  <Badge variant={motivo.activo ? "success" : "danger"}>
+                    {motivo.activo ? "Activo" : "Inactivo"}
                   </Badge>
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-nowrap items-center gap-1.5">
-                    {persona.hasFoto ? (
-                      <button
-                        type="button"
-                        aria-label="Ver foto"
-                        title="Ver foto"
-                        onClick={() => onViewPhoto(persona)}
-                        className={cn(actionIconButtonClass, "border-border hover:bg-muted")}
-                      >
-                        <Image className="h-3.5 w-3.5" aria-hidden="true" />
-                      </button>
-                    ) : null}
                     <button
                       type="button"
                       aria-label="Editar"
                       title="Editar"
-                      onClick={() => onEdit(persona)}
+                      onClick={() => onEdit(motivo)}
                       className={cn(actionIconButtonClass, "border-border hover:bg-muted")}
                     >
                       <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
-                    {persona.activo ? (
+                    {motivo.activo ? (
                       <button
                         type="button"
                         aria-label="Desactivar"
                         title="Desactivar"
-                        onClick={() => onDeactivate(persona)}
+                        onClick={() => onDeactivate(motivo)}
                         className={cn(actionIconButtonClass, "border-amber-300 text-amber-700 hover:bg-amber-50")}
                       >
                         <Power className="h-3.5 w-3.5" aria-hidden="true" />
@@ -162,7 +145,7 @@ export function PersonasTable({
                         type="button"
                         aria-label="Activar"
                         title="Activar"
-                        onClick={() => onActivate(persona)}
+                        onClick={() => onActivate(motivo)}
                         className={cn(actionIconButtonClass, "border-emerald-300 text-emerald-700 hover:bg-emerald-50")}
                       >
                         <Power className="h-3.5 w-3.5" aria-hidden="true" />
@@ -172,7 +155,7 @@ export function PersonasTable({
                       type="button"
                       aria-label="Eliminar"
                       title="Eliminar"
-                      onClick={() => onDelete(persona)}
+                      onClick={() => onDelete(motivo)}
                       className={cn(actionIconButtonClass, "border-red-300 text-red-700 hover:bg-red-50")}
                     >
                       <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />

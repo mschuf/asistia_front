@@ -16,5 +16,7 @@ export function resolvePorteriaTab(pathname: string): PorteriaTab | null {
   if (pathname.startsWith("/porteria/visitas")) return "visita";
   if (pathname.startsWith("/porteria/historial")) return "historial";
   if (pathname.startsWith("/porteria/personas")) return null;
+  if (pathname.startsWith("/porteria/motivos-visita")) return null;
+  if (pathname.startsWith("/porteria/proveedores")) return null;
   return "indicadores";
 }

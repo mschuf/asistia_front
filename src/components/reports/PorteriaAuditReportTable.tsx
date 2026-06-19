@@ -3,8 +3,10 @@
  * @description Tabla de auditoría de portería con orden por columnas.
  */
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDateParts } from "@/lib/format";
+import { formatPorteriaAuditActorLabel } from "@/lib/porteria-audit-state";
 import { cn } from "@/lib/utils";
 import type {
   PorteriaAuditLog,
@@ -22,10 +24,10 @@ interface PorteriaAuditReportTableProps {
 }
 
 const SORTABLE_COLUMNS: Array<{ id: PorteriaAuditSortColumn; label: string }> = [
+  { id: "visitaId", label: "Visita" },
   { id: "occurredAt", label: "Fecha" },
   { id: "action", label: "Acción" },
   { id: "actorUserId", label: "Actor" },
-  { id: "visitaId", label: "Visita" },
   { id: "visitante", label: "Visitante" },
   { id: "documento", label: "Documento" },
 ];
@@ -35,6 +37,16 @@ const ACTION_LABELS: Record<PorteriaAuditLog["action"], string> = {
   "visita.updated": "Edición",
   "visita.closed": "Cierre",
   "visita.deleted": "Eliminación",
+};
+
+const ACTION_BADGE_VARIANT: Record<
+  PorteriaAuditLog["action"],
+  "success" | "info" | "warning" | "danger"
+> = {
+  "visita.created": "success",
+  "visita.updated": "info",
+  "visita.closed": "warning",
+  "visita.deleted": "danger",
 };
 
 function SortableHeader({
@@ -119,7 +131,7 @@ export function PorteriaAuditReportTable({
             {items.map((item) => {
               const isActive = item.id === selectedId;
               const occurred = formatDateParts(item.occurredAt);
-              const actorLabel = item.actorName ? `${item.actorName} (#${item.actorUserId})` : `#${item.actorUserId}`;
+              const actorLabel = formatPorteriaAuditActorLabel(item.actorUserId, item.actorName);
               return (
                 <tr
                   key={item.id}
@@ -129,15 +141,17 @@ export function PorteriaAuditReportTable({
                   )}
                   onClick={() => onRowClick(item)}
                 >
+                  <td className="whitespace-nowrap px-4 py-3.5 font-medium text-muted-foreground">#{item.visitaId}</td>
                   <td className="px-4 py-3.5 text-muted-foreground">
                     <div className="leading-tight">
                       <span className="whitespace-nowrap">{occurred.date}</span>
                       {occurred.time ? <span className="mt-1.5 block whitespace-nowrap">{occurred.time}</span> : null}
                     </div>
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3.5 font-medium">{ACTION_LABELS[item.action]}</td>
+                  <td className="whitespace-nowrap px-4 py-3.5">
+                    <Badge variant={ACTION_BADGE_VARIANT[item.action]}>{ACTION_LABELS[item.action]}</Badge>
+                  </td>
                   <td className="px-4 py-3.5">{actorLabel}</td>
-                  <td className="whitespace-nowrap px-4 py-3.5 text-muted-foreground">#{item.visitaId}</td>
                   <td className="px-4 py-3.5">{item.visitante ?? "—"}</td>
                   <td className="whitespace-nowrap px-4 py-3.5">{item.documento ?? "—"}</td>
                   <td className="px-4 py-3.5 text-muted-foreground">
