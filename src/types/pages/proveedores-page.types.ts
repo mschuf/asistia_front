@@ -8,6 +8,7 @@ import type { PorteriaPageSize } from "@/lib/porteria";
 export interface ProveedoresFilterState {
   search: string;
   nombre: string;
+  ruc: string;
   activo: "" | "true" | "false";
 }
 

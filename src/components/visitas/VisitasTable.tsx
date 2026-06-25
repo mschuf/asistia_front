@@ -33,6 +33,7 @@ const SORTABLE_COLUMNS: Array<{ id: VisitaSortColumn; label: string }> = [
   { id: "responsable", label: "Responsable" },
   { id: "estado", label: "Estado" },
   { id: "entradaAt", label: "Entrada" },
+  { id: "salidaAt", label: "Salida" },
 ];
 
 const TARJETA_SWATCH_CLASS: Record<VisitaTarjetaColor, string> = {
@@ -171,6 +172,13 @@ export function VisitasTable({
                   <Badge variant={ESTADO_VARIANT[visita.estado]}>{VISITA_ESTADO_LABELS[visita.estado]}</Badge>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap tabular-nums">{formatTime(visita.entradaAt)}</td>
+                <td className="px-4 py-3 whitespace-nowrap tabular-nums">
+                  {visita.estado === "activa" ? (
+                    <span className="inline-block w-full text-center">-</span>
+                  ) : (
+                    formatTime(visita.salidaAt)
+                  )}
+                </td>
                 <td className="px-4 py-3 tabular-nums">{visita.credencialNumero ?? "—"}</td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <TarjetaColorCell color={visita.tarjetaColor} />

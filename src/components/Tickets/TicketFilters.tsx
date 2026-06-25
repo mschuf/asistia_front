@@ -142,7 +142,7 @@ export function TicketFilters({
             event.preventDefault();
             onApply();
           }}
-          placeholder="Buscar ticket por ID, descripción, título. Para más opciones, usa los filtros avanzados."
+          placeholder="Buscar servicio por ID, descripción, título. Para más opciones, usa los filtros avanzados."
           className="pl-9 pr-10"
         />
         <button
@@ -222,7 +222,7 @@ export function TicketFilters({
           </label>
 
           <label className="relative z-10 flex min-w-0 flex-col gap-1 text-sm">
-            <span className="text-muted-foreground">Asignado</span>
+            <span className="text-muted-foreground">Técnico</span>
             <SearchableSelect
               id="ticket-filter-assigned"
               value={filters.assignedToId}

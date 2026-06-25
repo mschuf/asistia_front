@@ -27,6 +27,7 @@ function createInitialFilters(): ProveedoresFilterState {
   return {
     search: "",
     nombre: "",
+    ruc: "",
     activo: "",
   };
 }
@@ -43,6 +44,7 @@ function toListParams(
     limit,
     search: filters.search || undefined,
     nombre: filters.nombre || undefined,
+    ruc: filters.ruc || undefined,
     activo: filters.activo === "" ? undefined : filters.activo === "true",
     sortBy: sort?.column,
     sortOrder: sort?.order,
@@ -93,10 +95,10 @@ export function useProveedores(): UseProveedoresResult {
   const setSortColumn = useCallback((column: ProveedorSortColumn) => {
     setSortState((current) => {
       if (!current || current.column !== column) {
-        return { column, order: "asc" };
-      }
-      if (current.order === "asc") {
         return { column, order: "desc" };
+      }
+      if (current.order === "desc") {
+        return { column, order: "asc" };
       }
       return null;
     });

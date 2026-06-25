@@ -16,6 +16,7 @@ import {
 } from "@/lib/porteria";
 import { cn } from "@/lib/utils";
 import type { PorteriaHistoryRecord } from "@/types/pages/porteria-page.types";
+import { TrackingVisitorPhoto } from "@/components/porteria/TrackingVisitorPhoto";
 
 interface PorteriaVisitDetailModalProps {
   record: PorteriaHistoryRecord | null;
@@ -39,6 +40,13 @@ const SUMMARY_FIELDS: Array<{ key: keyof PorteriaHistoryRecord; label: string }>
   { key: "responsable", label: "Responsable" },
 ];
 
+/** @param record - Registro de la visita. @returns Hora de salida legible segun estado. */
+function formatTimelineSalidaTime(record: PorteriaHistoryRecord): string {
+  if (record.estado === "activa") return "-";
+  if (record.estado === "sin_salida") return "???";
+  return formatHistoryVisitTime(record.salidaAt);
+}
+
 /** @param record - Registro de la visita. @returns Eventos de entrada y salida para el recorrido. */
 function buildVisitTimeline(record: PorteriaHistoryRecord): TimelineItem[] {
   return [
@@ -51,7 +59,7 @@ function buildVisitTimeline(record: PorteriaHistoryRecord): TimelineItem[] {
     },
     {
       id: "salida",
-      time: formatHistoryVisitTime(record.salidaAt),
+      time: formatTimelineSalidaTime(record),
       event: "Salida",
       icon: LogOut,
       tone: "muted",
@@ -102,7 +110,7 @@ export function PorteriaVisitDetailModal({ record, open, onOpenChange }: Porteri
           <div className="mt-2 flex items-center gap-2">
             <Clock3 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
             <p className="text-lg font-semibold">
-              {calculateHistoryVisitDuration(record.entradaAt, record.salidaAt)}
+              {calculateHistoryVisitDuration(record.entradaAt, record.salidaAt, record.estado)}
             </p>
           </div>
         </article>
@@ -122,13 +130,23 @@ export function PorteriaVisitDetailModal({ record, open, onOpenChange }: Porteri
             <CircleDot className="h-4 w-4 text-primary" aria-hidden="true" />
             <h3 className="text-sm font-semibold">Informacion del visitante</h3>
           </div>
-          <dl className="space-y-2.5">
-            {SUMMARY_FIELDS.map(({ key, label }) => (
-              <DetailRow key={key} label={label}>
-                {record[key]}
-              </DetailRow>
-            ))}
-          </dl>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+            <TrackingVisitorPhoto
+              visitaId={record.id}
+              personaId={record.personaId}
+              hasVisitaFoto={record.hasVisitaFoto}
+              hasPersonaFoto={record.hasPersonaFoto}
+              name={record.visitante}
+              className="h-28 w-28 shrink-0"
+            />
+            <dl className="min-w-0 flex-1 space-y-2.5">
+              {SUMMARY_FIELDS.map(({ key, label }) => (
+                <DetailRow key={key} label={label}>
+                  {record[key]}
+                </DetailRow>
+              ))}
+            </dl>
+          </div>
         </section>
 
         <section className="space-y-3 rounded-xl border bg-card p-4 shadow-soft">

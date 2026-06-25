@@ -179,9 +179,12 @@ export function PorteriaSeguimientoCards({ visitors }: PorteriaSeguimientoCardsP
 
               <div className="relative z-10">
                 <TrackingVisitorPhoto
+                  visitaId={visitor.id}
                   personaId={visitor.personaId}
-                  hasFoto={visitor.hasFoto}
+                  hasVisitaFoto={visitor.hasVisitaFoto}
+                  hasPersonaFoto={visitor.hasPersonaFoto}
                   name={visitor.name}
+                  previewMaxSizePx={600}
                   className="absolute right-0 top-2 z-10 h-[8.75rem] w-[8.75rem]"
                 />
 
@@ -224,7 +227,7 @@ export function PorteriaSeguimientoCards({ visitors }: PorteriaSeguimientoCardsP
                       <UserRound className="h-4 w-4 shrink-0 opacity-70" aria-hidden="true" />
                       <div className="min-w-0">
                         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:opacity-90">
-                          Encargado/a
+                          Responsable
                         </p>
                         <p className="truncate font-medium">{visitor.responsable}</p>
                       </div>

@@ -21,6 +21,7 @@ interface TiMetricsProps {
   onGoToHistorialForSolved?: () => void;
   onGoToHistorialForClosed?: () => void;
   onRefresh?: () => void;
+  showOpenBySiteChart?: boolean;
   openBySiteChartDescription?: string;
 }
 
@@ -129,6 +130,7 @@ export function TiMetrics({
   onGoToHistorialForSolved,
   onGoToHistorialForClosed,
   onRefresh,
+  showOpenBySiteChart = true,
   openBySiteChartDescription,
 }: TiMetricsProps) {
   if (loading && !metrics) {
@@ -230,10 +232,12 @@ export function TiMetrics({
         ) : null}
       </div>
 
-      <TiOpenBySiteChart
-        data={metrics.openByLocation}
-        description={openBySiteChartDescription}
-      />
+      {showOpenBySiteChart ? (
+        <TiOpenBySiteChart
+          data={metrics.openByLocation}
+          description={openBySiteChartDescription}
+        />
+      ) : null}
 
       <p className="flex items-center gap-1 text-xs text-muted-foreground">
         <History className="h-3.5 w-3.5" aria-hidden="true" />

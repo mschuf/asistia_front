@@ -5,6 +5,8 @@
 import { apiClient } from "./apiClient";
 import type { VisitaTarjetaColor } from "@/lib/visita-tarjeta-color";
 
+const VISITA_PHOTO_UPLOAD_TIMEOUT_MS = 180_000;
+
 export type VisitaEstado = "programada" | "activa" | "sin_salida" | "finalizada" | "cancelada";
 
 export type EliminarVisitaResult = { id: number; deleted: true } | { id: number; cancelled: true };
@@ -43,6 +45,7 @@ export interface Visita {
   personaId: number;
   visitante: string;
   hasFoto: boolean;
+  hasVisitaFoto: boolean;
   documento: string;
   empresa: string | null;
   motivo: string;
@@ -102,6 +105,7 @@ export interface CrearVisitaPayload {
   personaId: number;
   motivoVisitaId: number;
   responsableNombre: string;
+  responsableId?: number;
   estado?: VisitaEstado;
   estadoSeguimiento?: VisitaSeguimiento;
   zonasPermitidas?: VisitaZona[];
@@ -217,5 +221,31 @@ export async function finalizarVisita(id: number, observaciones: string): Promis
     estado: "finalizada",
     salidaAt: new Date().toISOString(),
     observaciones: observaciones.trim(),
+  });
+}
+
+/** Obtiene la foto de una visita como blob autenticado por cookie. */
+export async function obtenerFotoVisitaBlob(
+  visitaId: number,
+  options?: { signal?: AbortSignal },
+): Promise<Blob> {
+  const { blob } = await apiClient.download(`/visitas/${visitaId}/foto`, {
+    signal: options?.signal,
+    showBackdrop: false,
+  });
+  return blob;
+}
+
+/** Sube o reemplaza la foto de una visita. */
+export async function subirFotoVisita(
+  visitaId: number,
+  file: File,
+  options?: { signal?: AbortSignal },
+): Promise<Visita> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiClient.post<Visita>(`/visitas/${visitaId}/foto`, formData, {
+    timeoutMs: VISITA_PHOTO_UPLOAD_TIMEOUT_MS,
+    signal: options?.signal,
   });
 }

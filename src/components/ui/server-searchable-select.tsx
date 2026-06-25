@@ -47,6 +47,7 @@ interface ServerSearchableSelectProps {
   "aria-describedby"?: string;
   noResultsText?: string;
   loadingText?: string;
+  invalid?: boolean;
 }
 
 /**
@@ -70,6 +71,7 @@ export const ServerSearchableSelect = forwardRef<ServerSearchableSelectHandle, S
       "aria-describedby": ariaDescribedBy,
       noResultsText = "Sin resultados",
       loadingText = "Buscando...",
+      invalid = false,
     },
     ref,
   ) {
@@ -317,6 +319,7 @@ export const ServerSearchableSelect = forwardRef<ServerSearchableSelectHandle, S
         aria-describedby={ariaDescribedBy}
         className={cn(
           "flex h-10 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-left text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+          invalid && "border-destructive focus-visible:ring-destructive",
           (!value || !selectedOption?.label) && "text-muted-foreground",
         )}
         onClick={() => {

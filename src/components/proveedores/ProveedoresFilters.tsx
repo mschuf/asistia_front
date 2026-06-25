@@ -34,12 +34,7 @@ export function ProveedoresFilters({ filters, onChange, onApply }: ProveedoresFi
         <Input
           value={filters.search}
           onChange={(event) => update("search", event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key !== "Enter") return;
-            event.preventDefault();
-            onApply();
-          }}
-          placeholder="Buscar por ID o nombre..."
+          placeholder="Buscar por ID, nombre o RUC..."
           className="pl-9 pr-10"
         />
         <button
@@ -57,17 +52,19 @@ export function ProveedoresFilters({ filters, onChange, onApply }: ProveedoresFi
       </div>
 
       {expanded ? (
-        <div className="mt-3 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-2 overflow-visible pb-1">
+        <div className="mt-3 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-2 overflow-visible pb-1">
           <label className="flex min-w-0 flex-col gap-1 pb-0.5 text-sm">
             <span className="text-muted-foreground">Nombre</span>
             <Input
               value={filters.nombre}
               onChange={(event) => update("nombre", event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key !== "Enter") return;
-                event.preventDefault();
-                onApply();
-              }}
+            />
+          </label>
+          <label className="flex min-w-0 flex-col gap-1 pb-0.5 text-sm">
+            <span className="text-muted-foreground">RUC</span>
+            <Input
+              value={filters.ruc}
+              onChange={(event) => update("ruc", event.target.value)}
             />
           </label>
           <label className="flex min-w-0 flex-col gap-1 pb-0.5 text-sm">
@@ -79,7 +76,7 @@ export function ProveedoresFilters({ filters, onChange, onApply }: ProveedoresFi
             </Select>
           </label>
           <Button type="button" className="mb-0.5 shrink-0" onClick={() => onApply()}>
-            Aplicar filtros
+            Buscar
           </Button>
         </div>
       ) : null}

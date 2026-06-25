@@ -1,42 +1,49 @@
 /**
  * @file TrackingVisitorPhoto.tsx
- * @description Foto del visitante para cards de seguimiento en Portería.
+ * @description Foto del visitante para cards de seguimiento e historial en Portería.
  */
 import { UserRound } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { obtenerFotoPersonaBlob } from "@/api/personas";
+import { obtenerFotoVisitaBlob } from "@/api/visitas";
 import { cn } from "@/lib/utils";
 
 interface TrackingVisitorPhotoProps {
+  visitaId: number;
   personaId: number;
-  hasFoto: boolean;
+  hasVisitaFoto: boolean;
+  hasPersonaFoto: boolean;
   name: string;
   className?: string;
+  previewMaxSizePx?: number;
 }
 
 const PREVIEW_MAX_SIZE_PX = 320;
 const PREVIEW_GAP_PX = 12;
 
 /**
- * Muestra la foto del visitante o un placeholder si no hay imagen disponible.
+ * Muestra la foto de la visita o, en su defecto, la de la persona.
  * Al pasar el mouse sobre una foto cargada, muestra un preview ampliado flotante.
- * @param props - Identificador de persona, flag de foto y nombre para accesibilidad.
- * @returns Bloque visual de foto para la card de seguimiento.
  */
 export function TrackingVisitorPhoto({
+  visitaId,
   personaId,
-  hasFoto,
+  hasVisitaFoto,
+  hasPersonaFoto,
   name,
   className,
+  previewMaxSizePx = PREVIEW_MAX_SIZE_PX,
 }: TrackingVisitorPhotoProps) {
   const anchorRef = useRef<HTMLDivElement>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewPosition, setPreviewPosition] = useState({ top: 0, left: 0 });
 
+  const hasPhoto = hasVisitaFoto || hasPersonaFoto;
+
   useEffect(() => {
-    if (!hasFoto) {
+    if (!hasPhoto) {
       setPhotoUrl(null);
       return;
     }
@@ -44,7 +51,11 @@ export function TrackingVisitorPhoto({
     let cancelled = false;
     let objectUrl: string | null = null;
 
-    void obtenerFotoPersonaBlob(personaId)
+    const loadPhoto = hasVisitaFoto
+      ? obtenerFotoVisitaBlob(visitaId)
+      : obtenerFotoPersonaBlob(personaId);
+
+    void loadPhoto
       .then((blob) => {
         if (cancelled) return;
         objectUrl = URL.createObjectURL(blob);
@@ -58,7 +69,7 @@ export function TrackingVisitorPhoto({
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [hasFoto, personaId]);
+  }, [hasPersonaFoto, hasPhoto, hasVisitaFoto, personaId, visitaId]);
 
   const updatePreviewPosition = useCallback(() => {
     const anchor = anchorRef.current;
@@ -134,8 +145,8 @@ export function TrackingVisitorPhoto({
                   alt={`Foto ampliada de ${name}`}
                   className="block object-contain"
                   style={{
-                    maxHeight: PREVIEW_MAX_SIZE_PX,
-                    maxWidth: PREVIEW_MAX_SIZE_PX,
+                    maxHeight: previewMaxSizePx,
+                    maxWidth: previewMaxSizePx,
                   }}
                 />
               </div>

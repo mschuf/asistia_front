@@ -22,6 +22,7 @@ interface ProveedoresTableProps {
 const SORTABLE_COLUMNS: Array<{ id: ProveedorSortColumn; label: string }> = [
   { id: "id", label: "ID" },
   { id: "nombre", label: "Nombre" },
+  { id: "ruc", label: "RUC" },
 ];
 
 const actionIconButtonClass =
@@ -92,7 +93,7 @@ export function ProveedoresTable({
   return (
     <div className="overflow-hidden rounded-md border bg-card shadow-soft">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[760px] border-collapse text-left text-sm">
           <thead className="bg-muted text-xs uppercase tracking-normal text-muted-foreground">
             <tr>
               {SORTABLE_COLUMNS.map(({ id, label }) => (
@@ -114,6 +115,7 @@ export function ProveedoresTable({
               <tr key={proveedor.id} className="hover:bg-muted/40">
                 <td className="px-4 py-3 tabular-nums">{proveedor.id}</td>
                 <td className="px-4 py-3 font-medium">{proveedor.nombre}</td>
+                <td className="px-4 py-3 tabular-nums">{proveedor.ruc}</td>
                 <td className="px-4 py-3">
                   <Badge variant={proveedor.activo ? "success" : "danger"}>
                     {proveedor.activo ? "Activo" : "Inactivo"}

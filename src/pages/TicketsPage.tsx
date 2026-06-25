@@ -326,11 +326,7 @@ export default function TicketsPage() {
               : undefined
           }
           onRefresh={() => void refreshMetrics()}
-          openBySiteChartDescription={
-            isTechnician
-              ? undefined
-              : "Mis servicios abiertos por sede"
-          }
+          showOpenBySiteChart={isTechnician}
         />
       ) : null}
 
@@ -476,7 +472,7 @@ export default function TicketsPage() {
                     </label>
                     <p className="text-sm text-muted-foreground">
                       Mostrando {paginationFrom}-{paginationTo} de{" "}
-                      {pagination.total} tickets
+                      {pagination.total} elementos
                     </p>
                   </div>
                   {!showingAll ? (

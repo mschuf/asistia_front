@@ -23,6 +23,12 @@ export interface PorteriaHistoryRecord {
 
   id: number;
 
+  personaId: number;
+
+  hasVisitaFoto: boolean;
+
+  hasPersonaFoto: boolean;
+
   visitante: string;
 
   documento: string;
@@ -153,7 +159,9 @@ export interface PorteriaTrackingVisitor {
 
   personaId: number;
 
-  hasFoto: boolean;
+  hasVisitaFoto: boolean;
+
+  hasPersonaFoto: boolean;
 
   name: string;
 

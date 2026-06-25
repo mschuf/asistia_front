@@ -6,66 +6,26 @@ import { Plus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   activarPersona,
-  actualizarPersona,
-  crearPersona,
   desactivarPersona,
-  eliminarFotoPersona,
   eliminarPersona,
   obtenerFotoPersonaBlob,
-  subirFotoPersona,
-  type CrearPersonaPayload,
   type Persona,
 } from "@/api/personas";
 import { ApiError } from "@/api/apiClient";
-import { PersonaPhotoField } from "@/components/personas/PersonaPhotoField";
+import { PersonaFormDialog } from "@/components/personas/PersonaFormDialog";
 import { PersonasFilters } from "@/components/personas/PersonasFilters";
 import { PersonasTable } from "@/components/personas/PersonasTable";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import { Field } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { ServerSearchableSelect } from "@/components/ui/server-searchable-select";
 import { useToast } from "@/context/ToastContext";
 import { usePersonas } from "@/hooks/usePersonas";
-import {
-  loadProveedorSelectOptions,
-  resolveProveedorSelectOption,
-} from "@/lib/porteria-proveedores";
 import {
   isPorteriaAllPageSize,
   parsePorteriaPageSize,
   PORTERIA_PAGE_SIZE_ALL,
   PORTERIA_PAGE_SIZE_OPTIONS,
 } from "@/lib/porteria";
-
-interface PersonaFormState {
-  nombre: string;
-  documento: string;
-  proveedorId: string;
-  email: string;
-  telefono: string;
-  activo: boolean;
-}
-
-const EMPTY_FORM: PersonaFormState = {
-  nombre: "",
-  documento: "",
-  proveedorId: "",
-  email: "",
-  telefono: "",
-  activo: true,
-};
-
-const PERSONA_PHOTO_MAX_INPUT_BYTES = 50 * 1024 * 1024;
-const PERSONA_PHOTO_ACCEPTED_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-  "image/heic",
-  "image/heif",
-]);
 
 /** CRUD de personas con filtros, orden y paginación. */
 export default function PersonasPage() {
@@ -90,36 +50,12 @@ export default function PersonasPage() {
   const [editing, setEditing] = useState<Persona | null>(null);
   const [confirmPersona, setConfirmPersona] = useState<Persona | null>(null);
   const [confirmAction, setConfirmAction] = useState<"activate" | "deactivate" | "delete" | null>(null);
-  const [form, setForm] = useState<PersonaFormState>(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
-  const [removeExistingPhoto, setRemoveExistingPhoto] = useState(false);
-  const [photoError, setPhotoError] = useState("");
-  const [photoLoading, setPhotoLoading] = useState(false);
-  const photoPreviewUrlRef = useRef<string | null>(null);
   const [photoViewOpen, setPhotoViewOpen] = useState(false);
   const [photoViewPersona, setPhotoViewPersona] = useState<Persona | null>(null);
   const [photoViewUrl, setPhotoViewUrl] = useState<string | null>(null);
   const [photoViewLoading, setPhotoViewLoading] = useState(false);
   const photoViewUrlRef = useRef<string | null>(null);
-
-  const revokePhotoPreview = useCallback((url: string | null) => {
-    if (url?.startsWith("blob:")) {
-      URL.revokeObjectURL(url);
-    }
-  }, []);
-
-  const resetPhotoState = useCallback(() => {
-    revokePhotoPreview(photoPreviewUrlRef.current);
-    photoPreviewUrlRef.current = null;
-    setPhotoFile(null);
-    setPhotoPreviewUrl(null);
-    setRemoveExistingPhoto(false);
-    setPhotoError("");
-    setPhotoLoading(false);
-  }, [revokePhotoPreview]);
 
   const revokePhotoViewUrl = useCallback((url: string | null) => {
     if (url?.startsWith("blob:")) {
@@ -164,10 +100,9 @@ export default function PersonasPage() {
 
   useEffect(() => {
     return () => {
-      revokePhotoPreview(photoPreviewUrlRef.current);
       revokePhotoViewUrl(photoViewUrlRef.current);
     };
-  }, [revokePhotoPreview, revokePhotoViewUrl]);
+  }, [revokePhotoViewUrl]);
 
   const numericLimit =
     typeof pagination.limit === "number" ? pagination.limit : PORTERIA_PAGE_SIZE_OPTIONS[0];
@@ -180,141 +115,22 @@ export default function PersonasPage() {
 
   const openCreateDialog = useCallback(() => {
     setEditing(null);
-    setForm(EMPTY_FORM);
-    resetPhotoState();
     setDialogOpen(true);
-  }, [resetPhotoState]);
+  }, []);
 
   const openEditDialog = useCallback(
     (persona: Persona) => {
-      resetPhotoState();
       setEditing(persona);
-      setForm({
-        nombre: persona.nombre,
-        documento: persona.documento,
-        proveedorId: String(persona.proveedorId),
-        email: persona.email ?? "",
-        telefono: persona.telefono ?? "",
-        activo: persona.activo,
-      });
       setDialogOpen(true);
-
-      if (!persona.hasFoto) {
-        return;
-      }
-
-      setPhotoLoading(true);
-      void obtenerFotoPersonaBlob(persona.id)
-        .then((blob) => {
-          const objectUrl = URL.createObjectURL(blob);
-          photoPreviewUrlRef.current = objectUrl;
-          setPhotoPreviewUrl(objectUrl);
-        })
-        .catch(() => {
-          toast.error("No se pudo cargar la foto de la persona.", "Personas");
-        })
-        .finally(() => {
-          setPhotoLoading(false);
-        });
     },
-    [resetPhotoState, toast],
+    [],
   );
-
-  const handlePhotoSelect = useCallback(
-    (file: File) => {
-      if (!PERSONA_PHOTO_ACCEPTED_TYPES.has(file.type) && !file.type.startsWith("image/")) {
-        setPhotoError("Seleccioná un archivo de imagen válido (JPG, PNG, WEBP o GIF).");
-        return;
-      }
-
-      if (file.size > PERSONA_PHOTO_MAX_INPUT_BYTES) {
-        setPhotoError("La imagen supera el tamaño máximo de 50 MB antes de procesarse.");
-        return;
-      }
-
-      revokePhotoPreview(photoPreviewUrlRef.current);
-      const objectUrl = URL.createObjectURL(file);
-      photoPreviewUrlRef.current = objectUrl;
-      setPhotoFile(file);
-      setPhotoPreviewUrl(objectUrl);
-      setRemoveExistingPhoto(false);
-      setPhotoError("");
-    },
-    [revokePhotoPreview],
-  );
-
-  const handlePhotoRemove = useCallback(() => {
-    revokePhotoPreview(photoPreviewUrlRef.current);
-    photoPreviewUrlRef.current = null;
-    setPhotoFile(null);
-    setPhotoPreviewUrl(null);
-    setRemoveExistingPhoto(Boolean(editing?.hasFoto));
-    setPhotoError("");
-  }, [editing?.hasFoto, revokePhotoPreview]);
 
   const openConfirm = useCallback((persona: Persona, action: "activate" | "deactivate" | "delete") => {
     setConfirmPersona(persona);
     setConfirmAction(action);
     setConfirmOpen(true);
   }, []);
-
-  const handleSave = useCallback(async () => {
-    if (!form.nombre.trim() || !form.documento.trim()) {
-      toast.error("Nombre y documento son obligatorios.", "Personas");
-      return;
-    }
-
-    const proveedorId = Number(form.proveedorId);
-    if (!Number.isFinite(proveedorId) || proveedorId <= 0) {
-      toast.error("Seleccione un proveedor.", "Personas");
-      return;
-    }
-
-    if (photoError) {
-      toast.error(photoError, "Personas");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const payload: CrearPersonaPayload = {
-        nombre: form.nombre.trim(),
-        documento: form.documento.trim(),
-        proveedorId,
-        email: form.email.trim() || undefined,
-        telefono: form.telefono.trim() || undefined,
-        activo: form.activo,
-      };
-
-      let savedPersona: Persona;
-      if (editing) {
-        savedPersona = await actualizarPersona(editing.id, payload);
-      } else {
-        savedPersona = await crearPersona(payload);
-      }
-
-      if (editing && removeExistingPhoto && editing.hasFoto && !photoFile) {
-        savedPersona = await eliminarFotoPersona(savedPersona.id);
-      }
-
-      if (photoFile) {
-        savedPersona = await subirFotoPersona(savedPersona.id, photoFile);
-      }
-
-      toast.success(editing ? "Persona actualizada." : "Persona creada.", "Personas");
-      setDialogOpen(false);
-      resetPhotoState();
-      if (!editing) {
-        setPage(1);
-      }
-      await reload();
-    } catch (saveError) {
-      const message = saveError instanceof ApiError ? saveError.message : "No se pudo guardar la persona.";
-      toast.error(message, "Personas");
-    } finally {
-      setSaving(false);
-    }
-  }, [editing, form, photoError, photoFile, reload, removeExistingPhoto, resetPhotoState, setPage, toast]);
 
   const handleConfirm = useCallback(async () => {
     if (!confirmPersona || !confirmAction) return;
@@ -436,100 +252,17 @@ export default function PersonasPage() {
         </div>
       ) : null}
 
-      <Dialog
+      <PersonaFormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        title={editing ? "Editar persona" : "Nueva persona"}
-        description="Complete los datos del visitante o empleado."
-      >
-        <form
-          className="space-y-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void handleSave();
-          }}
-        >
-          <PersonaPhotoField
-            previewUrl={photoPreviewUrl}
-            onSelectFile={handlePhotoSelect}
-            onRemove={handlePhotoRemove}
-            disabled={saving || photoLoading}
-            showCameraButton={Boolean(editing)}
-            error={photoError}
-          />
-          {photoLoading ? (
-            <p className="text-xs text-muted-foreground">Cargando foto existente…</p>
-          ) : null}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="persona-nombre" label="Nombre">
-              <Input
-                id="persona-nombre"
-                value={form.nombre}
-                onChange={(e) => setForm({ ...form, nombre: e.target.value })}
-                required
-              />
-            </Field>
-            <Field id="persona-documento" label="Documento">
-              <Input
-                id="persona-documento"
-                value={form.documento}
-                onChange={(e) => setForm({ ...form, documento: e.target.value })}
-                required
-              />
-            </Field>
-            <Field id="persona-proveedor" label="Proveedor">
-              <ServerSearchableSelect
-                id="persona-proveedor"
-                value={form.proveedorId}
-                onChange={(value) => setForm({ ...form, proveedorId: value })}
-                onLoadOptions={loadProveedorSelectOptions}
-                resolveSelectedOption={resolveProveedorSelectOption}
-                defaultSelectedOption={
-                  editing
-                    ? { value: String(editing.proveedorId), label: editing.proveedorNombre }
-                    : null
-                }
-                placeholder="Seleccione un proveedor"
-                searchPlaceholder="Buscar proveedor..."
-              />
-            </Field>
-            <Field id="persona-email" label="Email">
-              <Input
-                id="persona-email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-              />
-            </Field>
-            <Field id="persona-telefono" label="Teléfono">
-              <Input
-                id="persona-telefono"
-                value={form.telefono}
-                onChange={(e) => setForm({ ...form, telefono: e.target.value })}
-              />
-            </Field>
-            {editing ? (
-              <Field id="persona-activo" label="Estado">
-                <Select
-                  id="persona-activo"
-                  value={form.activo ? "true" : "false"}
-                  onChange={(e) => setForm({ ...form, activo: e.target.value === "true" })}
-                >
-                  <option value="true">Activo</option>
-                  <option value="false">Inactivo</option>
-                </Select>
-              </Field>
-            ) : null}
-          </div>
-          <div className="flex justify-end gap-2 border-t pt-4">
-            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? "Guardando…" : editing ? "Guardar cambios" : "Crear persona"}
-            </Button>
-          </div>
-        </form>
-      </Dialog>
+        persona={editing}
+        onSaved={async (_, mode) => {
+          if (mode === "create") {
+            setPage(1);
+          }
+          await reload();
+        }}
+      />
 
       <Dialog
         open={photoViewOpen}
@@ -562,7 +295,7 @@ export default function PersonasPage() {
         }
         description={
           confirmAction === "delete"
-            ? `¿Eliminar definitivamente a ${confirmPersona?.nombre}? Solo es posible si no tiene visitas activas.`
+            ? `¿Eliminar definitivamente a ${confirmPersona?.nombre}? Solo es posible si no tiene visitas registradas.`
             : confirmAction === "activate"
               ? `¿Activar a ${confirmPersona?.nombre}? Podrá usarse nuevamente en visitas.`
               : `¿Desactivar a ${confirmPersona?.nombre}? No podrá usarse en nuevas visitas.`

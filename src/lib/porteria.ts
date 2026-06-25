@@ -272,7 +272,8 @@ export function mapVisitaToTrackingVisitor(visita: Visita): PorteriaTrackingVisi
   return {
     id: visita.id,
     personaId: visita.personaId,
-    hasFoto: visita.hasFoto ?? false,
+    hasVisitaFoto: visita.hasVisitaFoto ?? false,
+    hasPersonaFoto: visita.hasFoto ?? false,
     name: visita.visitante,
     company: visita.empresa ?? "—",
     responsable: visita.responsableNombre,
@@ -292,6 +293,9 @@ export function mapVisitaToTrackingVisitor(visita: Visita): PorteriaTrackingVisi
 export function mapVisitaToHistoryRecord(visita: Visita): PorteriaHistoryRecord {
   return {
     id: visita.id,
+    personaId: visita.personaId,
+    hasVisitaFoto: visita.hasVisitaFoto ?? false,
+    hasPersonaFoto: visita.hasFoto ?? false,
     visitante: visita.visitante,
     documento: visita.documento,
     empresa: visita.empresa ?? "—",
@@ -344,15 +348,20 @@ export function formatHistoryVisitTime(iso: string | null): string {
 /**
  * @param entradaAt - Timestamp ISO de entrada.
  * @param salidaAt - Timestamp ISO de salida.
+ * @param estado - Estado de la visita para calcular visitas activas contra la hora actual.
  * @returns Duracion en formato HH:mm o `—` si faltan datos.
  */
 export function calculateHistoryVisitDuration(
   entradaAt: string | null,
   salidaAt: string | null,
+  estado?: VisitaEstado,
 ): string {
-  if (!entradaAt || !salidaAt) return "—";
+  if (!entradaAt) return "—";
 
-  const diffMs = new Date(salidaAt).getTime() - new Date(entradaAt).getTime();
+  const endAt = estado === "activa" ? new Date() : salidaAt ? new Date(salidaAt) : null;
+  if (!endAt) return "—";
+
+  const diffMs = endAt.getTime() - new Date(entradaAt).getTime();
   if (diffMs < 0) return "—";
 
   const totalMinutes = Math.floor(diffMs / 60_000);

@@ -40,6 +40,10 @@ export interface Persona {
 
   hasFoto: boolean;
 
+  ultimoMotivo: number | null;
+
+  ultimoResponsable: number | null;
+
   createdAt: string;
 
   updatedAt: string;

@@ -32,11 +32,13 @@ import {
 
 interface ProveedorFormState {
   nombre: string;
+  ruc: string;
   activo: boolean;
 }
 
 const EMPTY_FORM: ProveedorFormState = {
   nombre: "",
+  ruc: "",
   activo: true,
 };
 
@@ -86,6 +88,7 @@ export default function ProveedoresPage() {
     setEditing(proveedor);
     setForm({
       nombre: proveedor.nombre,
+      ruc: proveedor.ruc,
       activo: proveedor.activo,
     });
     setDialogOpen(true);
@@ -106,10 +109,16 @@ export default function ProveedoresPage() {
       return;
     }
 
+    if (!form.ruc.trim()) {
+      toast.error("El RUC es obligatorio.", "Proveedores");
+      return;
+    }
+
     setSaving(true);
     try {
       const payload: CrearProveedorPayload = {
         nombre: form.nombre.trim(),
+        ruc: form.ruc.trim(),
         activo: form.activo,
       };
 
@@ -281,6 +290,14 @@ export default function ProveedoresPage() {
               id="proveedor-nombre"
               value={form.nombre}
               onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+              required
+            />
+          </Field>
+          <Field id="proveedor-ruc" label="RUC">
+            <Input
+              id="proveedor-ruc"
+              value={form.ruc}
+              onChange={(e) => setForm({ ...form, ruc: e.target.value })}
               required
             />
           </Field>

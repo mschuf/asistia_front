@@ -2,8 +2,8 @@
  * @file VisitasPage.tsx
  * @description CRUD de visitas del módulo Portería.
  */
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Plus } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
 import {
   actualizarVisita,
   crearVisita,
@@ -11,26 +11,34 @@ import {
   finalizarVisita,
   listarVisitasActivas,
   requiereCancelacionAlEliminar,
+  subirFotoVisita,
   type CrearVisitaPayload,
   type Visita,
   type VisitaEstado,
 } from "@/api/visitas";
-import { obtenerPersona } from "@/api/personas";
+import { obtenerPersona, type Persona } from "@/api/personas";
+import { PersonaFormDialog } from "@/components/personas/PersonaFormDialog";
 import { ApiError } from "@/api/apiClient";
 import { VisitasFilters } from "@/components/visitas/VisitasFilters";
 import { VisitasTable } from "@/components/visitas/VisitasTable";
 import { VisitaTarjetaColorSelector } from "@/components/visitas/VisitaTarjetaColorSelector";
+import { VisitaWebcamCapture } from "@/components/visitas/VisitaWebcamCapture";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { ServerSearchableSelect } from "@/components/ui/server-searchable-select";
+import {
+  ServerSearchableSelect,
+  type ServerSearchableSelectHandle,
+} from "@/components/ui/server-searchable-select";
+import type { SearchableSelectOption } from "@/components/ui/searchable-select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/context/ToastContext";
 import { useRegisterPorteriaRefresh } from "@/context/PorteriaRefreshContext";
 import { useVisitas } from "@/hooks/useVisitas";
 import {
+  buildPersonaLabel,
   loadVisitPersonCandidateOptions,
   parsePersonaSelectValue,
   resolveCandidateOption,
@@ -47,6 +55,7 @@ import {
   parseResponsableSelectValue,
   resolveResponsableCandidateOption,
   resolveResponsableFullName,
+  toResponsableSelectValue,
 } from "@/lib/visitas-responsables";
 import { personaTieneProveedorValido } from "@/lib/porteria-proveedores";
 import {
@@ -83,6 +92,13 @@ interface VisitaFormState {
   observaciones: string;
 }
 
+interface VisitaRequiredErrors {
+  personaId: boolean;
+  motivoVisitaId: boolean;
+  responsableValue: boolean;
+  credencialNumero: boolean;
+}
+
 const EMPTY_FORM: VisitaFormState = {
   personaId: "",
   motivoVisitaId: "",
@@ -94,6 +110,14 @@ const EMPTY_FORM: VisitaFormState = {
   salidaAt: "",
   observaciones: "",
 };
+
+const EMPTY_REQUIRED_ERRORS: VisitaRequiredErrors = {
+  personaId: false,
+  motivoVisitaId: false,
+  responsableValue: false,
+  credencialNumero: false,
+};
+const TARJETA_COLOR_LABEL_ID = "visita-tarjeta-color-label";
 
 /** Convierte ISO a valor para input datetime-local. */
 function toDateTimeInput(value: string | null): string {
@@ -164,6 +188,7 @@ export default function VisitasPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [finalizeOpen, setFinalizeOpen] = useState(false);
+  const [personaCreateOpen, setPersonaCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Visita | null>(null);
   const [confirmVisita, setConfirmVisita] = useState<Visita | null>(null);
   const [finalizeVisitaTarget, setFinalizeVisitaTarget] = useState<Visita | null>(null);
@@ -173,6 +198,13 @@ export default function VisitasPage() {
   const [saving, setSaving] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [finalizeLoading, setFinalizeLoading] = useState(false);
+  const [capturedPhoto, setCapturedPhoto] = useState<File | null>(null);
+  const [personaSelectedOption, setPersonaSelectedOption] = useState<SearchableSelectOption | null>(null);
+  const [requiredErrors, setRequiredErrors] = useState<VisitaRequiredErrors>(EMPTY_REQUIRED_ERRORS);
+  const personaRef = useRef<ServerSearchableSelectHandle | null>(null);
+  const motivoRef = useRef<ServerSearchableSelectHandle | null>(null);
+  const responsableRef = useRef<ServerSearchableSelectHandle | null>(null);
+  const credencialRef = useRef<HTMLInputElement | null>(null);
 
   const numericLimit =
     typeof pagination.limit === "number" ? pagination.limit : PORTERIA_PAGE_SIZE_OPTIONS[0];
@@ -241,6 +273,10 @@ export default function VisitasPage() {
 
   const openCreateDialog = useCallback(() => {
     setEditing(null);
+    setCapturedPhoto(null);
+    setPersonaCreateOpen(false);
+    setPersonaSelectedOption(null);
+    setRequiredErrors(EMPTY_REQUIRED_ERRORS);
     setForm({ ...EMPTY_FORM, ...defaultCreateDateTimes() });
     setDialogOpen(true);
     void refreshVisitasActivas();
@@ -249,6 +285,9 @@ export default function VisitasPage() {
   const openEditDialog = useCallback(
     (visita: Visita) => {
       setEditing(visita);
+      setPersonaCreateOpen(false);
+      setPersonaSelectedOption(null);
+      setRequiredErrors(EMPTY_REQUIRED_ERRORS);
       setForm({
         personaId: toPersonaSelectValue(visita.personaId),
         motivoVisitaId: visita.motivoVisitaId
@@ -275,31 +314,118 @@ export default function VisitasPage() {
     }));
   }, []);
 
+  const handlePersonaChange = useCallback(
+    async (value: string) => {
+      setForm((current) => ({ ...current, personaId: value }));
+      setRequiredErrors((current) => ({ ...current, personaId: false }));
+
+      if (editing) {
+        return;
+      }
+
+      const personaId = parsePersonaSelectValue(value);
+      if (personaId == null) {
+        setForm((current) => ({
+          ...current,
+          motivoVisitaId: "",
+          responsableValue: "",
+        }));
+        return;
+      }
+
+      try {
+        const persona = await obtenerPersona(personaId);
+        setForm((current) => {
+          if (current.personaId !== value) {
+            return current;
+          }
+
+          return {
+            ...current,
+            motivoVisitaId: persona.ultimoMotivo
+              ? toMotivoVisitaSelectValue(persona.ultimoMotivo)
+              : "",
+            responsableValue: persona.ultimoResponsable
+              ? toResponsableSelectValue(persona.ultimoResponsable)
+              : "",
+          };
+        });
+      } catch (personaError) {
+        const message =
+          personaError instanceof ApiError
+            ? personaError.message
+            : "No se pudieron cargar los últimos datos de la persona.";
+        toast.error(message, "Visitas");
+      }
+    },
+    [editing, toast],
+  );
+
+  const handlePersonaCreated = useCallback((persona: Persona) => {
+    const value = toPersonaSelectValue(persona.id);
+    setForm((current) => ({
+      ...current,
+      personaId: value,
+      motivoVisitaId: "",
+      responsableValue: "",
+    }));
+    setPersonaSelectedOption({
+      value,
+      label: buildPersonaLabel(persona.nombre, persona.documento),
+      searchText: `${persona.nombre} ${persona.documento}`.toLowerCase(),
+    });
+    setRequiredErrors((current) => ({ ...current, personaId: false }));
+    setPersonaCreateOpen(false);
+  }, []);
+
   const handleSave = useCallback(async () => {
     const personaId = parsePersonaSelectValue(form.personaId);
-    if (personaId == null) {
-      toast.error("Seleccione una persona.", "Visitas");
-      return;
-    }
     const motivoVisitaId = parseMotivoVisitaSelectValue(form.motivoVisitaId);
-    if (motivoVisitaId == null) {
+    const responsableValue = form.responsableValue.trim();
+    const responsableId = parseResponsableSelectValue(form.responsableValue);
+    const credencialNumero = normalizeCredencialNumero(form.credencialNumero);
+    const nextRequiredErrors: VisitaRequiredErrors = {
+      personaId: personaId == null,
+      motivoVisitaId: motivoVisitaId == null,
+      responsableValue: !responsableValue,
+      credencialNumero: !credencialNumero,
+    };
+    setRequiredErrors(nextRequiredErrors);
+
+    if (nextRequiredErrors.personaId) {
+      toast.error("Seleccione una persona.", "Visitas");
+      personaRef.current?.focusAndOpen();
+      return;
+    }
+    if (nextRequiredErrors.motivoVisitaId) {
       toast.error("Seleccione un motivo de visita.", "Visitas");
+      motivoRef.current?.focusAndOpen();
       return;
     }
-    if (!form.responsableValue.trim()) {
+    if (nextRequiredErrors.responsableValue) {
       toast.error("El responsable es obligatorio.", "Visitas");
+      responsableRef.current?.focusAndOpen();
       return;
     }
-    if (!editing && parseResponsableSelectValue(form.responsableValue) == null) {
+    if (!editing && responsableId == null) {
       toast.error("Seleccione un responsable de GLPI.", "Visitas");
+      responsableRef.current?.focusAndOpen();
+      return;
+    }
+    if (nextRequiredErrors.credencialNumero) {
+      toast.error("El número de tarjeta es obligatorio.", "Visitas");
+      credencialRef.current?.focus();
       return;
     }
     if (!form.tarjetaColor) {
       toast.error("Seleccione el color de tarjeta.", "Visitas");
+      const tarjetaColorLabel = document.getElementById(TARJETA_COLOR_LABEL_ID);
+      tarjetaColorLabel?.focus();
       return;
     }
-
-    const credencialNumero = normalizeCredencialNumero(form.credencialNumero);
+    if (personaId == null || motivoVisitaId == null) {
+      return;
+    }
     if (
       form.estado === "activa" &&
       credencialNumero &&
@@ -333,16 +459,20 @@ export default function VisitasPage() {
         ? (await resolveResponsableFullName(form.responsableValue)) || form.responsableValue.trim()
         : await resolveResponsableFullName(form.responsableValue);
 
+      const isClosingVisit =
+        editing != null && form.estado === "finalizada" && editing.estado !== "finalizada";
+
       const payload: CrearVisitaPayload = {
         personaId,
         motivoVisitaId,
         responsableNombre,
+        responsableId: responsableId ?? undefined,
         estado: form.estado,
         zonasPermitidas: resolveZonasFromTarjetaColor(form.tarjetaColor),
         credencialNumero: credencialNumero || undefined,
         tarjetaColor: form.tarjetaColor,
         entradaAt: fromDateTimeInput(form.entradaAt),
-        salidaAt: fromDateTimeInput(form.salidaAt),
+        salidaAt: isClosingVisit ? new Date().toISOString() : fromDateTimeInput(form.salidaAt),
         observaciones: form.observaciones.trim() || undefined,
       };
 
@@ -350,7 +480,18 @@ export default function VisitasPage() {
         await actualizarVisita(editing.id, payload);
         toast.success("Visita actualizada.", "Visitas");
       } else {
-        await crearVisita(payload);
+        const visita = await crearVisita(payload);
+        if (capturedPhoto) {
+          try {
+            await subirFotoVisita(visita.id, capturedPhoto);
+          } catch (photoError) {
+            const message =
+              photoError instanceof ApiError
+                ? photoError.message
+                : "No se pudo guardar la foto de la visita.";
+            toast.error(`${message} La visita fue creada igualmente.`, "Visitas");
+          }
+        }
         toast.success("Visita creada.", "Visitas");
       }
 
@@ -362,7 +503,7 @@ export default function VisitasPage() {
     } finally {
       setSaving(false);
     }
-  }, [editing, form, occupiedCredenciales, reload, toast, visitasActivas]);
+  }, [capturedPhoto, editing, form, occupiedCredenciales, reload, toast, visitasActivas]);
 
   const handleDelete = useCallback(async () => {
     if (!confirmVisita) return;
@@ -405,19 +546,15 @@ export default function VisitasPage() {
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-base font-semibold">Visitas</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Visitas del día — gestión de ingresos, permisos por zona y responsables.
-          </p>
+        <div className="w-full min-w-0 flex-1">
+          <VisitasFilters
+            filters={filters}
+            onChange={setFilters}
+            onApply={applyFilters}
+            onCreateVisit={openCreateDialog}
+          />
         </div>
-        <Button type="button" onClick={openCreateDialog}>
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          Nueva visita
-        </Button>
       </div>
-
-      <VisitasFilters filters={filters} onChange={setFilters} onApply={applyFilters} />
 
       {error ? (
         <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>
@@ -502,7 +639,14 @@ export default function VisitasPage() {
 
       <Dialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) {
+            setCapturedPhoto(null);
+            setPersonaCreateOpen(false);
+            setRequiredErrors(EMPTY_REQUIRED_ERRORS);
+          }
+        }}
         title={editing ? "Editar visita" : "Nueva visita"}
         description={
           editing
@@ -513,32 +657,56 @@ export default function VisitasPage() {
       >
         <form
           className="min-w-0 space-y-4"
+          noValidate
           onSubmit={(event) => {
             event.preventDefault();
             void handleSave();
           }}
         >
-          <Field id="visita-persona" label="Persona">
-            <ServerSearchableSelect
-              id="visita-persona"
-              value={form.personaId}
-              onChange={(value) => setForm({ ...form, personaId: value })}
-              onLoadOptions={loadPersonCandidateOptions}
-              resolveSelectedOption={resolvePersonCandidateOption}
-              placeholder="Seleccionar persona"
-              searchPlaceholder="Buscar por nombre…"
-              noResultsText="Sin resultados"
-              loadingText="Buscando…"
-              disabled={saving}
-            />
+          <Field id="visita-persona" label="Persona" required>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <ServerSearchableSelect
+                  ref={personaRef}
+                  id="visita-persona"
+                  value={form.personaId}
+                  onChange={(value) => {
+                    void handlePersonaChange(value);
+                  }}
+                  onLoadOptions={loadPersonCandidateOptions}
+                  resolveSelectedOption={resolvePersonCandidateOption}
+                  defaultSelectedOption={personaSelectedOption}
+                  placeholder="Seleccionar persona"
+                  searchPlaceholder="Buscar por nombre…"
+                  noResultsText="Sin resultados"
+                  loadingText="Buscando…"
+                  disabled={saving}
+                  invalid={requiredErrors.personaId}
+                />
+              </div>
+              {!editing ? (
+                <Button
+                  type="button"
+                  onClick={() => setPersonaCreateOpen(true)}
+                  disabled={saving}
+                >
+                  <Plus className="h-4 w-4" aria-hidden="true" />
+                  Nueva persona
+                </Button>
+              ) : null}
+            </div>
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <Field id="visita-motivo" label="Motivo" className="sm:col-span-2">
+            <Field id="visita-motivo" label="Motivo" className="sm:col-span-2" required>
               <ServerSearchableSelect
+                ref={motivoRef}
                 id="visita-motivo"
                 value={form.motivoVisitaId}
-                onChange={(value) => setForm({ ...form, motivoVisitaId: value })}
+                onChange={(value) => {
+                  setForm((current) => ({ ...current, motivoVisitaId: value }));
+                  setRequiredErrors((current) => ({ ...current, motivoVisitaId: false }));
+                }}
                 onLoadOptions={loadMotivoSelectOptions}
                 resolveSelectedOption={editing ? resolveEditMotivoSelectOption : resolveMotivoSelectOption}
                 placeholder="Seleccionar motivo"
@@ -546,13 +714,18 @@ export default function VisitasPage() {
                 noResultsText="Sin resultados"
                 loadingText="Buscando…"
                 disabled={saving}
+                invalid={requiredErrors.motivoVisitaId}
               />
             </Field>
-            <Field id="visita-responsable" label="Responsable">
+            <Field id="visita-responsable" label="Responsable" required>
               <ServerSearchableSelect
+                ref={responsableRef}
                 id="visita-responsable"
                 value={form.responsableValue}
-                onChange={(value) => setForm({ ...form, responsableValue: value })}
+                onChange={(value) => {
+                  setForm((current) => ({ ...current, responsableValue: value }));
+                  setRequiredErrors((current) => ({ ...current, responsableValue: false }));
+                }}
                 onLoadOptions={loadCreateResponsableOptions}
                 resolveSelectedOption={
                   editing ? resolveEditResponsableOption : resolveCreateResponsableOption
@@ -562,6 +735,7 @@ export default function VisitasPage() {
                 noResultsText="Sin resultados"
                 loadingText="Buscando…"
                 disabled={saving}
+                invalid={requiredErrors.responsableValue}
               />
             </Field>
             {editing ? (
@@ -578,11 +752,20 @@ export default function VisitasPage() {
                 </Select>
               </Field>
             ) : null}
-            <Field id="visita-credencial" label="Número de Tarjeta">
+            <Field id="visita-credencial" label="Número de Tarjeta" required>
               <Input
+                ref={credencialRef}
                 id="visita-credencial"
                 value={form.credencialNumero}
-                onChange={(e) => setForm({ ...form, credencialNumero: e.target.value })}
+                onChange={(e) => {
+                  setForm((current) => ({ ...current, credencialNumero: e.target.value }));
+                  setRequiredErrors((current) => ({ ...current, credencialNumero: false }));
+                }}
+                className={
+                  requiredErrors.credencialNumero
+                    ? "border-destructive focus-visible:ring-destructive"
+                    : undefined
+                }
               />
             </Field>
             <Field id="visita-entrada" label="Entrada">
@@ -604,10 +787,18 @@ export default function VisitasPage() {
           </div>
 
           <VisitaTarjetaColorSelector
+            labelId={TARJETA_COLOR_LABEL_ID}
             value={form.tarjetaColor}
             onChange={handleTarjetaColorChange}
             disabled={saving}
           />
+
+          {!editing ? (
+            <VisitaWebcamCapture
+              onCapture={setCapturedPhoto}
+              disabled={saving}
+            />
+          ) : null}
 
           <Field id="visita-observaciones" label="Observaciones">
             <Textarea
@@ -630,6 +821,19 @@ export default function VisitasPage() {
         </form>
       </Dialog>
 
+      <PersonaFormDialog
+        open={personaCreateOpen}
+        onOpenChange={setPersonaCreateOpen}
+        onSaved={(persona, mode) => {
+          if (mode === "create") {
+            handlePersonaCreated(persona);
+          }
+        }}
+        toastScope="Visitas"
+        stacked
+        captureEscape
+      />
+
       <Dialog
         open={finalizeOpen}
         onOpenChange={(open) => {
@@ -643,6 +847,13 @@ export default function VisitasPage() {
         description={`¿Registrar la salida de ${finalizeVisitaTarget?.visitante} (visita #${finalizeVisitaTarget?.id})?`}
       >
         <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            La hora de salida se registrará al momento de confirmar:{" "}
+            <span className="font-medium tabular-nums text-foreground">
+              {new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+            </span>
+            .
+          </p>
           <Field id="finalizar-observaciones" label="Observaciones">
             <Textarea
               id="finalizar-observaciones"

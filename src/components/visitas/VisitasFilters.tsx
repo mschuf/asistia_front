@@ -3,7 +3,7 @@
  * @description Barra de búsqueda y filtros avanzados del CRUD de visitas.
  */
 import { useCallback, useState } from "react";
-import { ChevronDown, Search } from "lucide-react";
+import { ChevronDown, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -31,6 +31,7 @@ interface VisitasFiltersProps {
   filters: VisitasFilterState;
   onChange: (filters: VisitasFilterState) => void;
   onApply: (filters?: VisitasFilterState) => void | Promise<void>;
+  onCreateVisit?: () => void;
 }
 
 const TEXT_FIELDS: Array<{ key: "documento" | "responsable"; label: string }> = [
@@ -43,7 +44,7 @@ const MOTIVO_EMPTY_OPTION = { value: "", label: "Todos los motivos" };
 const RESPONSABLE_EMPTY_OPTION = { value: "", label: "Todos los responsables" };
 
 /** Filtros de visitas con búsqueda rápida y panel avanzado. */
-export function VisitasFilters({ filters, onChange, onApply }: VisitasFiltersProps) {
+export function VisitasFilters({ filters, onChange, onApply, onCreateVisit }: VisitasFiltersProps) {
   const [expanded, setExpanded] = useState(false);
 
   const update = useCallback(
@@ -62,31 +63,39 @@ export function VisitasFilters({ filters, onChange, onApply }: VisitasFiltersPro
 
   return (
     <div className="overflow-visible rounded-md border bg-card p-3">
-      <div className="relative pb-0.5">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={filters.search}
-          onChange={(event) => update("search", event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key !== "Enter") return;
-            event.preventDefault();
-            handleApply();
-          }}
-          placeholder="Buscar visita por visitante, documento, empresa, motivo..."
-          className="pl-9 pr-10"
-        />
-        <button
-          type="button"
-          onClick={() => setExpanded((current) => !current)}
-          aria-expanded={expanded}
-          aria-label={expanded ? "Ocultar filtros avanzados" : "Mostrar filtros avanzados"}
-          className="absolute right-1 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        >
-          <ChevronDown
-            className={cn("h-4 w-4 transition-transform duration-200", expanded && "rotate-180")}
-            aria-hidden="true"
+      <div className="flex items-center gap-2 pb-0.5">
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={filters.search}
+            onChange={(event) => update("search", event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter") return;
+              event.preventDefault();
+              handleApply();
+            }}
+            placeholder="Buscar visita por visitante, documento, empresa, motivo..."
+            className="pl-9 pr-10"
           />
-        </button>
+          <button
+            type="button"
+            onClick={() => setExpanded((current) => !current)}
+            aria-expanded={expanded}
+            aria-label={expanded ? "Ocultar filtros avanzados" : "Mostrar filtros avanzados"}
+            className="absolute right-1 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <ChevronDown
+              className={cn("h-4 w-4 transition-transform duration-200", expanded && "rotate-180")}
+              aria-hidden="true"
+            />
+          </button>
+        </div>
+        {onCreateVisit ? (
+          <Button type="button" onClick={onCreateVisit}>
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Nueva visita
+          </Button>
+        ) : null}
       </div>
 
       {expanded ? (

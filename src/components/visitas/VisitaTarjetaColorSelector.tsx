@@ -15,6 +15,7 @@ interface VisitaTarjetaColorSelectorProps {
   value: VisitaTarjetaColor | "";
   onChange: (color: VisitaTarjetaColor) => void;
   disabled?: boolean;
+  labelId?: string;
 }
 
 interface ColorOption {
@@ -66,12 +67,19 @@ const COLOR_OPTIONS: ColorOption[] = [
 ];
 
 /** Selector de color de tarjeta con accesos asociados por área. */
-export function VisitaTarjetaColorSelector({ value, onChange, disabled }: VisitaTarjetaColorSelectorProps) {
+export function VisitaTarjetaColorSelector({
+  value,
+  onChange,
+  disabled,
+  labelId,
+}: VisitaTarjetaColorSelectorProps) {
   const hasSelection = value !== "";
 
   return (
     <div className="space-y-1.5">
-      <Label>Color de tarjeta</Label>
+      <Label id={labelId} tabIndex={-1}>
+        Color de tarjeta
+      </Label>
       <div className="grid gap-2 sm:grid-cols-3">
         {COLOR_OPTIONS.map((option) => {
           const selected = value === option.id;
