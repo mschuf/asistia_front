@@ -3,7 +3,8 @@
  * @description Página principal de tickets con pestañas indicadores, crear e historial.
  */
 import { BarChart3, FilePlus2, History, RefreshCw } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { MobileRefreshFab } from "@/components/layout/MobileRefreshFab";
 import { TiMetrics } from "@/components/tickets/TiMetrics";
@@ -69,10 +70,12 @@ const desktopTabs: Array<{
  * @returns Vista completa de gestión de tickets.
  */
 export default function TicketsPage() {
+  const navigate = useNavigate();
   const { user, role, isTechnician } = useAuth();
   const refreshMetricsRef = useRef<(() => Promise<void>) | undefined>(
     undefined,
   );
+  const ersPagePrefetchedRef = useRef(false);
 
   const {
     tab,
@@ -153,6 +156,12 @@ export default function TicketsPage() {
     mode: "solved" | "closed";
   } | null>(null);
   const [assignTarget, setAssignTarget] = useState<AsistiaTicket | null>(null);
+
+  useEffect(() => {
+    if (tab !== "historial" || ersPagePrefetchedRef.current) return;
+    ersPagePrefetchedRef.current = true;
+    void import("./NuevoErsPage");
+  }, [tab]);
 
   /**
    * Intercepta resolución de técnicos para abrir modal con nota obligatoria.
@@ -400,6 +409,9 @@ export default function TicketsPage() {
                 onStatusChange={handleTicketStatusChange}
                 statusChanging={statusChanging}
                 onAssignClick={isTechnician ? setAssignTarget : undefined}
+                onEscalate={(ticket) =>
+                  navigate(`/ers/nuevo?id=${ticket.id}`, { state: { prefillTicket: ticket } })
+                }
                 assigning={assigning}
                 statusActionIds={isTechnician ? undefined : ["closed"]}
               />

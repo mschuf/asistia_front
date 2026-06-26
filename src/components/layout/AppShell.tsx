@@ -111,6 +111,7 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   const [searchParams] = useSearchParams();
   const currentTab = readNavTab(searchParams.get("tab"));
   const onTicketsRoute = location.pathname.startsWith("/irs");
+  const onErsRoute = location.pathname.startsWith("/ers");
   const onPorteriaRoute = location.pathname.startsWith("/porteria");
   const onSuperAdminRoute = location.pathname.startsWith("/admin");
   const isTicketsHistorialLayout = onTicketsRoute && currentTab === "historial";
@@ -119,8 +120,8 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   const [superAdminExpanded, setSuperAdminExpanded] = useState(onSuperAdminRoute);
 
   useEffect(() => {
-    if (onTicketsRoute) setIrsExpanded(true);
-  }, [onTicketsRoute]);
+    if (onTicketsRoute || onErsRoute) setIrsExpanded(true);
+  }, [onTicketsRoute, onErsRoute]);
 
   useEffect(() => {
     if (onPorteriaRoute) setPorteriaExpanded(true);
@@ -244,6 +245,21 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
                   </button>
                 );
               })}
+              <button
+                type="button"
+                onClick={() => {
+                  navigate("/ers");
+                  setOpen(false);
+                }}
+                aria-current={onErsRoute ? "page" : undefined}
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                  onErsRoute && "bg-muted text-foreground",
+                )}
+              >
+                <ClipboardList className="h-4 w-4" aria-hidden="true" />
+                ERS / Proyectos
+              </button>
             </NavSection>
           ) : null}
           {isPorteriaUser ? (

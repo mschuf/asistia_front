@@ -57,6 +57,8 @@ const TicketCreatedReportPage = lazy(() => import("./pages/TicketCreatedReportPa
 
 const PorteriaReportPage = lazy(() => import("./pages/PorteriaReportPage"));
 const PorteriaAuditReportPage = lazy(() => import("./pages/PorteriaAuditReportPage"));
+const ErsPage = lazy(() => import("./pages/ErsPage"));
+const NuevoErsPage = lazy(() => import("./pages/NuevoErsPage"));
 
 
 
@@ -130,6 +132,22 @@ export default function App() {
             element={
               <TicketsRoute>
                 <AssistantPage />
+              </TicketsRoute>
+            }
+          />
+          <Route
+            path="ers"
+            element={
+              <TicketsRoute>
+                <ErsPage />
+              </TicketsRoute>
+            }
+          />
+          <Route
+            path="ers/nuevo"
+            element={
+              <TicketsRoute>
+                <NuevoErsPage />
               </TicketsRoute>
             }
           />

@@ -41,6 +41,7 @@ interface TicketActionsProps {
   onStatusChange?: (ticketId: number, status: AsistiaTicketStatus) => void;
   pendingStatus?: AsistiaTicketStatus | null;
   onAssignClick?: () => void;
+  onEscalate?: () => void;
   assignPending?: boolean;
   /** Si se define, limita qué botones de estado se muestran (p. ej. solo `closed` para solicitantes). */
   statusActionIds?: TicketStatusActionId[];
@@ -60,6 +61,7 @@ export function TicketActions({
   onStatusChange,
   pendingStatus = null,
   onAssignClick,
+  onEscalate,
   assignPending = false,
   statusActionIds,
 }: TicketActionsProps) {
@@ -67,9 +69,14 @@ export function TicketActions({
   const finalized = isTicketFinalized(ticket);
   const closed = isTicketClosed(ticket);
   const assignDisabled = finalized || !onAssignClick || (hasPendingAction && !assignPending);
-  const visibleStatusActions = statusActionIds
+  const filteredStatusActions = statusActionIds
     ? actions.filter((action) => statusActionIds.includes(action.id))
     : actions;
+  const waitingAction = actions.find((action) => action.id === "waiting");
+  const visibleStatusActions =
+    onEscalate && waitingAction && !filteredStatusActions.some((action) => action.id === "waiting")
+      ? [...filteredStatusActions, waitingAction]
+      : filteredStatusActions;
 
   return (
     <div className="grid w-fit grid-cols-2 gap-3 md:flex md:flex-nowrap md:items-center">
@@ -104,8 +111,32 @@ export function TicketActions({
         const isPending = pendingStatus === status;
         const canTransition = canTransitionTicketStatus(ticket.status, status);
         const actionBlocked = id === "closed" ? closed : finalized;
+        if (id === "waiting") {
+          const disabled = finalized || !onEscalate || hasPendingAction;
+          return (
+            <button
+              key={id}
+              type="button"
+              disabled={disabled}
+              aria-label={label}
+              title={
+                finalized
+                  ? "No hay acciones disponibles para tickets resueltos o cerrados"
+                  : label
+              }
+              onClick={onEscalate}
+              className={cn(
+                actionButtonClass,
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+                "disabled:cursor-not-allowed disabled:opacity-40",
+                className
+              )}
+            >
+              <Icon className={actionIconClass} aria-hidden="true" />
+            </button>
+          );
+        }
         const disabled =
-          id === "waiting" ||
           actionBlocked ||
           !onStatusChange ||
           !canTransition ||

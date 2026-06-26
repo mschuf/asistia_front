@@ -23,6 +23,7 @@ interface TicketDetailModalProps {
   onStatusChange?: (ticketId: number, status: AsistiaTicketStatus) => void;
   pendingStatus?: AsistiaTicketStatus | null;
   onAssignClick?: (ticket: AsistiaTicket) => void;
+  onEscalate?: (ticket: AsistiaTicket) => void;
   assigning?: { ticketId: number } | null;
   statusActionIds?: TicketStatusActionId[];
 }
@@ -53,6 +54,7 @@ export function TicketDetailModal({
   onStatusChange,
   pendingStatus = null,
   onAssignClick,
+  onEscalate,
   assigning = null,
   statusActionIds,
 }: TicketDetailModalProps) {
@@ -170,6 +172,7 @@ export function TicketDetailModal({
                 onAssignClick={
                   onAssignClick ? () => onAssignClick(displayTicket) : undefined
                 }
+                onEscalate={onEscalate ? () => onEscalate(displayTicket) : undefined}
                 assignPending={assigning?.ticketId === Number(displayTicket.id)}
                 statusActionIds={statusActionIds}
               />

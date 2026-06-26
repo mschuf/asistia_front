@@ -74,6 +74,7 @@ interface TicketTableProps {
   onStatusChange?: (ticketId: number, status: AsistiaTicketStatus) => void;
   statusChanging?: { ticketId: number; status: AsistiaTicketStatus } | null;
   onAssignClick?: (ticket: AsistiaTicket) => void;
+  onEscalate?: (ticket: AsistiaTicket) => void;
   assigning?: { ticketId: number } | null;
   statusActionIds?: TicketStatusActionId[];
 }
@@ -208,6 +209,7 @@ export function TicketTable({
   onStatusChange,
   statusChanging = null,
   onAssignClick,
+  onEscalate,
   assigning = null,
   statusActionIds,
 }: TicketTableProps) {
@@ -353,6 +355,7 @@ export function TicketTable({
                       onAssignClick={
                         onAssignClick ? () => handleAssignClick(ticket) : undefined
                       }
+                      onEscalate={onEscalate ? () => onEscalate(ticket) : undefined}
                       assignPending={assigning?.ticketId === Number(ticket.id)}
                       statusActionIds={statusActionIds}
                     />
@@ -399,6 +402,7 @@ export function TicketTable({
           : null
       }
       onAssignClick={showActionsColumn && onAssignClick ? handleAssignClick : undefined}
+      onEscalate={showActionsColumn && onEscalate ? onEscalate : undefined}
       assigning={assigning}
       statusActionIds={statusActionIds}
     />

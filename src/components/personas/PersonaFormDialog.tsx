@@ -29,7 +29,7 @@ import {
   resolveProveedorSelectOption,
 } from "@/lib/porteria-proveedores";
 import { PersonaCreatePhotoField } from "./PersonaCreatePhotoField";
-import { PersonaMrzScannerDialog } from "./PersonaMrzScannerDialog";
+import { PersonaMrzScannerDialog } from "@/components/personas/PersonaMrzScannerDialog";
 import { PersonaPhotoField } from "./PersonaPhotoField";
 
 interface PersonaFormState {
