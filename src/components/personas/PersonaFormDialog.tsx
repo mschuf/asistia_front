@@ -3,6 +3,7 @@
  * @description Modal reutilizable para crear y editar personas del módulo Portería.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Camera } from "lucide-react";
 import {
   actualizarPersona,
   crearPersona,
@@ -28,6 +29,7 @@ import {
   resolveProveedorSelectOption,
 } from "@/lib/porteria-proveedores";
 import { PersonaCreatePhotoField } from "./PersonaCreatePhotoField";
+import { PersonaMrzScannerDialog } from "./PersonaMrzScannerDialog";
 import { PersonaPhotoField } from "./PersonaPhotoField";
 
 interface PersonaFormState {
@@ -102,6 +104,7 @@ export function PersonaFormDialog({
   const [photoError, setPhotoError] = useState("");
   const [photoLoading, setPhotoLoading] = useState(false);
   const [requiredErrors, setRequiredErrors] = useState<PersonaRequiredErrors>(EMPTY_REQUIRED_ERRORS);
+  const [mrzScannerOpen, setMrzScannerOpen] = useState(false);
   const photoPreviewUrlRef = useRef<string | null>(null);
   const nombreRef = useRef<HTMLInputElement | null>(null);
   const documentoRef = useRef<HTMLInputElement | null>(null);
@@ -136,10 +139,12 @@ export function PersonaFormDialog({
 
     if (!editing) {
       setForm(EMPTY_FORM);
+      setMrzScannerOpen(false);
       resetPhotoState();
       return;
     }
 
+    setMrzScannerOpen(false);
     resetPhotoState();
     setForm({
       nombre: editing.nombre,
@@ -321,6 +326,23 @@ export function PersonaFormDialog({
     toastScope,
   ]);
 
+  const handleMrzDetected = useCallback(
+    ({ fullName, documentNumber }: { fullName: string; documentNumber: string }) => {
+      setForm((current) => ({
+        ...current,
+        nombre: fullName || current.nombre,
+        documento: documentNumber || current.documento,
+      }));
+      setRequiredErrors((current) => ({
+        ...current,
+        nombre: false,
+        documento: false,
+      }));
+      toast.success("MRZ detectada. Datos completados automáticamente.", toastScope);
+    },
+    [toast, toastScope],
+  );
+
   const dialog = (
     <Dialog
       open={open}
@@ -355,20 +377,34 @@ export function PersonaFormDialog({
             />
           </Field>
           <Field id="persona-documento" label="Documento" required>
-            <Input
-              ref={documentoRef}
-              id="persona-documento"
-              value={form.documento}
-              onChange={(event) => {
-                setForm({ ...form, documento: event.target.value });
-                setRequiredErrors((current) => ({ ...current, documento: false }));
-              }}
-              className={
-                requiredErrors.documento
-                  ? "border-destructive focus-visible:ring-destructive"
-                  : undefined
-              }
-            />
+            <div className="flex items-center gap-2">
+              <Input
+                ref={documentoRef}
+                id="persona-documento"
+                value={form.documento}
+                onChange={(event) => {
+                  setForm({ ...form, documento: event.target.value });
+                  setRequiredErrors((current) => ({ ...current, documento: false }));
+                }}
+                className={
+                  requiredErrors.documento
+                    ? "border-destructive focus-visible:ring-destructive"
+                    : undefined
+                }
+              />
+              {!editing ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="Escanear MRZ con cámara"
+                  onClick={() => setMrzScannerOpen(true)}
+                  disabled={saving}
+                >
+                  <Camera className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              ) : null}
+            </div>
           </Field>
           <Field id="persona-proveedor" label="Proveedor" required>
             <ServerSearchableSelect
@@ -454,8 +490,30 @@ export function PersonaFormDialog({
   );
 
   if (!stacked) {
-    return dialog;
+    return (
+      <>
+        {dialog}
+        {!editing ? (
+          <PersonaMrzScannerDialog
+            open={mrzScannerOpen}
+            onOpenChange={setMrzScannerOpen}
+            onDetected={handleMrzDetected}
+          />
+        ) : null}
+      </>
+    );
   }
 
-  return <div className="relative z-[60]">{dialog}</div>;
+  return (
+    <div className="relative z-[60]">
+      {dialog}
+      {!editing ? (
+        <PersonaMrzScannerDialog
+          open={mrzScannerOpen}
+          onOpenChange={setMrzScannerOpen}
+          onDetected={handleMrzDetected}
+        />
+      ) : null}
+    </div>
+  );
 }
