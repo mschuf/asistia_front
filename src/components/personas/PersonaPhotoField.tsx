@@ -114,9 +114,6 @@ export function PersonaPhotoField({
           </div>
 
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
-          <p className="text-xs text-muted-foreground">
-            Se procesará y comprimirá antes de guardarse. Tamaño máximo final: 15 MB.
-          </p>
         </div>
       </div>
     </Field>

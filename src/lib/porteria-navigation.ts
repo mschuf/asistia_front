@@ -10,6 +10,15 @@ export const PORTERIA_TAB_PATHS: Record<PorteriaTab, string> = {
   historial: "/porteria/historial",
 };
 
+/** @param pathname - Ruta actual. @returns true si la pagina usa encabezado propio sin el titulo global. */
+export function isPorteriaStandalonePage(pathname: string): boolean {
+  return (
+    pathname.startsWith("/porteria/personas") ||
+    pathname.startsWith("/porteria/proveedores") ||
+    pathname.startsWith("/porteria/motivos-visita")
+  );
+}
+
 /** @param pathname - Ruta actual. @returns Tab activa segun la URL, o null si no aplica. */
 export function resolvePorteriaTab(pathname: string): PorteriaTab | null {
   if (!pathname.startsWith("/porteria")) return null;

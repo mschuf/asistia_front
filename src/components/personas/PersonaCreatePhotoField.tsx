@@ -49,34 +49,32 @@ export function PersonaCreatePhotoField({
           }}
           disabled={disabled}
           fileNamePrefix="persona"
+          actionSlot={
+            <>
+              <input
+                ref={fileInputRef}
+                id={fileInputId}
+                type="file"
+                accept={IMAGE_ACCEPT}
+                className="sr-only"
+                disabled={disabled}
+                onChange={handleFileChange}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={disabled}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <ImagePlus className="h-4 w-4" aria-hidden="true" />
+                Seleccionar archivo
+              </Button>
+            </>
+          }
         />
 
-        <div>
-          <input
-            ref={fileInputRef}
-            id={fileInputId}
-            type="file"
-            accept={IMAGE_ACCEPT}
-            className="sr-only"
-            disabled={disabled}
-            onChange={handleFileChange}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={disabled}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <ImagePlus className="h-4 w-4" aria-hidden="true" />
-            Seleccionar archivo
-          </Button>
-        </div>
-
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        <p className="text-xs text-muted-foreground">
-          Se procesará y comprimirá antes de guardarse. Tamaño máximo final: 15 MB.
-        </p>
       </div>
     </Field>
   );

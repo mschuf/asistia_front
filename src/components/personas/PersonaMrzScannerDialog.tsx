@@ -321,8 +321,7 @@ export function PersonaMrzScannerDialog({
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Escanear MRZ de cédula"
-      description="Tomá una foto del documento y se analizará esa imagen para completar los datos."
+      title="Escanear cédula"
       className="max-w-3xl"
     >
       <div className="space-y-3">
@@ -374,10 +373,12 @@ export function PersonaMrzScannerDialog({
           <p>{helpMessage}</p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground">
+            Intentos OCR: {ocrAttempts}. Si no detecta, probá más luz, menos reflejos y acercar la cédula.
+          </p>
           <Button
             type="button"
-            variant="outline"
             onClick={() => void handleCaptureAndScan()}
             disabled={!isReadyToCapture}
           >
@@ -385,10 +386,6 @@ export function PersonaMrzScannerDialog({
             {scanningPhoto ? "Escaneando…" : "Capturar y escanear"}
           </Button>
         </div>
-
-        <p className="text-xs text-muted-foreground">
-          Intentos OCR: {ocrAttempts}. Si no detecta, probá más luz, menos reflejos y acercar la cédula.
-        </p>
       </div>
       <canvas ref={canvasRef} className="hidden" aria-hidden="true" />
     </Dialog>

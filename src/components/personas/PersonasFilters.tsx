@@ -2,7 +2,7 @@
  * @file PersonasFilters.tsx
  * @description Barra de búsqueda y filtros avanzados del CRUD de personas.
  */
-import { useCallback, useState } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { ChevronDown, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ interface PersonasFiltersProps {
   filters: PersonasFilterState;
   onChange: (filters: PersonasFilterState) => void;
   onApply: (filters?: PersonasFilterState) => void;
+  actions?: ReactNode;
 }
 
 const ADVANCED_FIELDS: Array<{ key: keyof Omit<PersonasFilterState, "search" | "activo">; label: string }> = [
@@ -23,7 +24,7 @@ const ADVANCED_FIELDS: Array<{ key: keyof Omit<PersonasFilterState, "search" | "
 ];
 
 /** Filtros de personas con búsqueda rápida y panel avanzado. */
-export function PersonasFilters({ filters, onChange, onApply }: PersonasFiltersProps) {
+export function PersonasFilters({ filters, onChange, onApply, actions }: PersonasFiltersProps) {
   const [expanded, setExpanded] = useState(false);
 
   const update = useCallback(
@@ -35,31 +36,34 @@ export function PersonasFilters({ filters, onChange, onApply }: PersonasFiltersP
 
   return (
     <div className="overflow-visible rounded-md border bg-card p-3">
-      <div className="relative pb-0.5">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={filters.search}
-          onChange={(event) => update("search", event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key !== "Enter") return;
-            event.preventDefault();
-            onApply();
-          }}
-          placeholder="Buscar por ID, nombre, documento, proveedor o email..."
-          className="pl-9 pr-10"
-        />
-        <button
-          type="button"
-          onClick={() => setExpanded((current) => !current)}
-          aria-expanded={expanded}
-          aria-label={expanded ? "Ocultar filtros avanzados" : "Mostrar filtros avanzados"}
-          className="absolute right-1 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        >
-          <ChevronDown
-            className={cn("h-4 w-4 transition-transform duration-200", expanded && "rotate-180")}
-            aria-hidden="true"
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative min-w-0 flex-1 pb-0.5">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={filters.search}
+            onChange={(event) => update("search", event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter") return;
+              event.preventDefault();
+              onApply();
+            }}
+            placeholder="Buscar por ID, nombre, documento, proveedor o email..."
+            className="pl-9 pr-10"
           />
-        </button>
+          <button
+            type="button"
+            onClick={() => setExpanded((current) => !current)}
+            aria-expanded={expanded}
+            aria-label={expanded ? "Ocultar filtros avanzados" : "Mostrar filtros avanzados"}
+            className="absolute right-1 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <ChevronDown
+              className={cn("h-4 w-4 transition-transform duration-200", expanded && "rotate-180")}
+              aria-hidden="true"
+            />
+          </button>
+        </div>
+        {actions ? <div className="shrink-0 pb-0.5">{actions}</div> : null}
       </div>
 
       {expanded ? (

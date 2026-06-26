@@ -348,7 +348,7 @@ export function PersonaFormDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={editing ? "Editar persona" : "Nueva persona"}
-      description="Complete los datos del visitante o empleado."
+      description="Complete los datos del visitante."
       className={stacked ? "z-[60]" : undefined}
     >
       <form

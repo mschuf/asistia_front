@@ -3,7 +3,7 @@
  * @description Vista previa en vivo y captura de foto desde webcam UVC para Portería.
  */
 import { Camera, RefreshCw, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,8 @@ interface WebcamCaptureProps {
   disabled?: boolean;
   fileNamePrefix?: string;
   previewUrl?: string | null;
+  /** Botones extra en la misma fila que Capturar (p. ej. selector de archivo). */
+  actionSlot?: ReactNode;
 }
 
 function pickPreferredDeviceId(devices: MediaDeviceOption[]): string | undefined {
@@ -45,6 +47,7 @@ export function WebcamCapture({
   disabled = false,
   fileNamePrefix = "captura",
   previewUrl = null,
+  actionSlot = null,
 }: WebcamCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -241,18 +244,21 @@ export function WebcamCapture({
 
       {cameraError ? <p className="text-sm text-destructive">{cameraError}</p> : null}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {!activePreviewUrl ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={disabled || loadingCamera || Boolean(cameraError)}
-            onClick={handleCapture}
-          >
-            <Camera className="h-4 w-4" aria-hidden="true" />
-            Capturar
-          </Button>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={disabled || loadingCamera || Boolean(cameraError)}
+              onClick={handleCapture}
+            >
+              <Camera className="h-4 w-4" aria-hidden="true" />
+              Capturar
+            </Button>
+            {actionSlot}
+          </div>
         ) : (
           <>
             <Button type="button" variant="outline" size="sm" disabled={disabled} onClick={handleRetake}>
@@ -266,10 +272,6 @@ export function WebcamCapture({
           </>
         )}
       </div>
-
-      <p className="text-xs text-muted-foreground">
-        Se comprimirá antes de guardarse. Cámara preferida: {CAMERA_LABEL}.
-      </p>
     </div>
   );
 }

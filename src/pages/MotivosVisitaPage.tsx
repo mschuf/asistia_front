@@ -4,6 +4,7 @@
  */
 import { Plus } from "lucide-react";
 import { useCallback, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   activarMotivoVisita,
   actualizarMotivoVisita,
@@ -16,6 +17,7 @@ import {
 import { ApiError } from "@/api/apiClient";
 import { MotivosVisitaFilters } from "@/components/motivos-visita/MotivosVisitaFilters";
 import { MotivosVisitaTable } from "@/components/motivos-visita/MotivosVisitaTable";
+import { PorteriaTabs } from "@/components/porteria/PorteriaTabs";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
@@ -29,6 +31,8 @@ import {
   PORTERIA_PAGE_SIZE_ALL,
   PORTERIA_PAGE_SIZE_OPTIONS,
 } from "@/lib/porteria";
+import { PORTERIA_TAB_PATHS, resolvePorteriaTab } from "@/lib/porteria-navigation";
+import type { PorteriaTab } from "@/types/pages/porteria-page.types";
 
 interface MotivoVisitaFormState {
   nombre: string;
@@ -42,6 +46,9 @@ const EMPTY_FORM: MotivoVisitaFormState = {
 
 /** CRUD de motivos de visita con filtros, orden y paginación. */
 export default function MotivosVisitaPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const tab = resolvePorteriaTab(location.pathname);
   const toast = useToast();
   const {
     items,
@@ -173,7 +180,7 @@ export default function MotivosVisitaPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs text-muted-foreground">Portería</p>
           <h1 className="text-lg font-semibold">Motivos de visita</h1>
@@ -181,13 +188,26 @@ export default function MotivosVisitaPage() {
             Catálogo de motivos para registrar visitas de proveedores al frigorífico.
           </p>
         </div>
-        <Button type="button" onClick={openCreateDialog}>
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          Nuevo motivo
-        </Button>
+
+        <div className="flex w-full shrink-0 items-center gap-2 sm:ml-auto sm:w-auto">
+          <PorteriaTabs
+            value={tab}
+            onChange={(nextTab: PorteriaTab) => navigate(PORTERIA_TAB_PATHS[nextTab])}
+          />
+        </div>
       </div>
 
-      <MotivosVisitaFilters filters={filters} onChange={setFilters} onApply={applyFilters} />
+      <MotivosVisitaFilters
+        filters={filters}
+        onChange={setFilters}
+        onApply={applyFilters}
+        actions={
+          <Button type="button" className="w-full sm:w-auto" onClick={openCreateDialog}>
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Nuevo motivo
+          </Button>
+        }
+      />
 
       {error ? (
         <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>
