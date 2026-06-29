@@ -165,7 +165,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const role = resolveRole(user);
   const isSuperAdmin = Boolean(user?.isSuperAdmin);
-  const isPorteriaUser = Boolean(user?.isPorteriaUser);
   const canAccessTickets = resolveCanAccessTickets(accessFlagsFromUser(user));
 
   const value = useMemo<AuthContextValue>(
@@ -176,13 +175,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       isBootstrapping,
       isTechnician: isTechnicianRole(role),
       isSuperAdmin,
-      isPorteriaUser,
       canAccessTickets,
       login,
       logout,
       clearSession
     }),
-    [user, role, isBootstrapping, isSuperAdmin, isPorteriaUser, canAccessTickets, login, logout, clearSession]
+    [user, role, isBootstrapping, isSuperAdmin, canAccessTickets, login, logout, clearSession]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

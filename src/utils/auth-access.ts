@@ -6,18 +6,8 @@ import type { AuthUser } from "../types/auth";
 
 /** Flags mínimos para evaluar permisos de módulos. */
 export interface AccessFlags {
-  isPorteriaUser: boolean;
   role: AuthUser["role"] | null;
   isSuperAdmin: boolean;
-}
-
-/**
- * Indica si el usuario pertenece solo al grupo portería (sin rol TI ni super-admin).
- * @param flags - Flags de sesión del usuario.
- * @returns `true` si debe acceder únicamente al módulo Portería.
- */
-export function isPorteriaOnlyUser(flags: AccessFlags): boolean {
-  return Boolean(flags.isPorteriaUser && flags.role === "final_user" && !flags.isSuperAdmin);
 }
 
 /**
@@ -26,7 +16,7 @@ export function isPorteriaOnlyUser(flags: AccessFlags): boolean {
  * @returns `true` si puede ver y usar tickets.
  */
 export function canAccessTickets(flags: AccessFlags): boolean {
-  return !isPorteriaOnlyUser(flags);
+  return Boolean(flags.role);
 }
 
 /**
@@ -34,8 +24,8 @@ export function canAccessTickets(flags: AccessFlags): boolean {
  * @param flags - Flags de sesión del usuario.
  * @returns Ruta por defecto para usuarios autenticados.
  */
-export function resolveDefaultAuthenticatedPath(flags: AccessFlags): "/porteria" | "/irs" {
-  return isPorteriaOnlyUser(flags) ? "/porteria" : "/irs";
+export function resolveDefaultAuthenticatedPath(_flags: AccessFlags): "/irs" {
+  return "/irs";
 }
 
 /**
@@ -45,7 +35,6 @@ export function resolveDefaultAuthenticatedPath(flags: AccessFlags): "/porteria"
  */
 export function accessFlagsFromUser(user: AuthUser | null): AccessFlags {
   return {
-    isPorteriaUser: Boolean(user?.isPorteriaUser),
     role: user?.role ?? null,
     isSuperAdmin: Boolean(user?.isSuperAdmin),
   };

@@ -19,7 +19,6 @@ export interface AuthContextValue {
   isBootstrapping: boolean;
   isTechnician: boolean;
   isSuperAdmin: boolean;
-  isPorteriaUser: boolean;
   canAccessTickets: boolean;
   login: (payload: LoginPayload) => Promise<LoginResponse>;
   logout: (options?: LogoutOptions) => Promise<void>;

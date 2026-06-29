@@ -18,7 +18,7 @@ interface TicketsRouteProps {
  */
 export default function TicketsRoute({
   children,
-  fallbackPath = "/porteria",
+  fallbackPath = "/irs",
 }: TicketsRouteProps) {
   const { canAccessTickets } = useAuth();
   const location = useLocation();

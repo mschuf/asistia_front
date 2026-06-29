@@ -3,15 +3,13 @@
  * @description Layout principal con header, menú lateral y barra inferior móvil.
  */
 import { Link, useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import { BarChart3, Building2, ChevronDown, FilePlus2, History, LogOut, Menu, MessageSquareText, Moon, Shield, Sun, Users, MapPin, ClipboardList, X, Truck, ListChecks } from "lucide-react";
+import { BarChart3, Building2, ChevronDown, FilePlus2, History, LogOut, Menu, MessageSquareText, Moon, Sun, ClipboardList, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { BottomTabBar } from "@/components/layout/BottomTabBar";
 import { InstallAppButton } from "@/components/layout/InstallAppButton";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
-import { resolvePorteriaTab } from "@/lib/porteria-navigation";
-import type { PorteriaTab } from "@/types/pages/porteria-page.types";
 import { roleLabel } from "@/utils/role";
 
 interface AppShellProps {
@@ -37,35 +35,6 @@ const superAdminNavItems: Array<{
   { label: "Empresas", icon: Building2, path: "/admin/empresas", enabled: true },
   { label: "Prompts", icon: MessageSquareText, path: "/admin/prompts", enabled: true },
   { label: "Reporte irs", icon: History, path: "/admin/reporte-irs", enabled: true },
-  { label: "Reporte portería", icon: MapPin, path: "/admin/reporte-porteria", enabled: true },
-  {
-    label: "Auditoría portería",
-    icon: ClipboardList,
-    path: "/admin/reporte-porteria-auditoria",
-    enabled: true,
-  },
-];
-
-const porteriaNavItems: Array<{
-  label: string;
-  icon: typeof Shield;
-  path: string;
-  tab: PorteriaTab;
-}> = [
-  { label: "Indicadores", icon: Shield, path: "/porteria", tab: "indicadores" },
-];
-
-const porteriaCrudItems: Array<{
-  label: string;
-  icon: typeof Users;
-  path: string | null;
-  enabled: boolean;
-}> = [
-  { label: "Proveedores", icon: Truck, path: "/porteria/proveedores", enabled: true },
-  { label: "Personas", icon: Users, path: "/porteria/personas", enabled: true },
-  { label: "Motivos de visita", icon: ListChecks, path: "/porteria/motivos-visita", enabled: true },
-  { label: "Visitas", icon: ClipboardList, path: "/porteria/visitas", enabled: true },
-  { label: "Historial", icon: History, path: "/porteria/historial", enabled: true },
 ];
 
 interface NavSectionProps {
@@ -105,27 +74,21 @@ function NavSection({ title, expanded, onToggle, showBorder = false, children }:
 export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   const [open, setOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  const { isAuthenticated, user, role, isSuperAdmin, isPorteriaUser, canAccessTickets, logout } = useAuth();
+  const { isAuthenticated, user, role, isSuperAdmin, canAccessTickets, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const currentTab = readNavTab(searchParams.get("tab"));
   const onTicketsRoute = location.pathname.startsWith("/irs");
   const onErsRoute = location.pathname.startsWith("/ers");
-  const onPorteriaRoute = location.pathname.startsWith("/porteria");
   const onSuperAdminRoute = location.pathname.startsWith("/admin");
   const isTicketsHistorialLayout = onTicketsRoute && currentTab === "historial";
   const [irsExpanded, setIrsExpanded] = useState(onTicketsRoute);
-  const [porteriaExpanded, setPorteriaExpanded] = useState(onPorteriaRoute);
   const [superAdminExpanded, setSuperAdminExpanded] = useState(onSuperAdminRoute);
 
   useEffect(() => {
     if (onTicketsRoute || onErsRoute) setIrsExpanded(true);
   }, [onTicketsRoute, onErsRoute]);
-
-  useEffect(() => {
-    if (onPorteriaRoute) setPorteriaExpanded(true);
-  }, [onPorteriaRoute]);
 
   useEffect(() => {
     if (onSuperAdminRoute) setSuperAdminExpanded(true);
@@ -260,71 +223,6 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
                 <ClipboardList className="h-4 w-4" aria-hidden="true" />
                 ERS / Proyectos
               </button>
-            </NavSection>
-          ) : null}
-          {isPorteriaUser ? (
-            <NavSection
-              title="Portería"
-              expanded={porteriaExpanded}
-              onToggle={() => setPorteriaExpanded((current) => !current)}
-              showBorder
-            >
-              {porteriaNavItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = resolvePorteriaTab(location.pathname) === item.tab;
-
-                return (
-                  <button
-                    key={item.label}
-                    type="button"
-                    onClick={() => goToSuperAdmin(item.path)}
-                    aria-current={isActive ? "page" : undefined}
-                    className={cn(
-                      "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-                      isActive && "bg-muted text-foreground",
-                    )}
-                  >
-                    <Icon className="h-4 w-4" aria-hidden="true" />
-                    {item.label}
-                  </button>
-                );
-              })}
-
-              {porteriaCrudItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = item.path ? isNavPathActive(location.pathname, item.path) : false;
-
-                if (!item.enabled || !item.path) {
-                  return (
-                    <button
-                      key={item.label}
-                      type="button"
-                      disabled
-                      aria-disabled="true"
-                      className="flex w-full cursor-not-allowed items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground/70"
-                    >
-                      <Icon className="h-4 w-4" aria-hidden="true" />
-                      {item.label}
-                    </button>
-                  );
-                }
-
-                return (
-                  <button
-                    key={item.label}
-                    type="button"
-                    onClick={() => goToSuperAdmin(item.path!)}
-                    aria-current={isActive ? "page" : undefined}
-                    className={cn(
-                      "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-                      isActive && "bg-muted text-foreground",
-                    )}
-                  >
-                    <Icon className="h-4 w-4" aria-hidden="true" />
-                    {item.label}
-                  </button>
-                );
-              })}
             </NavSection>
           ) : null}
           {isSuperAdmin ? (

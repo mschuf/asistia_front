@@ -30,7 +30,6 @@ export interface AuthUser {
   entityName?: string | null;
   groupIds?: number[];
   isSuperAdmin?: boolean;
-  isPorteriaUser?: boolean;
 }
 
 /** Credenciales enviadas al endpoint de login. */
