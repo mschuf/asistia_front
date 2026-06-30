@@ -112,6 +112,10 @@ export interface SaveErsTaskPayload {
 }
 
 export interface SaveErsPayload {
+  projectName?: string;
+  objective?: string;
+  description?: string;
+  impact?: string;
   approverId?: number;
   projectStateId?: number;
   teamMemberIds: number[];

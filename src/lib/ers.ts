@@ -53,3 +53,22 @@ export function parseErsPageSize(value: string): ErsPageSize | null {
   return isValidErsPageSize(candidate) ? candidate : null;
 }
 
+/** Convierte un ISO UTC a valor `datetime-local`. */
+export function toDateTimeLocal(value: string | null): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const offset = date.getTimezoneOffset();
+  const local = new Date(date.getTime() - offset * 60_000);
+  return local.toISOString().slice(0, 16);
+}
+
+/** Convierte un valor `datetime-local` a ISO UTC. */
+export function toIsoDate(value: string): string | undefined {
+  const normalized = value.trim();
+  if (!normalized) return undefined;
+  const parsed = new Date(normalized);
+  if (Number.isNaN(parsed.getTime())) return undefined;
+  return parsed.toISOString();
+}
+

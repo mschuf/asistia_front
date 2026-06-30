@@ -75,6 +75,7 @@ interface TicketTableProps {
   statusChanging?: { ticketId: number; status: AsistiaTicketStatus } | null;
   onAssignClick?: (ticket: AsistiaTicket) => void;
   onEscalate?: (ticket: AsistiaTicket) => void;
+  escalateBlocked?: boolean;
   assigning?: { ticketId: number } | null;
   statusActionIds?: TicketStatusActionId[];
 }
@@ -210,10 +211,11 @@ export function TicketTable({
   statusChanging = null,
   onAssignClick,
   onEscalate,
+  escalateBlocked = false,
   assigning = null,
   statusActionIds,
 }: TicketTableProps) {
-  const showActionsColumn = Boolean(onStatusChange || onAssignClick);
+  const showActionsColumn = Boolean(onStatusChange || onAssignClick || onEscalate || escalateBlocked);
   const isMobileLayout = useIsMobileHistorialLayout();
   const columnOrder = isMobileLayout ? HISTORY_COLUMN_ORDER_MOBILE : HISTORY_COLUMN_ORDER_DESKTOP;
   const [selectedTicket, setSelectedTicket] = useState<AsistiaTicket | null>(null);
@@ -356,6 +358,7 @@ export function TicketTable({
                         onAssignClick ? () => handleAssignClick(ticket) : undefined
                       }
                       onEscalate={onEscalate ? () => onEscalate(ticket) : undefined}
+                      escalateBlocked={escalateBlocked}
                       assignPending={assigning?.ticketId === Number(ticket.id)}
                       statusActionIds={statusActionIds}
                     />
@@ -403,6 +406,7 @@ export function TicketTable({
       }
       onAssignClick={showActionsColumn && onAssignClick ? handleAssignClick : undefined}
       onEscalate={showActionsColumn && onEscalate ? onEscalate : undefined}
+      escalateBlocked={showActionsColumn ? escalateBlocked : undefined}
       assigning={assigning}
       statusActionIds={statusActionIds}
     />

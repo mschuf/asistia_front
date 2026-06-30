@@ -3,27 +3,22 @@
  * @description Pantalla de listado de ERS para TI y final_user.
  */
 import { useEffect, useState } from "react";
-import { ApiError } from "@/api/apiClient";
-import {
-  listarEstadosProyecto,
-  obtenerErs,
-  type ErsListItem,
-  type ErsProjectState,
-} from "@/api/ers";
-import { ErsEditDialog } from "@/components/ers/ErsEditDialog";
+import { RefreshCw } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { listarEstadosProyecto, type ErsProjectState } from "@/api/ers";
 import { ErsFilters } from "@/components/ers/ErsFilters";
 import { ErsTable } from "@/components/ers/ErsTable";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
-import { useToast } from "@/context/ToastContext";
 import { useErsList } from "@/hooks/useErsList";
+import { cn } from "@/lib/utils";
 import { ERS_PAGE_SIZE_ALL, ERS_PAGE_SIZE_OPTIONS, isErsAllPageSize, parseErsPageSize } from "@/lib/ers";
 
 /** Página principal de ERS. */
 export default function ErsPage() {
-  const toast = useToast();
   const { isTechnician } = useAuth();
+  const navigate = useNavigate();
   const {
     items,
     filters,
@@ -39,23 +34,15 @@ export default function ErsPage() {
     reload,
   } = useErsList();
   const [states, setStates] = useState<ErsProjectState[]>([]);
-  const [loadingStates, setLoadingStates] = useState(false);
-  const [editingRow, setEditingRow] = useState<ErsListItem | null>(null);
-  const [editingDetail, setEditingDetail] = useState<Awaited<ReturnType<typeof obtenerErs>> | null>(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    setLoadingStates(true);
     void listarEstadosProyecto()
       .then((response) => {
         if (!cancelled) setStates(response);
       })
       .catch(() => {
         if (!cancelled) setStates([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingStates(false);
       });
 
     return () => {
@@ -70,22 +57,6 @@ export default function ErsPage() {
     pagination.total === 0 ? 0 : showingAll ? 1 : (pagination.page - 1) * numericLimit + 1;
   const paginationTo = showingAll ? pagination.total : Math.min(pagination.page * numericLimit, pagination.total);
 
-  const openEdit = async (row: ErsListItem) => {
-    setEditingRow(row);
-    setLoadingDetail(true);
-    setEditingDetail(null);
-    try {
-      const detail = await obtenerErs(row.projectId);
-      setEditingDetail(detail);
-    } catch (loadError) {
-      const message = loadError instanceof ApiError ? loadError.message : "No se pudo cargar el detalle del ERS.";
-      toast.error(message, "ERS");
-      setEditingRow(null);
-    } finally {
-      setLoadingDetail(false);
-    }
-  };
-
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -96,8 +67,16 @@ export default function ErsPage() {
             {isTechnician ? "Vista TI: edición de proyectos ERS." : "Vista usuario: seguimiento de tus ERS."}
           </p>
         </div>
-        <Button type="button" variant="outline" onClick={() => void reload()}>
-          Actualizar
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          aria-label="Actualizar"
+          title="Actualizar"
+          disabled={loading}
+          onClick={() => void reload()}
+        >
+          <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} aria-hidden="true" />
         </Button>
       </div>
 
@@ -124,7 +103,7 @@ export default function ErsPage() {
           sortColumn={sort?.column ?? null}
           sortOrder={sort?.order ?? null}
           onSortColumnChange={setSortColumn}
-          onEdit={isTechnician ? (row) => void openEdit(row) : undefined}
+          onEdit={isTechnician ? (row) => navigate(`/ers/${row.projectId}/editar`) : undefined}
         />
       )}
 
@@ -182,24 +161,6 @@ export default function ErsPage() {
         </div>
       ) : null}
 
-      {isTechnician ? (
-        <ErsEditDialog
-          open={editingRow !== null}
-          onOpenChange={(open) => {
-            if (!open) {
-              setEditingRow(null);
-              setEditingDetail(null);
-            }
-          }}
-          detail={loadingDetail ? null : editingDetail}
-          states={states}
-          loadingStates={loadingStates}
-          onSaved={(saved) => {
-            setEditingDetail(saved);
-            void reload();
-          }}
-        />
-      ) : null}
     </div>
   );
 }

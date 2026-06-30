@@ -409,9 +409,13 @@ export default function TicketsPage() {
                 onStatusChange={handleTicketStatusChange}
                 statusChanging={statusChanging}
                 onAssignClick={isTechnician ? setAssignTarget : undefined}
-                onEscalate={(ticket) =>
-                  navigate(`/ers/nuevo?id=${ticket.id}`, { state: { prefillTicket: ticket } })
+                onEscalate={
+                  isTechnician
+                    ? (ticket) =>
+                        navigate(`/ers/nuevo?id=${ticket.id}`, { state: { prefillTicket: ticket } })
+                    : undefined
                 }
+                escalateBlocked={!isTechnician}
                 assigning={assigning}
                 statusActionIds={isTechnician ? undefined : ["closed"]}
               />

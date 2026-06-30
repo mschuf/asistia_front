@@ -2,7 +2,8 @@
  * @file ErsStepperForm.tsx
  * @description Formulario por pasos para crear ERS (transacción 1).
  */
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { ErsTechnicianDualList } from "@/components/ers/ErsTechnicianDualList";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,16 +46,14 @@ export function ErsStepperForm({
     objective.trim().length > 0 &&
     description.trim().length > 0;
 
-  const selectedResponsibles = useMemo(
-    () => new Set(responsibleIds.map((id) => Number(id))),
-    [responsibleIds],
-  );
+  const addResponsible = (userId: string) => {
+    const numericId = Number(userId);
+    setResponsibleIds((current) => (current.includes(numericId) ? current : [...current, numericId]));
+  };
 
-  const toggleResponsible = (userId: number) => {
-    setResponsibleIds((current) => {
-      const exists = current.includes(userId);
-      return exists ? current.filter((id) => id !== userId) : [...current, userId];
-    });
+  const removeResponsible = (userId: string) => {
+    const numericId = Number(userId);
+    setResponsibleIds((current) => current.filter((id) => id !== numericId));
   };
 
   const submit = async () => {
@@ -137,24 +136,14 @@ export function ErsStepperForm({
 
           <div className="space-y-2">
             <p className="text-sm font-medium">Responsables (técnicos de la sede del solicitante)</p>
-            <div className="max-h-56 space-y-1 overflow-y-auto rounded-md border p-2">
-              {loadingTechnicians ? (
-                <p className="text-sm text-muted-foreground">Cargando técnicos...</p>
-              ) : technicians.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No hay técnicos disponibles para esta sede.</p>
-              ) : (
-                technicians.map((user) => (
-                  <label key={user.id} className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={selectedResponsibles.has(user.id)}
-                      onChange={() => toggleResponsible(user.id)}
-                    />
-                    <span>{user.fullName}</span>
-                  </label>
-                ))
-              )}
-            </div>
+            <ErsTechnicianDualList
+              technicians={technicians}
+              selectedIds={responsibleIds.map(String)}
+              onAdd={addResponsible}
+              onRemove={removeResponsible}
+              loading={loadingTechnicians}
+              selectedTitle="Responsables seleccionados"
+            />
           </div>
 
           <div className="flex flex-wrap justify-end gap-2">

@@ -4,9 +4,12 @@
  */
 import { ArrowDown, ArrowUp, ArrowUpDown, Pencil } from "lucide-react";
 import type { ErsListItem, ErsSortColumn, ErsSortOrder } from "@/api/ers";
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
+
+const actionButtonClass =
+  "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1";
+const actionIconClass = "h-4 w-4";
 
 interface ErsTableProps {
   rows: ErsListItem[];
@@ -126,16 +129,19 @@ export function ErsTable({
                 <td className="px-4 py-3">{formatCreatedDate(row.createdAt)}</td>
                 {isTechnician ? (
                   <td className="px-4 py-3">
-                    <Button
+                    <button
                       type="button"
-                      variant="outline"
-                      size="sm"
-                      className={cn("gap-1.5")}
+                      aria-label="Editar"
+                      title="Editar"
                       onClick={() => onEdit?.(row)}
+                      className={cn(
+                        actionButtonClass,
+                        "border-sky-200/80 bg-sky-50/60 text-sky-700 hover:border-sky-300 hover:bg-sky-100/80",
+                        "dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-300 dark:hover:border-sky-800 dark:hover:bg-sky-950/50",
+                      )}
                     >
-                      <Pencil className="h-4 w-4" aria-hidden="true" />
-                      Editar
-                    </Button>
+                      <Pencil className={actionIconClass} aria-hidden="true" />
+                    </button>
                   </td>
                 ) : null}
               </tr>

@@ -42,6 +42,8 @@ interface TicketActionsProps {
   pendingStatus?: AsistiaTicketStatus | null;
   onAssignClick?: () => void;
   onEscalate?: () => void;
+  /** Muestra el botón Escalar deshabilitado (p. ej. usuarios final_user). */
+  escalateBlocked?: boolean;
   assignPending?: boolean;
   /** Si se define, limita qué botones de estado se muestran (p. ej. solo `closed` para solicitantes). */
   statusActionIds?: TicketStatusActionId[];
@@ -62,6 +64,7 @@ export function TicketActions({
   pendingStatus = null,
   onAssignClick,
   onEscalate,
+  escalateBlocked = false,
   assignPending = false,
   statusActionIds,
 }: TicketActionsProps) {
@@ -73,10 +76,13 @@ export function TicketActions({
     ? actions.filter((action) => statusActionIds.includes(action.id))
     : actions;
   const waitingAction = actions.find((action) => action.id === "waiting");
-  const visibleStatusActions =
-    onEscalate && waitingAction && !filteredStatusActions.some((action) => action.id === "waiting")
-      ? [...filteredStatusActions, waitingAction]
-      : filteredStatusActions;
+  const showEscalateButton =
+    Boolean(onEscalate || escalateBlocked) &&
+    waitingAction &&
+    !filteredStatusActions.some((action) => action.id === "waiting");
+  const visibleStatusActions = showEscalateButton
+    ? [...filteredStatusActions, waitingAction]
+    : filteredStatusActions;
 
   return (
     <div className="grid w-fit grid-cols-2 gap-3 md:flex md:flex-nowrap md:items-center">
@@ -120,9 +126,11 @@ export function TicketActions({
               disabled={disabled}
               aria-label={label}
               title={
-                finalized
-                  ? "No hay acciones disponibles para tickets resueltos o cerrados"
-                  : label
+                escalateBlocked && !onEscalate
+                  ? "Solo usuarios TI pueden escalar tickets"
+                  : finalized
+                    ? "No hay acciones disponibles para tickets resueltos o cerrados"
+                    : label
               }
               onClick={onEscalate}
               className={cn(

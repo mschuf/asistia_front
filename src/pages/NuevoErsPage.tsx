@@ -3,13 +3,14 @@
  * @description Pantalla de escalado de ticket a ERS mediante formulario por pasos.
  */
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams, Navigate } from "react-router-dom";
 import { ApiError } from "@/api/apiClient";
 import { escalarTicket, listarTecnicosPorSede, type ErsTechnician } from "@/api/ers";
 import { ErsStepperForm, type ErsStepperSubmitInput } from "@/components/ers/ErsStepperForm";
 import { Button } from "@/components/ui/button";
 import { Loading } from "@/components/ui/loading";
 import { useToast } from "@/context/ToastContext";
+import { useAuth } from "@/context/AuthContext";
 import { getTicketById } from "@/services/ticketsService";
 import type { AsistiaTicket } from "@/types/asistia";
 
@@ -20,6 +21,7 @@ interface NuevoErsRouteState {
 /** Página de creación inicial del ERS. */
 export default function NuevoErsPage() {
   const toast = useToast();
+  const { isTechnician } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -101,6 +103,10 @@ export default function NuevoErsPage() {
       toast.error(message, "ERS");
     }
   };
+
+  if (!isTechnician) {
+    return <Navigate to="/irs" replace />;
+  }
 
   return (
     <div className="space-y-4">

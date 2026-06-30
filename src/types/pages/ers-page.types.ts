@@ -2,7 +2,7 @@
  * @file ers-page.types.ts
  * @description Tipos de estado para pantalla de listado ERS.
  */
-import type { ErsDetail, ErsListItem, ErsProjectState, ErsSortColumn } from "@/api/ers";
+import type { ErsListItem, ErsSortColumn } from "@/api/ers";
 import type { ErsPageSize, ErsSortState } from "@/lib/ers";
 
 /** Filtros del listado de ERS (borrador/aplicados). */
@@ -41,6 +41,10 @@ export interface UseErsListResult {
 
 /** Estado del editor TI de ERS. */
 export interface ErsEditState {
+  projectName: string;
+  objective: string;
+  description: string;
+  impact: string;
   approverId: string;
   projectStateId: string;
   teamMemberIds: string[];
@@ -50,19 +54,10 @@ export interface ErsEditState {
     content: string;
     percentDone: number;
     projectStateId: string;
+    projectStateName?: string;
     userId: string;
     planStartDate: string;
     planEndDate: string;
   }>;
-}
-
-/** Props base para diálogo de edición TI. */
-export interface ErsEditDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  detail: ErsDetail | null;
-  states: ErsProjectState[];
-  loadingStates: boolean;
-  onSaved: (detail: ErsDetail) => void;
 }
 
