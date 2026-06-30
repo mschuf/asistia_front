@@ -42,7 +42,7 @@ const EMPTY_FORM: ErsEditState = {
 };
 
 const SECTION_OPTIONS: Array<{ id: ErsEditSection; label: string }> = [
-  { id: "escalador", label: "Datos del escalador" },
+  { id: "escalador", label: "Datos iniciales" },
   { id: "gestion", label: "Gestión" },
   { id: "tareas", label: "Tareas" },
 ];

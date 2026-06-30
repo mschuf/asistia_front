@@ -13,7 +13,7 @@ interface ErsEditSidebarProps {
 }
 
 const SECTIONS: Array<{ id: ErsEditSection; label: string }> = [
-  { id: "escalador", label: "1. Datos del escalador" },
+  { id: "escalador", label: "1. Datos iniciales" },
   { id: "gestion", label: "2. Gestión del proyecto" },
   { id: "tareas", label: "3. Tareas" },
 ];
