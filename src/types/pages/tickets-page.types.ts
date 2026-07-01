@@ -45,6 +45,7 @@ export interface TicketPaginationState {
 export type HistorySortColumn =
   | "id"
   | "createdAt"
+  | "openFor"
   | "requester"
   | "location"
   | "type"

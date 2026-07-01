@@ -46,6 +46,40 @@ export function formatDateParts(
 }
 
 /**
+ * Formatea duración desde una fecha inicial hasta una final o hasta ahora.
+ * @param value - Fecha inicial en cadena o `null`/`undefined`.
+ * @param endValue - Fecha final; `undefined` usa hora actual, `null` devuelve fallback.
+ * @returns Duración compacta o fallback.
+ */
+export function formatOpenDuration(
+  value: string | null | undefined,
+  endValue?: string | null
+): string {
+  if (!value) return "—";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "—";
+
+  const endTime =
+    endValue === undefined
+      ? Date.now()
+      : endValue
+        ? new Date(endValue).getTime()
+        : NaN;
+  if (Number.isNaN(endTime)) return "—";
+
+  const diffMs = endTime - parsed.getTime();
+  if (diffMs < 0) return "—";
+
+  const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
+  if (totalHours < 24) {
+    return totalHours < 1 ? "<1 h" : `${totalHours} h`;
+  }
+
+  const totalDays = Math.floor(totalHours / 24);
+  return `${totalDays} ${totalDays === 1 ? "día" : "días"}`;
+}
+
+/**
  * Divide un nombre completo en dos líneas para tablas o tarjetas compactas.
  * @param value - Nombre completo o `null`/`undefined`.
  * @returns Primera línea con hasta dos palabras y segunda línea con el resto, si aplica.

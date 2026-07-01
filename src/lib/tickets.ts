@@ -31,7 +31,7 @@ export const TICKETS_PAGE_SIZE_ALL = "all" as const;
  * Ancho mínimo de la tabla de historial dentro de su contenedor con scroll horizontal.
  */
 export const TICKETS_HISTORIAL_LAYOUT_MIN_WIDTH_PX = 1120;
-export const TICKETS_HISTORIAL_LAYOUT_MIN_WIDTH_CLASS = "min-w-[70rem]";
+export const TICKETS_HISTORIAL_LAYOUT_MIN_WIDTH_CLASS = "min-w-[76rem]";
 /** Ancho mínimo de la grilla de filtros avanzados solo en viewports anchos (>= 1120px). */
 export const TICKETS_HISTORIAL_FILTERS_WIDE_CLASS = "min-w-0 min-[1120px]:min-w-[70rem]";
 /** Scroll horizontal de filtros avanzados solo cuando la grilla ancha está activa. */

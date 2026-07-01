@@ -207,10 +207,10 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
   const setSortColumn = useCallback((column: HistorySortColumn) => {
     setSortState((current) => {
       if (!current || current.column !== column) {
-        return { column, order: "asc" };
-      }
-      if (current.order === "asc") {
         return { column, order: "desc" };
+      }
+      if (current.order === "desc") {
+        return { column, order: "asc" };
       }
       return null;
     });
@@ -557,6 +557,8 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
                   ...ticket,
                   status: updated.status,
                   updatedAt: new Date().toISOString(),
+                  solvedAt: status === "solved" ? new Date().toISOString() : ticket.solvedAt,
+                  closedAt: status === "closed" ? new Date().toISOString() : ticket.closedAt,
                 }
               : ticket
           )

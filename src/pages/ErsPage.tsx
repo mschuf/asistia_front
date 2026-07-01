@@ -68,16 +68,16 @@ export default function ErsPage() {
           </p>
         </div>
         <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          aria-label="Actualizar"
-          title="Actualizar"
-          disabled={loading}
-          onClick={() => void reload()}
-        >
-          <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} aria-hidden="true" />
-        </Button>
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label="Actualizar"
+            title="Actualizar"
+            disabled={loading}
+            onClick={() => void reload()}
+          >
+            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} aria-hidden="true" />
+          </Button>
       </div>
 
       <ErsFilters

@@ -7,6 +7,7 @@ import { BarChart3, Building2, ChevronDown, FilePlus2, History, LogOut, Menu, Me
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { BottomTabBar } from "@/components/layout/BottomTabBar";
+import { IrsErsModeProvider, IrsErsSwitch } from "@/components/layout/IrsErsSwitch";
 import { InstallAppButton } from "@/components/layout/InstallAppButton";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -74,6 +75,7 @@ function NavSection({ title, expanded, onToggle, showBorder = false, children }:
 export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   const [open, setOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [isErsMode, setIsErsMode] = useState(false);
   const { isAuthenticated, user, role, isSuperAdmin, canAccessTickets, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -118,7 +120,8 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <IrsErsModeProvider isErsMode={isErsMode} setIsErsMode={setIsErsMode}>
+      <div className={cn("min-h-screen bg-background", isErsMode && "ers-theme")}>
       <header className="sticky top-0 z-40 border-b bg-card/95 backdrop-blur">
         <div className="container flex h-16 items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -143,6 +146,7 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
             </Link>
           </div>
           <div className="flex items-center gap-2">
+            <IrsErsSwitch className="gap-1.5 text-[11px] sm:hidden" />
             <Button
               variant="outline"
               size="icon"
@@ -321,8 +325,9 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
         {children}
       </main>
 
-      <BottomTabBar />
-    </div>
+        <BottomTabBar />
+      </div>
+    </IrsErsModeProvider>
   );
 }
 

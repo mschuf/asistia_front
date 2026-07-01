@@ -6,6 +6,7 @@ import { BarChart3, FilePlus2, History, RefreshCw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { IrsErsSwitch } from "@/components/layout/IrsErsSwitch";
 import { MobileRefreshFab } from "@/components/layout/MobileRefreshFab";
 import { TiMetrics } from "@/components/tickets/TiMetrics";
 
@@ -71,7 +72,7 @@ const desktopTabs: Array<{
  */
 export default function TicketsPage() {
   const navigate = useNavigate();
-  const { user, role, isTechnician } = useAuth();
+  const { user, role, isTechnician, isSuperAdmin } = useAuth();
   const refreshMetricsRef = useRef<(() => Promise<void>) | undefined>(
     undefined,
   );
@@ -265,6 +266,7 @@ export default function TicketsPage() {
         </div>
 
         <div className="ml-auto hidden shrink-0 items-center gap-2 sm:flex">
+          <IrsErsSwitch />
           {tab === "historial" || tab === "metricas" ? (
             <div className="flex shrink-0 rounded-md border bg-card p-1">
               <Button
@@ -417,7 +419,13 @@ export default function TicketsPage() {
                 }
                 escalateBlocked={!isTechnician}
                 assigning={assigning}
-                statusActionIds={isTechnician ? undefined : ["closed"]}
+                statusActionIds={
+                  isTechnician && !isSuperAdmin
+                    ? ["solved", "waiting"]
+                    : isTechnician
+                      ? undefined
+                      : ["closed"]
+                }
               />
 
               <TicketResolveModal

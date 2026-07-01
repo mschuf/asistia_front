@@ -104,6 +104,8 @@ export interface AsistiaTicket {
   technician: AsistiaTicketActor | null;
   createdAt: string | null;
   updatedAt: string | null;
+  solvedAt: string | null;
+  closedAt: string | null;
 }
 
 /** Respuesta paginada de listado de tickets. */

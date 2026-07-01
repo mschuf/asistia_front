@@ -1,9 +1,9 @@
-/**
+﻿/**
  * @file ErsHistoryPage.tsx
  * @description Pantalla timeline del historial informativo de ERS.
  */
 import { useEffect, useState } from "react";
-import { Clock3, RefreshCw, UserCircle2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Clock3, RefreshCw, UserCircle2 } from "lucide-react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "@/api/apiClient";
 import { listarHistorialErs, type ErsHistoryItem } from "@/api/ers-history";
@@ -40,6 +40,7 @@ export default function ErsHistoryPage() {
 
   const [project, setProject] = useState<ErsDetail | null>(null);
   const [items, setItems] = useState<ErsHistoryItem[]>([]);
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(() => new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [reloadToken, setReloadToken] = useState(0);
@@ -58,6 +59,7 @@ export default function ErsHistoryPage() {
         if (cancelled) return;
         setProject(detail);
         setItems(history.items);
+        setExpandedIds(new Set());
       })
       .catch((fetchError) => {
         if (cancelled) return;
@@ -76,6 +78,18 @@ export default function ErsHistoryPage() {
       cancelled = true;
     };
   }, [projectIdNumber, reloadToken, toast]);
+
+  const toggleExpanded = (itemId: number) => {
+    setExpandedIds((current) => {
+      const next = new Set(current);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
+  };
 
   if (!isTechnician) {
     return <Navigate to="/ers" replace />;
@@ -137,11 +151,14 @@ export default function ErsHistoryPage() {
           {items.map((item, index) => {
             const itemColor = colorByAction[item.actionType];
             const showConnector = index < items.length - 1;
+            const isExpanded = expandedIds.has(item.id);
+            const ChevronIcon = isExpanded ? ChevronUp : ChevronDown;
+
             return (
               <li key={item.id} className="relative pl-10">
                 {showConnector ? (
                   <span
-                    className="absolute left-[15px] top-8 h-[calc(100%-0.5rem)] w-px bg-border"
+                    className="absolute left-[15px] top-16 h-[calc(100%-2.5rem)] w-px bg-border"
                     aria-hidden="true"
                   />
                 ) : null}
@@ -154,6 +171,17 @@ export default function ErsHistoryPage() {
                 >
                   <Clock3 className="h-4 w-4" />
                 </span>
+                <button
+                  type="button"
+                  className="absolute left-1 top-11 inline-flex h-6 w-6 items-center justify-center rounded-full border bg-background text-muted-foreground shadow-sm transition hover:border-primary/50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  onClick={() => toggleExpanded(item.id)}
+                  aria-expanded={isExpanded}
+                  aria-controls={`ers-history-state-${item.id}`}
+                  aria-label={isExpanded ? "Ocultar antes y después" : "Mostrar antes y después"}
+                  title={isExpanded ? "Ocultar antes y después" : "Mostrar antes y después"}
+                >
+                  <ChevronIcon className="h-4 w-4" aria-hidden="true" />
+                </button>
                 <article className="rounded-xl border bg-card p-4 shadow-soft">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge
@@ -176,6 +204,16 @@ export default function ErsHistoryPage() {
                     <UserCircle2 className="h-4 w-4" aria-hidden="true" />
                     <span>{item.actorDisplayName}</span>
                   </div>
+
+                  {isExpanded ? (
+                    <div
+                      id={`ers-history-state-${item.id}`}
+                      className="mt-4 grid gap-3 border-t pt-4 md:grid-cols-2"
+                    >
+                      <HistoryStatePanel title="Antes" state={item.beforeState} emptyText="Sin estado anterior" />
+                      <HistoryStatePanel title="Después" state={item.afterState} emptyText="Sin estado posterior" />
+                    </div>
+                  ) : null}
                 </article>
               </li>
             );
@@ -184,6 +222,33 @@ export default function ErsHistoryPage() {
       )}
     </div>
   );
+}
+
+function HistoryStatePanel({
+  title,
+  state,
+  emptyText,
+}: {
+  title: string;
+  state: Record<string, unknown> | null;
+  emptyText: string;
+}) {
+  return (
+    <section className="rounded-md border bg-muted/25 p-3">
+      <h2 className="text-xs font-semibold uppercase text-muted-foreground">{title}</h2>
+      {state ? (
+        <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-md bg-background p-3 text-xs leading-relaxed text-foreground">
+          {formatHistoryState(state)}
+        </pre>
+      ) : (
+        <p className="mt-2 text-sm text-muted-foreground">{emptyText}</p>
+      )}
+    </section>
+  );
+}
+
+function formatHistoryState(state: Record<string, unknown>): string {
+  return JSON.stringify(state, null, 2);
 }
 
 function formatDateTime(value: string): string {
@@ -197,4 +262,3 @@ function formatDateTime(value: string): string {
     minute: "2-digit",
   });
 }
-

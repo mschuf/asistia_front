@@ -34,11 +34,25 @@ interface TicketDetailModalProps {
  * @param props - Etiqueta y contenido hijo.
  * @returns Elemento dl/dt/dd.
  */
-function DetailRow({ label, children }: { label: string; children: ReactNode }) {
+function DetailRow({
+  label,
+  children,
+  inline = false,
+}: {
+  label: string;
+  children: ReactNode;
+  inline?: boolean;
+}) {
   return (
-    <div className="grid gap-1 sm:grid-cols-[140px_1fr] sm:gap-3">
-      <dt className="text-sm font-medium text-muted-foreground">{label}</dt>
-      <dd className="text-sm">{children}</dd>
+    <div
+      className={
+        inline
+          ? "grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-0 sm:grid-cols-[140px_1fr] sm:gap-3"
+          : "grid content-start gap-1 sm:grid-cols-[140px_1fr] sm:gap-3"
+      }
+    >
+      <dt className="text-sm font-medium leading-snug text-muted-foreground">{label}</dt>
+      <dd className="text-sm leading-snug">{children}</dd>
     </div>
   );
 }
@@ -125,31 +139,33 @@ export function TicketDetailModal({
           ) : null}
 
           <dl className="space-y-4">
-            <DetailRow label="Estado">
+            <DetailRow label="Estado" inline>
               <Badge variant={statusBadgeVariant(displayTicket.status)}>
                 {statusLabel(displayTicket.status)}
               </Badge>
             </DetailRow>
-            <DetailRow label="Tipo">{typeLabel(displayTicket.type)}</DetailRow>
-            <DetailRow label="Ubicación">{displayTicket.location?.name ?? "—"}</DetailRow>
-            <DetailRow label="Solicitante">
-              <div>
-                <p>{displayTicket.requester.name ?? "—"}</p>
-                {displayTicket.requester.email ? (
-                  <p className="text-muted-foreground">{displayTicket.requester.email}</p>
-                ) : null}
-              </div>
-            </DetailRow>
-            <DetailRow label="Asignado a">
-              <div>
-                <p>{displayTicket.technician?.name ?? "—"}</p>
-                {displayTicket.technician?.email ? (
-                  <p className="text-muted-foreground">{displayTicket.technician.email}</p>
-                ) : null}
-              </div>
-            </DetailRow>
-            <DetailRow label="Apertura">{formatDate(displayTicket.createdAt)}</DetailRow>
-            <DetailRow label="Última actualización">{formatDate(displayTicket.updatedAt)}</DetailRow>
+            <div className="grid grid-cols-[40%_1fr] gap-x-4 gap-y-4 sm:block sm:space-y-4">
+              <DetailRow label="Tipo">{typeLabel(displayTicket.type)}</DetailRow>
+              <DetailRow label="Solicitante">
+                <div>
+                  <p>{displayTicket.requester.name ?? "—"}</p>
+                  {displayTicket.requester.email ? (
+                    <p className="text-muted-foreground">{displayTicket.requester.email}</p>
+                  ) : null}
+                </div>
+              </DetailRow>
+              <DetailRow label="Ubicación">{displayTicket.location?.name ?? "—"}</DetailRow>
+              <DetailRow label="Asignado a">
+                <div>
+                  <p>{displayTicket.technician?.name ?? "—"}</p>
+                  {displayTicket.technician?.email ? (
+                    <p className="text-muted-foreground">{displayTicket.technician.email}</p>
+                  ) : null}
+                </div>
+              </DetailRow>
+              <DetailRow label="Apertura">{formatDate(displayTicket.createdAt)}</DetailRow>
+              <DetailRow label="Última actualización">{formatDate(displayTicket.updatedAt)}</DetailRow>
+            </div>
             <DetailRow label="Descripción">
               {displayTicket.description ? (
                 <div className="rich-description whitespace-pre-wrap rounded-md border border-input bg-muted/30 p-3">
@@ -165,7 +181,7 @@ export function TicketDetailModal({
           </dl>
 
           {onStatusChange || onAssignClick || onEscalate || escalateBlocked ? (
-            <div className="mt-6 flex items-center justify-between gap-3 border-t pt-4">
+            <div className="mt-6 flex items-center justify-between gap-3 border-t pt-4 pr-6 sm:pr-0">
               <p className="text-sm font-medium text-muted-foreground">Acciones</p>
               <TicketActions
                 ticket={displayTicket}
@@ -178,6 +194,7 @@ export function TicketDetailModal({
                 escalateBlocked={escalateBlocked}
                 assignPending={assigning?.ticketId === Number(displayTicket.id)}
                 statusActionIds={statusActionIds}
+                className="flex flex-row flex-nowrap items-center"
               />
             </div>
           ) : null}

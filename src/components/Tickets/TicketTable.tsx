@@ -8,17 +8,19 @@ import { TicketActions } from "@/components/tickets/TicketActions";
 import { TicketDetailModal } from "@/components/tickets/TicketDetailModal";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { formatDateParts, formatNameParts } from "@/lib/format";
+import { formatDateParts, formatNameParts, formatOpenDuration } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { statusBadgeVariant, statusLabel, typeLabel, TICKETS_HISTORIAL_LAYOUT_MIN_WIDTH_CLASS } from "@/lib/tickets";
 import type { AsistiaTicket, AsistiaTicketStatus } from "@/types/asistia";
 import type { HistorySortColumn, HistorySortOrder } from "@/types/pages/tickets-page.types";
 
 type TicketStatusActionId = "solved" | "closed" | "waiting";
+type HistoryTableColumn = HistorySortColumn;
 
-const HISTORY_COLUMN_LABELS: Record<HistorySortColumn, string> = {
+const HISTORY_COLUMN_LABELS: Record<HistoryTableColumn, string> = {
   id: "Ticket",
   createdAt: "Apertura",
+  openFor: "Abierto por",
   requester: "Solicitante",
   location: "Ubicación",
   type: "Tipo",
@@ -27,9 +29,10 @@ const HISTORY_COLUMN_LABELS: Record<HistorySortColumn, string> = {
   technician: "Asignado a",
 };
 
-const HISTORY_COLUMN_ORDER_DESKTOP: HistorySortColumn[] = [
+const HISTORY_COLUMN_ORDER_DESKTOP: HistoryTableColumn[] = [
   "id",
   "createdAt",
+  "openFor",
   "requester",
   "location",
   "type",
@@ -39,12 +42,12 @@ const HISTORY_COLUMN_ORDER_DESKTOP: HistorySortColumn[] = [
 ];
 
 /** Mobile: estado visible temprano al hacer scroll horizontal. */
-const HISTORY_COLUMN_ORDER_MOBILE: HistorySortColumn[] = [
+const HISTORY_COLUMN_ORDER_MOBILE: HistoryTableColumn[] = [
   "id",
   "createdAt",
-  "status",
+  "openFor",
   "requester",
-  "location",
+  "status",
   "type",
   "subject",
   "technician",
@@ -105,15 +108,44 @@ function NameCell({ value }: { value: string | null | undefined }) {
   );
 }
 
+/** @param props - Ticket mostrado en mobile. @returns Solicitante y ubicación en dos líneas. */
+function MobileRequesterCell({ ticket }: { ticket: AsistiaTicket }) {
+  return (
+    <div className="leading-tight">
+      <span className="block whitespace-nowrap">{ticket.requester.name ?? "—"}</span>
+      <span className="mt-1.5 block whitespace-nowrap text-muted-foreground">
+        {ticket.location?.name ?? "—"}
+      </span>
+    </div>
+  );
+}
+
 /** @param ticket - Ticket de la fila. @param column - Columna a renderizar. @returns Contenido de celda de datos. */
-function renderTicketCell(ticket: AsistiaTicket, column: HistorySortColumn) {
+function renderTicketCell(
+  ticket: AsistiaTicket,
+  column: HistoryTableColumn,
+  isMobileLayout: boolean,
+) {
   switch (column) {
     case "id":
       return <>#{ticket.id}</>;
     case "createdAt":
       return <AperturaCell value={ticket.createdAt} />;
+    case "openFor": {
+      const endAt =
+        ticket.status === "closed"
+          ? ticket.closedAt
+          : ticket.status === "solved"
+            ? ticket.solvedAt
+            : undefined;
+      return <span className="whitespace-nowrap">{formatOpenDuration(ticket.createdAt, endAt)}</span>;
+    }
     case "requester":
-      return <NameCell value={ticket.requester.name} />;
+      return isMobileLayout ? (
+        <MobileRequesterCell ticket={ticket} />
+      ) : (
+        <NameCell value={ticket.requester.name} />
+      );
     case "location":
       return <span className="line-clamp-2">{ticket.location?.name ?? "—"}</span>;
     case "type":
@@ -127,12 +159,14 @@ function renderTicketCell(ticket: AsistiaTicket, column: HistorySortColumn) {
   }
 }
 
-function ticketCellClassName(column: HistorySortColumn) {
+function ticketCellClassName(column: HistoryTableColumn) {
   switch (column) {
     case "id":
       return "whitespace-nowrap px-4 py-3 font-medium";
     case "createdAt":
       return "px-4 py-3 text-muted-foreground";
+    case "openFor":
+      return "whitespace-nowrap px-4 py-3 text-center text-muted-foreground";
     case "requester":
       return "px-4 py-3";
     case "location":
@@ -156,7 +190,7 @@ function SortableHeader({
   sortOrder,
   onSortColumnChange,
 }: {
-  column: HistorySortColumn;
+  column: HistoryTableColumn;
   label: string;
   sortColumn?: HistorySortColumn | null;
   sortOrder?: HistorySortOrder | null;
@@ -288,7 +322,7 @@ export function TicketTable({
                 />
               ))}
               {showActionsColumn ? (
-                <th className={cn("px-4 py-3 font-semibold", actionsColumnClass, "bg-muted")}>
+                <th className={cn("hidden px-4 py-3 font-semibold md:table-cell", actionsColumnClass, "bg-muted")}>
                   Acciones
                 </th>
               ) : null}
@@ -335,13 +369,13 @@ export function TicketTable({
                 </td>
                 {columnOrder.map((column) => (
                   <td key={column} className={ticketCellClassName(column)}>
-                    {renderTicketCell(ticket, column)}
+                    {renderTicketCell(ticket, column, isMobileLayout)}
                   </td>
                 ))}
                 {showActionsColumn ? (
                   <td
                     className={cn(
-                      "px-4 py-3",
+                      "hidden px-4 py-3 md:table-cell",
                       actionsColumnClass,
                       "max-md:group-hover:bg-muted md:group-hover:bg-muted/50",
                       selectedTicket?.id === ticket.id && "max-md:bg-muted md:bg-muted/40"

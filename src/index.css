@@ -45,6 +45,16 @@
     --ring: 357 68% 58%;
   }
 
+  .ers-theme {
+    --primary: 217 78% 48%;
+    --ring: 217 78% 48%;
+  }
+
+  .dark .ers-theme {
+    --primary: 213 94% 68%;
+    --ring: 213 94% 68%;
+  }
+
   * {
     @apply border-border;
   }

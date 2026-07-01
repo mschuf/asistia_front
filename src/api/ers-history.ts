@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file ers-history.ts
  * @description Cliente HTTP para historial de proyectos ERS.
  */
@@ -15,6 +15,8 @@ export interface ErsHistoryItem {
   actorUserId: number;
   actorDisplayName: string;
   happenedAt: string;
+  beforeState: Record<string, unknown> | null;
+  afterState: Record<string, unknown> | null;
 }
 
 export interface ErsHistoryListResponse {
@@ -38,4 +40,7 @@ export async function listarHistorialErs(
     query: query as Record<string, string | number | boolean | undefined | null>,
   });
 }
+
+
+
 

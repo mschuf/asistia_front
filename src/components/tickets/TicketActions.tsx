@@ -47,6 +47,7 @@ interface TicketActionsProps {
   assignPending?: boolean;
   /** Si se define, limita qué botones de estado se muestran (p. ej. solo `closed` para solicitantes). */
   statusActionIds?: TicketStatusActionId[];
+  className?: string;
 }
 
 const actionButtonClass =
@@ -67,6 +68,7 @@ export function TicketActions({
   escalateBlocked = false,
   assignPending = false,
   statusActionIds,
+  className,
 }: TicketActionsProps) {
   const hasPendingAction = pendingStatus != null || assignPending;
   const finalized = isTicketFinalized(ticket);
@@ -85,7 +87,7 @@ export function TicketActions({
     : filteredStatusActions;
 
   return (
-    <div className="grid w-fit grid-cols-2 gap-3 md:flex md:flex-nowrap md:items-center">
+    <div className={cn("grid w-fit grid-cols-2 gap-3 md:flex md:flex-nowrap md:items-center", className)}>
       {onAssignClick ? (
         <button
           type="button"
