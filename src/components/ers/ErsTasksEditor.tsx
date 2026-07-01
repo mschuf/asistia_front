@@ -6,6 +6,7 @@ import { ChevronDown, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { SearchableSelect, type SearchableSelectHandle } from "@/components/ui/searchable-select";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ErsProjectStateBadge } from "@/components/ers/ErsProjectStateBadge";
@@ -97,7 +98,7 @@ export function ErsTasksEditor({
     name: useRef<HTMLInputElement>(null),
     percentDone: useRef<HTMLInputElement>(null),
     projectStateId: useRef<HTMLSelectElement>(null),
-    userId: useRef<HTMLSelectElement>(null),
+    userId: useRef<SearchableSelectHandle>(null),
     planStartDate: useRef<HTMLInputElement>(null),
     planEndDate: useRef<HTMLInputElement>(null),
     content: useRef<HTMLTextAreaElement>(null),
@@ -137,8 +138,21 @@ export function ErsTasksEditor({
   };
 
   const focusField = (field: TaskFieldKey) => {
-    fieldRefs[field].current?.focus();
+    if (field === "userId") {
+      fieldRefs.userId.current?.focusAndOpen();
+      return;
+    }
+    (fieldRefs[field] as RefObject<HTMLElement>).current?.focus();
   };
+
+  const assigneeSelectOptions = useMemo(
+    () =>
+      assigneeOptions.map((user) => ({
+        value: String(user.id),
+        label: user.fullName,
+      })),
+    [assigneeOptions],
+  );
 
   const validateTaskDraft = (draft: TaskDraft): { valid: boolean; errors: TaskValidationErrors } => {
     const errors: TaskValidationErrors = {};
@@ -429,22 +443,25 @@ export function ErsTasksEditor({
               <span className="text-muted-foreground">
                 Responsable <span className="text-destructive">*</span>
               </span>
-              <Select
-                ref={fieldRefs.userId as RefObject<HTMLSelectElement>}
-                className={cn(taskErrors.userId && "border-destructive focus-visible:ring-destructive")}
-                value={taskDraft.userId}
-                onChange={(event) => {
-                  setTaskDraft((current) => ({ ...current, userId: event.target.value }));
-                  if (taskErrors.userId) setTaskErrors((current) => ({ ...current, userId: undefined }));
-                }}
+              <div
+                className={cn(
+                  taskErrors.userId &&
+                    "[&>div>button]:border-destructive [&>div>button]:focus-visible:ring-destructive",
+                )}
               >
-                <option value="">Seleccionar responsable</option>
-                {assigneeOptions.map((user) => (
-                  <option key={user.id} value={String(user.id)}>
-                    {user.fullName}
-                  </option>
-                ))}
-              </Select>
+                <SearchableSelect
+                  ref={fieldRefs.userId}
+                  value={taskDraft.userId}
+                  onChange={(userId) => {
+                    setTaskDraft((current) => ({ ...current, userId }));
+                    if (taskErrors.userId) setTaskErrors((current) => ({ ...current, userId: undefined }));
+                  }}
+                  options={assigneeSelectOptions}
+                  placeholder="Seleccionar responsable"
+                  searchPlaceholder="Buscar responsable..."
+                  emptyOption={{ value: "", label: "Seleccionar responsable" }}
+                />
+              </div>
             </label>
             <label className="flex flex-col gap-1 text-sm">
               <span className="text-muted-foreground">

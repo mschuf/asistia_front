@@ -104,6 +104,7 @@ export default function ErsPage() {
           sortOrder={sort?.order ?? null}
           onSortColumnChange={setSortColumn}
           onEdit={isTechnician ? (row) => navigate(`/ers/${row.projectId}/editar`) : undefined}
+          onHistory={isTechnician ? (row) => navigate(`/ers/${row.projectId}/historial`) : undefined}
         />
       )}
 

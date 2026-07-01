@@ -2,7 +2,7 @@
  * @file ErsTable.tsx
  * @description Tabla de ERS con cabeceras ordenables y acción editar para TI.
  */
-import { ArrowDown, ArrowUp, ArrowUpDown, Pencil } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, History, Pencil } from "lucide-react";
 import type { ErsListItem, ErsSortColumn, ErsSortOrder } from "@/api/ers";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,7 @@ interface ErsTableProps {
   sortOrder?: ErsSortOrder | null;
   onSortColumnChange?: (column: ErsSortColumn) => void;
   onEdit?: (row: ErsListItem) => void;
+  onHistory?: (row: ErsListItem) => void;
 }
 
 function getSortableColumns(isTechnician: boolean): Array<{ id: ErsSortColumn; label: string }> {
@@ -82,6 +83,7 @@ export function ErsTable({
   sortOrder,
   onSortColumnChange,
   onEdit,
+  onHistory,
 }: ErsTableProps) {
   const sortableColumns = getSortableColumns(isTechnician);
 
@@ -129,19 +131,34 @@ export function ErsTable({
                 <td className="px-4 py-3">{formatCreatedDate(row.createdAt)}</td>
                 {isTechnician ? (
                   <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      aria-label="Editar"
-                      title="Editar"
-                      onClick={() => onEdit?.(row)}
-                      className={cn(
-                        actionButtonClass,
-                        "border-sky-200/80 bg-sky-50/60 text-sky-700 hover:border-sky-300 hover:bg-sky-100/80",
-                        "dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-300 dark:hover:border-sky-800 dark:hover:bg-sky-950/50",
-                      )}
-                    >
-                      <Pencil className={actionIconClass} aria-hidden="true" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        aria-label="Historial"
+                        title="Historial"
+                        onClick={() => onHistory?.(row)}
+                        className={cn(
+                          actionButtonClass,
+                          "border-violet-200/80 bg-violet-50/60 text-violet-700 hover:border-violet-300 hover:bg-violet-100/80",
+                          "dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300 dark:hover:border-violet-800 dark:hover:bg-violet-950/50",
+                        )}
+                      >
+                        <History className={actionIconClass} aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Editar"
+                        title="Editar"
+                        onClick={() => onEdit?.(row)}
+                        className={cn(
+                          actionButtonClass,
+                          "border-sky-200/80 bg-sky-50/60 text-sky-700 hover:border-sky-300 hover:bg-sky-100/80",
+                          "dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-300 dark:hover:border-sky-800 dark:hover:bg-sky-950/50",
+                        )}
+                      >
+                        <Pencil className={actionIconClass} aria-hidden="true" />
+                      </button>
+                    </div>
                   </td>
                 ) : null}
               </tr>

@@ -22,6 +22,7 @@ const TicketCreatedReportPage = lazy(() => import("./pages/TicketCreatedReportPa
 const ErsPage = lazy(() => import("./pages/ErsPage"));
 const NuevoErsPage = lazy(() => import("./pages/NuevoErsPage"));
 const ErsEditPage = lazy(() => import("./pages/ErsEditPage"));
+const ErsHistoryPage = lazy(() => import("./pages/ErsHistoryPage"));
 
 export default function App() {
   const { isAuthenticated, user } = useAuth();
@@ -85,6 +86,14 @@ export default function App() {
             element={
               <TicketsRoute>
                 <ErsEditPage />
+              </TicketsRoute>
+            }
+          />
+          <Route
+            path="ers/:projectId/historial"
+            element={
+              <TicketsRoute>
+                <ErsHistoryPage />
               </TicketsRoute>
             }
           />
