@@ -4,11 +4,15 @@
  */
 import type { AsistiaTicket, AsistiaTicketStatus, AsistiaTicketType, AsistiaUser } from "@/types/asistia";
 import type { AuthUser } from "@/types/auth";
+import { hasTechnicianAccess } from "@/utils/auth-access";
 import type { TicketFilterState } from "@/types/pages/tickets-page.types";
 import { TICKET_STATUS_LABELS, TICKET_TYPE_LABELS, TICKET_URGENCY_LABELS } from "@/lib/constants";
 import { stripHtml } from "@/lib/utils";
 
 export const OPEN_STATUSES: AsistiaTicketStatus[] = ["new", "assigned", "planned", "waiting"];
+
+/** Usuario de servicio que representa tickets pendientes de asignación humana. */
+export const ASISTIA_UNASSIGNED_TECHNICIAN_ID = 1368;
 
 export const IN_PROGRESS_STATUSES: AsistiaTicketStatus[] = ["assigned", "planned", "waiting"];
 
@@ -404,12 +408,12 @@ export function buildRequesterDisplayLabel(
 
 /** @param user - Usuario autenticado o null. @returns Filtros iniciales del historial. */
 export function buildInitialTicketFilters(user: AuthUser | null): TicketFilterState {
-  const isTechnician = user?.role === "technician";
+  const isTechnician = hasTechnicianAccess(user);
   return {
     search: "",
     status: "",
     type: "",
-    assignedToId: isTechnician && user.id != null ? String(user.id) : "",
+    assignedToId: isTechnician && user?.id != null ? String(user.id) : "",
     requesterId: "",
     locationId: !isTechnician && user?.locationId != null ? String(user.locationId) : "",
     createdFrom: "",
@@ -481,6 +485,22 @@ export function buildMyGroupHistorialFilters(): TicketFilterState {
     createdFrom: "",
     createdTo: "",
     involvingMe: false,
+  };
+}
+
+/** @returns Preset de tickets abiertos asignados al usuario de servicio asistIA. */
+export function buildUnassignedHistorialFilters(): TicketFilterState {
+  return {
+    search: "",
+    status: "",
+    type: "",
+    assignedToId: String(ASISTIA_UNASSIGNED_TECHNICIAN_ID),
+    requesterId: "",
+    locationId: "",
+    createdFrom: "",
+    createdTo: "",
+    involvingMe: false,
+    statusesPreset: [...OPEN_STATUSES],
   };
 }
 

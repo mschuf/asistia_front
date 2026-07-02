@@ -9,10 +9,14 @@ import type { ErsPageSize, ErsSortState } from "@/lib/ers";
 export interface ErsFilterState {
   search: string;
   projectName: string;
-  requesterName: string;
-  locationName: string;
+  createdFrom: string;
+  createdTo: string;
+  requesterId: string;
   approverName: string;
   projectStateId: string;
+  lifecycle: '' | 'active' | 'finished';
+  locationId: string;
+  assignedMemberId: string;
 }
 
 /** Paginación del listado ERS. */

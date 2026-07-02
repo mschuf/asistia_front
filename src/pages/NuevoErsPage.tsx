@@ -2,13 +2,21 @@
  * @file NuevoErsPage.tsx
  * @description Pantalla de escalado de ticket a ERS mediante formulario por pasos.
  */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate, useSearchParams, Navigate } from "react-router-dom";
 import { ApiError } from "@/api/apiClient";
-import { escalarTicket, listarTecnicosPorSede, type ErsTechnician } from "@/api/ers";
+import {
+  escalarTicket,
+  listarTecnicosPorSede,
+  listarTicketsElegiblesErs,
+  type ErsTechnician,
+} from "@/api/ers";
 import { ErsStepperForm, type ErsStepperSubmitInput } from "@/components/ers/ErsStepperForm";
+import { WorkspaceHeader } from "@/components/layout/WorkspaceHeader";
 import { Button } from "@/components/ui/button";
 import { Loading } from "@/components/ui/loading";
+import { ServerSearchableSelect } from "@/components/ui/server-searchable-select";
+import type { SearchableSelectOption } from "@/components/ui/searchable-select";
 import { useToast } from "@/context/ToastContext";
 import { useAuth } from "@/context/AuthContext";
 import { getTicketById } from "@/services/ticketsService";
@@ -33,10 +41,27 @@ export default function NuevoErsPage() {
   const [loadingTechnicians, setLoadingTechnicians] = useState(false);
 
   const ticketId = Number(searchParams.get("id") ?? searchParams.get("ticketId"));
+  const hasTicketId = Number.isFinite(ticketId) && ticketId > 0;
+
+  const loadEligibleTickets = useCallback(
+    async (query: string, signal: AbortSignal): Promise<SearchableSelectOption[]> => {
+      const response = await listarTicketsElegiblesErs(
+        { search: query.trim() || undefined, limit: 50 },
+        { signal },
+      );
+      return response.items.map((item) => ({
+        value: String(item.ticketId),
+        label: `#${item.ticketId} · ${item.subject}`,
+        searchText: `${item.ticketId} ${item.subject} ${item.requesterName ?? ""} ${item.locationName ?? ""}`,
+      }));
+    },
+    [],
+  );
 
   useEffect(() => {
-    if (!Number.isFinite(ticketId) || ticketId <= 0) {
-      setError("Debes ingresar desde un ticket válido para escalar.");
+    if (!hasTicketId) {
+      setTicket(null);
+      setError("");
       setLoading(false);
       return;
     }
@@ -52,8 +77,16 @@ export default function NuevoErsPage() {
       setLoading(true);
       setError("");
       try {
-        const detail = await getTicketById(ticketId);
+        const [detail, eligible] = await Promise.all([
+          getTicketById(ticketId),
+          listarTicketsElegiblesErs({ search: String(ticketId), limit: 50 }),
+        ]);
         if (cancelled) return;
+        if (!eligible.items.some((item) => item.ticketId === ticketId)) {
+          setTicket(null);
+          setError("El ticket ya no está disponible para escalar a ERS.");
+          return;
+        }
         setTicket(detail);
       } catch (loadError) {
         if (cancelled) return;
@@ -68,16 +101,16 @@ export default function NuevoErsPage() {
     return () => {
       cancelled = true;
     };
-  }, [ticketId, prefillTicket]);
+  }, [hasTicketId, ticketId, prefillTicket]);
 
   useEffect(() => {
-    if (!ticket?.location?.id) {
+    if (!ticket) {
       setTechnicians([]);
       return;
     }
     let cancelled = false;
     setLoadingTechnicians(true);
-    void listarTecnicosPorSede({ locationId: ticket.location.id, limit: 200 })
+    void listarTecnicosPorSede({ locationId: ticket.location?.id ?? undefined, limit: 200 })
       .then((response) => {
         if (!cancelled) setTechnicians(response.items);
       })
@@ -90,7 +123,7 @@ export default function NuevoErsPage() {
     return () => {
       cancelled = true;
     };
-  }, [ticket?.location?.id]);
+  }, [ticket]);
 
   const handleSubmit = async (input: ErsStepperSubmitInput) => {
     try {
@@ -110,15 +143,39 @@ export default function NuevoErsPage() {
 
   return (
     <div className="space-y-4">
+      <WorkspaceHeader />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="text-xs text-muted-foreground">IRS / ERS</p>
           <h1 className="text-lg font-semibold">Nuevo ERS</h1>
         </div>
-        <Button type="button" variant="outline" onClick={() => navigate(-1)}>
-          Volver
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => navigate(hasTicketId ? "/ers/nuevo" : "/ers")}
+        >
+          {hasTicketId ? "Cambiar ticket" : "Volver"}
         </Button>
       </div>
+
+      {!hasTicketId ? (
+        <div className="rounded-md border bg-card p-4 shadow-soft">
+          <label className="flex flex-col gap-2 text-sm">
+            <span className="font-medium">Ticket origen</span>
+            <ServerSearchableSelect
+              value=""
+              onChange={(value) => {
+                if (value) navigate(`/ers/nuevo?id=${value}`);
+              }}
+              onLoadOptions={loadEligibleTickets}
+              placeholder="Seleccionar ticket para escalar"
+              searchPlaceholder="Buscar por ID, título, solicitante o sede..."
+              noResultsText="No hay tickets activos disponibles"
+              loadingText="Buscando tickets..."
+            />
+          </label>
+        </div>
+      ) : null}
 
       {loading ? (
         <div className="rounded-md border bg-card p-6">

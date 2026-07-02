@@ -206,13 +206,11 @@ export default function ErsHistoryPage() {
                   </div>
 
                   {isExpanded ? (
-                    <div
+                    <HistoryStateComparison
                       id={`ers-history-state-${item.id}`}
-                      className="mt-4 grid gap-3 border-t pt-4 md:grid-cols-2"
-                    >
-                      <HistoryStatePanel title="Antes" state={item.beforeState} emptyText="Sin estado anterior" />
-                      <HistoryStatePanel title="Después" state={item.afterState} emptyText="Sin estado posterior" />
-                    </div>
+                      beforeState={item.beforeState}
+                      afterState={item.afterState}
+                    />
                   ) : null}
                 </article>
               </li>
@@ -224,31 +222,310 @@ export default function ErsHistoryPage() {
   );
 }
 
-function HistoryStatePanel({
-  title,
-  state,
-  emptyText,
+function HistoryStateComparison({
+  id,
+  beforeState,
+  afterState,
 }: {
-  title: string;
-  state: Record<string, unknown> | null;
-  emptyText: string;
+  id: string;
+  beforeState: Record<string, unknown> | null;
+  afterState: Record<string, unknown> | null;
 }) {
+  const changedFieldPaths = getChangedFieldPaths(beforeState, afterState);
+  const fieldKeys = Array.from(
+    new Set([...Object.keys(beforeState ?? {}), ...Object.keys(afterState ?? {})]),
+  ).filter((key) => !isIgnoredHistoryField(key));
+
   return (
-    <section className="rounded-md border bg-muted/25 p-3">
-      <h2 className="text-xs font-semibold uppercase text-muted-foreground">{title}</h2>
-      {state ? (
-        <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-md bg-background p-3 text-xs leading-relaxed text-foreground">
-          {formatHistoryState(state)}
-        </pre>
-      ) : (
-        <p className="mt-2 text-sm text-muted-foreground">{emptyText}</p>
-      )}
-    </section>
+    <div id={id} className="mt-4 border-t pt-4">
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="rounded-md border bg-muted/25 px-3 py-2">
+          <h2 className="text-xs font-semibold uppercase text-muted-foreground">Antes</h2>
+        </div>
+        <div className="rounded-md border bg-muted/25 px-3 py-2">
+          <h2 className="text-xs font-semibold uppercase text-muted-foreground">Después</h2>
+        </div>
+      </div>
+
+      <div className="mt-2 max-h-80 overflow-auto rounded-md border bg-background p-3 font-mono text-sm leading-relaxed text-foreground">
+        {fieldKeys.length > 0 ? (
+          <dl>
+            {fieldKeys.map((key) => {
+              const isChanged = isHistoryFieldChanged(key, changedFieldPaths);
+
+              return (
+                <div
+                  key={key}
+                  className="grid items-stretch gap-3 border-b border-border/70 py-3 first:pt-0 last:border-b-0 last:pb-0 md:grid-cols-2"
+                >
+                  <HistoryStateComparisonCell
+                    fieldKey={key}
+                    value={beforeState?.[key]}
+                    hasValue={Boolean(beforeState && Object.prototype.hasOwnProperty.call(beforeState, key))}
+                    isChanged={isChanged}
+                    changedFieldPaths={changedFieldPaths}
+                  />
+                  <HistoryStateComparisonCell
+                    fieldKey={key}
+                    value={afterState?.[key]}
+                    hasValue={Boolean(afterState && Object.prototype.hasOwnProperty.call(afterState, key))}
+                    isChanged={isChanged}
+                    changedFieldPaths={changedFieldPaths}
+                  />
+                </div>
+              );
+            })}
+          </dl>
+        ) : (
+          <p className="text-muted-foreground">Sin datos para comparar</p>
+        )}
+      </div>
+    </div>
   );
 }
 
-function formatHistoryState(state: Record<string, unknown>): string {
-  return JSON.stringify(state, null, 2);
+function HistoryStateComparisonCell({
+  fieldKey,
+  value,
+  hasValue,
+  isChanged,
+  changedFieldPaths,
+}: {
+  fieldKey: string;
+  value: unknown;
+  hasValue: boolean;
+  isChanged: boolean;
+  changedFieldPaths: Set<string>;
+}) {
+  if (!hasValue) {
+    return <div className="min-h-10" aria-hidden="true" />;
+  }
+
+  return (
+    <div className="min-w-0">
+      <div
+        className={cn(
+          "rounded-md p-2",
+          isChanged &&
+            "bg-amber-100/80 ring-1 ring-inset ring-amber-300/80 dark:bg-amber-950/40 dark:ring-amber-700/70",
+        )}
+      >
+        <dt
+          className={cn(
+            "font-semibold text-muted-foreground",
+            isChanged && "text-amber-900 dark:text-amber-200",
+          )}
+        >
+          {formatFieldLabel(fieldKey)}
+        </dt>
+        <dd className="mt-1 min-w-0 break-words">
+          <HistoryStateValue
+            value={value}
+            changedFieldPaths={changedFieldPaths}
+            fieldPath={fieldKey}
+          />
+        </dd>
+      </div>
+    </div>
+  );
+}
+
+function isHistoryFieldChanged(fieldPath: string, changedFieldPaths: Set<string>): boolean {
+  if (changedFieldPaths.has(fieldPath)) return true;
+  return Array.from(changedFieldPaths).some((path) => path.startsWith(`${fieldPath}.`));
+}
+
+function HistoryStateFields({
+  state,
+  changedFieldPaths,
+  parentPath = "",
+}: {
+  state: Record<string, unknown>;
+  changedFieldPaths: Set<string>;
+  parentPath?: string;
+}) {
+  const fields = Object.entries(state).filter(([key]) => !isIgnoredHistoryField(key));
+
+  if (fields.length === 0) {
+    return <p className="text-muted-foreground">Sin datos</p>;
+  }
+
+  return (
+    <dl className="divide-y divide-border/70">
+      {fields.map(([key, value]) => {
+        const fieldPath = parentPath ? `${parentPath}.${key}` : key;
+        const isChanged = changedFieldPaths.has(fieldPath);
+
+        return (
+          <div
+            key={key}
+            className={cn(
+              "grid gap-1 py-2 first:pt-0 last:pb-0 sm:grid-cols-[minmax(9rem,0.4fr)_1fr] sm:gap-3",
+              isChanged &&
+                "-mx-2 rounded-md bg-amber-100/80 px-2 ring-1 ring-inset ring-amber-300/80 dark:bg-amber-950/40 dark:ring-amber-700/70",
+            )}
+          >
+            <dt
+              className={cn(
+                "font-semibold text-muted-foreground",
+                isChanged && "text-amber-900 dark:text-amber-200",
+              )}
+            >
+              {formatFieldLabel(key)}
+            </dt>
+            <dd className="min-w-0 break-words">
+              <HistoryStateValue
+                value={value}
+                changedFieldPaths={changedFieldPaths}
+                fieldPath={fieldPath}
+              />
+            </dd>
+          </div>
+        );
+      })}
+    </dl>
+  );
+}
+
+function HistoryStateValue({
+  value,
+  changedFieldPaths,
+  fieldPath,
+}: {
+  value: unknown;
+  changedFieldPaths: Set<string>;
+  fieldPath: string;
+}) {
+  if (value === null || value === undefined || value === "") {
+    return <span className="text-muted-foreground">—</span>;
+  }
+
+  if (typeof value === "boolean") {
+    return <>{value ? "Sí" : "No"}</>;
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) return <span className="text-muted-foreground">Sin elementos</span>;
+
+    return (
+      <ol className="space-y-2">
+        {value.map((item, index) => (
+          <li key={index} className="flex min-w-0 gap-2">
+            <span className="shrink-0 text-muted-foreground">{index + 1}.</span>
+            <div className="min-w-0 flex-1">
+              <HistoryStateValue
+                value={item}
+                changedFieldPaths={changedFieldPaths}
+                fieldPath={fieldPath}
+              />
+            </div>
+          </li>
+        ))}
+      </ol>
+    );
+  }
+
+  if (typeof value === "object") {
+    return (
+      <HistoryStateFields
+        state={value as Record<string, unknown>}
+        changedFieldPaths={changedFieldPaths}
+        parentPath={fieldPath}
+      />
+    );
+  }
+
+  return <>{String(value)}</>;
+}
+
+function getChangedFieldPaths(
+  beforeState: Record<string, unknown> | null,
+  afterState: Record<string, unknown> | null,
+): Set<string> {
+  const changedPaths = new Set<string>();
+  if (!beforeState || !afterState) return changedPaths;
+
+  collectChangedFieldPaths(beforeState, afterState, "", changedPaths);
+  return changedPaths;
+}
+
+function collectChangedFieldPaths(
+  beforeValue: Record<string, unknown>,
+  afterValue: Record<string, unknown>,
+  parentPath: string,
+  changedPaths: Set<string>,
+) {
+  const keys = new Set(
+    [...Object.keys(beforeValue), ...Object.keys(afterValue)].filter(
+      (key) => !isIgnoredHistoryField(key),
+    ),
+  );
+
+  keys.forEach((key) => {
+    const fieldPath = parentPath ? `${parentPath}.${key}` : key;
+    const hasBeforeValue = Object.prototype.hasOwnProperty.call(beforeValue, key);
+    const hasAfterValue = Object.prototype.hasOwnProperty.call(afterValue, key);
+
+    if (!hasBeforeValue || !hasAfterValue) {
+      changedPaths.add(fieldPath);
+      return;
+    }
+
+    const beforeFieldValue = beforeValue[key];
+    const afterFieldValue = afterValue[key];
+
+    if (isHistoryStateRecord(beforeFieldValue) && isHistoryStateRecord(afterFieldValue)) {
+      collectChangedFieldPaths(beforeFieldValue, afterFieldValue, fieldPath, changedPaths);
+      return;
+    }
+
+    if (!areHistoryValuesEqual(beforeFieldValue, afterFieldValue)) {
+      changedPaths.add(fieldPath);
+    }
+  });
+}
+
+function isHistoryStateRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isIgnoredHistoryField(key: string): boolean {
+  return key.toLowerCase() === "id";
+}
+
+function areHistoryValuesEqual(beforeValue: unknown, afterValue: unknown): boolean {
+  if (Object.is(beforeValue, afterValue)) return true;
+
+  if (Array.isArray(beforeValue) && Array.isArray(afterValue)) {
+    return (
+      beforeValue.length === afterValue.length &&
+      beforeValue.every((item, index) => areHistoryValuesEqual(item, afterValue[index]))
+    );
+  }
+
+  if (isHistoryStateRecord(beforeValue) && isHistoryStateRecord(afterValue)) {
+    const beforeKeys = Object.keys(beforeValue).filter((key) => !isIgnoredHistoryField(key));
+    const afterKeys = Object.keys(afterValue).filter((key) => !isIgnoredHistoryField(key));
+    return (
+      beforeKeys.length === afterKeys.length &&
+      beforeKeys.every(
+        (key) =>
+          Object.prototype.hasOwnProperty.call(afterValue, key) &&
+          areHistoryValuesEqual(beforeValue[key], afterValue[key]),
+      )
+    );
+  }
+
+  return false;
+}
+
+function formatFieldLabel(value: string): string {
+  const label = value
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .trim();
+
+  return label ? label.charAt(0).toUpperCase() + label.slice(1) : value;
 }
 
 function formatDateTime(value: string): string {

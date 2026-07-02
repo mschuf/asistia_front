@@ -142,13 +142,13 @@ export default function ErsEditPage() {
   }, []);
 
   useEffect(() => {
-    if (!detail?.locationId) {
+    if (!detail) {
       setTechnicians([]);
       return;
     }
     let cancelled = false;
     setLoadingTechnicians(true);
-    void listarTecnicosPorSede({ locationId: detail.locationId, limit: 200 })
+    void listarTecnicosPorSede({ locationId: detail.locationId ?? undefined, limit: 200 })
       .then((response) => {
         if (!cancelled) setTechnicians(response.items);
       })

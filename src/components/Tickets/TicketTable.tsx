@@ -20,7 +20,7 @@ type HistoryTableColumn = HistorySortColumn;
 const HISTORY_COLUMN_LABELS: Record<HistoryTableColumn, string> = {
   id: "Ticket",
   createdAt: "Apertura",
-  openFor: "Abierto por",
+  openFor: "Desde",
   requester: "Solicitante",
   location: "Ubicación",
   type: "Tipo",
@@ -78,7 +78,6 @@ interface TicketTableProps {
   statusChanging?: { ticketId: number; status: AsistiaTicketStatus } | null;
   onAssignClick?: (ticket: AsistiaTicket) => void;
   onEscalate?: (ticket: AsistiaTicket) => void;
-  escalateBlocked?: boolean;
   assigning?: { ticketId: number } | null;
   statusActionIds?: TicketStatusActionId[];
 }
@@ -218,7 +217,7 @@ function SortableHeader({
         )}
         onClick={() => onSortColumnChange(column)}
       >
-        <span>{label}</span>
+        <span className={cn(column === "openFor" && "whitespace-nowrap")}>{label}</span>
         {isActive && sortOrder === "asc" ? (
           <ArrowUp className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         ) : isActive && sortOrder === "desc" ? (
@@ -245,27 +244,18 @@ export function TicketTable({
   statusChanging = null,
   onAssignClick,
   onEscalate,
-  escalateBlocked = false,
   assigning = null,
   statusActionIds,
 }: TicketTableProps) {
-  const showActionsColumn = Boolean(onStatusChange || onAssignClick || onEscalate || escalateBlocked);
+  const showActionsColumn = Boolean(onStatusChange || onAssignClick || onEscalate);
   const isMobileLayout = useIsMobileHistorialLayout();
   const columnOrder = isMobileLayout ? HISTORY_COLUMN_ORDER_MOBILE : HISTORY_COLUMN_ORDER_DESKTOP;
   const [selectedTicket, setSelectedTicket] = useState<AsistiaTicket | null>(null);
-  const [expandedIds, setExpandedIds] = useState<Set<number>>(() => new Set());
+  const [expandedTicketId, setExpandedTicketId] = useState<number | null>(null);
 
   /** @param ticketId - ID del ticket. @returns void */
   const toggleExpanded = (ticketId: number) => {
-    setExpandedIds((current) => {
-      const next = new Set(current);
-      if (next.has(ticketId)) {
-        next.delete(ticketId);
-      } else {
-        next.add(ticketId);
-      }
-      return next;
-    });
+    setExpandedTicketId((current) => (current === ticketId ? null : ticketId));
   };
 
   useEffect(() => {
@@ -330,7 +320,7 @@ export function TicketTable({
           </thead>
           <tbody className="[&>tr:not(:last-child)>td]:border-b [&>tr:not(:last-child)>td]:border-muted-foreground/25 [&>tr[data-expanded-row]>td]:!border-b-0">
             {tickets.map((ticket) => {
-              const isExpanded = expandedIds.has(ticket.id);
+              const isExpanded = expandedTicketId === ticket.id;
               const detailColSpan = columnOrder.length + (showActionsColumn ? 1 : 0) + 1;
 
               return (
@@ -392,7 +382,6 @@ export function TicketTable({
                         onAssignClick ? () => handleAssignClick(ticket) : undefined
                       }
                       onEscalate={onEscalate ? () => onEscalate(ticket) : undefined}
-                      escalateBlocked={escalateBlocked}
                       assignPending={assigning?.ticketId === Number(ticket.id)}
                       statusActionIds={statusActionIds}
                     />
@@ -440,7 +429,6 @@ export function TicketTable({
       }
       onAssignClick={showActionsColumn && onAssignClick ? handleAssignClick : undefined}
       onEscalate={showActionsColumn && onEscalate ? onEscalate : undefined}
-      escalateBlocked={showActionsColumn ? escalateBlocked : undefined}
       assigning={assigning}
       statusActionIds={statusActionIds}
     />

@@ -42,8 +42,6 @@ interface TicketActionsProps {
   pendingStatus?: AsistiaTicketStatus | null;
   onAssignClick?: () => void;
   onEscalate?: () => void;
-  /** Muestra el botón Escalar deshabilitado (p. ej. usuarios final_user). */
-  escalateBlocked?: boolean;
   assignPending?: boolean;
   /** Si se define, limita qué botones de estado se muestran (p. ej. solo `closed` para solicitantes). */
   statusActionIds?: TicketStatusActionId[];
@@ -65,7 +63,6 @@ export function TicketActions({
   pendingStatus = null,
   onAssignClick,
   onEscalate,
-  escalateBlocked = false,
   assignPending = false,
   statusActionIds,
   className,
@@ -79,7 +76,7 @@ export function TicketActions({
     : actions;
   const waitingAction = actions.find((action) => action.id === "waiting");
   const showEscalateButton =
-    Boolean(onEscalate || escalateBlocked) &&
+    Boolean(onEscalate) &&
     waitingAction &&
     !filteredStatusActions.some((action) => action.id === "waiting");
   const visibleStatusActions = showEscalateButton
@@ -128,11 +125,9 @@ export function TicketActions({
               disabled={disabled}
               aria-label={label}
               title={
-                escalateBlocked && !onEscalate
-                  ? "Solo usuarios TI pueden escalar tickets"
-                  : finalized
-                    ? "No hay acciones disponibles para tickets resueltos o cerrados"
-                    : label
+                finalized
+                  ? "No hay acciones disponibles para tickets resueltos o cerrados"
+                  : label
               }
               onClick={onEscalate}
               className={cn(

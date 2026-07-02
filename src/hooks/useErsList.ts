@@ -3,6 +3,7 @@
  * @description Hook de listado ERS con filtros, orden y paginación server-side.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ApiError } from "@/api/apiClient";
 import { listarErs, type ErsSortColumn, type ListarErsQuery } from "@/api/ers";
 import {
@@ -16,14 +17,23 @@ import {
 import type { ErsFilterState, UseErsListResult } from "@/types/pages/ers-page.types";
 
 /** @returns Filtros ERS en estado inicial. */
-function createInitialFilters(): ErsFilterState {
+function createInitialFilters(searchParams?: URLSearchParams): ErsFilterState {
   return {
     search: "",
     projectName: "",
-    requesterName: "",
-    locationName: "",
+    createdFrom: "",
+    createdTo: "",
+    requesterId: "",
     approverName: "",
     projectStateId: "",
+    lifecycle:
+      searchParams?.get("lifecycle") === "finished"
+        ? "finished"
+        : searchParams?.get("lifecycle") === "active"
+          ? "active"
+          : "",
+    locationId: searchParams?.get("locationId") ?? "",
+    assignedMemberId: searchParams?.get("assignedMemberId") ?? "",
   };
 }
 
@@ -39,10 +49,14 @@ function toListParams(
     limit,
     search: filters.search || undefined,
     projectName: filters.projectName || undefined,
-    requesterName: filters.requesterName || undefined,
-    locationName: filters.locationName || undefined,
+    createdFrom: filters.createdFrom || undefined,
+    createdTo: filters.createdTo || undefined,
+    requesterId: filters.requesterId ? Number(filters.requesterId) : undefined,
     approverName: filters.approverName || undefined,
     projectStateId: filters.projectStateId ? Number(filters.projectStateId) : undefined,
+    lifecycle: filters.lifecycle || undefined,
+    locationId: filters.locationId ? Number(filters.locationId) : undefined,
+    assignedMemberId: filters.assignedMemberId ? Number(filters.assignedMemberId) : undefined,
     sortBy: sort?.column,
     sortOrder: sort?.order,
   };
@@ -50,9 +64,11 @@ function toListParams(
 
 /** Hook principal para la pantalla `/ers`. */
 export function useErsList(): UseErsListResult {
+  const [searchParams] = useSearchParams();
+  const initialFilters = useMemo(() => createInitialFilters(searchParams), []);
   const [items, setItems] = useState<UseErsListResult["items"]>([]);
-  const [filters, setFiltersState] = useState<ErsFilterState>(createInitialFilters);
-  const [appliedFilters, setAppliedFilters] = useState<ErsFilterState>(createInitialFilters);
+  const [filters, setFiltersState] = useState<ErsFilterState>(initialFilters);
+  const [appliedFilters, setAppliedFilters] = useState<ErsFilterState>(initialFilters);
   const [page, setPageState] = useState(1);
   const [pageLimit, setPageLimitState] = useState<ErsPageSize>(ERS_PAGE_SIZE);
   const [sort, setSortState] = useState<ErsSortState | null>({

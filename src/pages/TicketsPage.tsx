@@ -2,12 +2,11 @@
  * @file TicketsPage.tsx
  * @description Página principal de tickets con pestañas indicadores, crear e historial.
  */
-import { BarChart3, FilePlus2, History, RefreshCw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { IrsErsSwitch } from "@/components/layout/IrsErsSwitch";
 import { MobileRefreshFab } from "@/components/layout/MobileRefreshFab";
+import { WorkspaceHeader } from "@/components/layout/WorkspaceHeader";
 import { TiMetrics } from "@/components/tickets/TiMetrics";
 
 import { TicketFilters } from "@/components/tickets/TicketFilters";
@@ -17,8 +16,6 @@ import { TicketForm } from "@/components/tickets/TicketForm";
 import { TicketAssignModal } from "@/components/tickets/TicketAssignModal";
 import { TicketResolveModal } from "@/components/tickets/TicketResolveModal";
 import { TicketTable } from "@/components/tickets/TicketTable";
-
-import { Badge } from "@/components/ui/badge";
 
 import { Button } from "@/components/ui/button";
 
@@ -40,31 +37,14 @@ import {
   buildSiteHistorialFilters,
   buildStatusHistorialFilters,
   buildMyGroupHistorialFilters,
-  findLocationById,
+  buildUnassignedHistorialFilters,
   isTicketsAllPageSize,
-  locationCompanyName,
-  locationDisplayName,
   parseTicketsPageSize,
   TICKETS_PAGE_SIZE_ALL,
   TICKETS_PAGE_SIZE_OPTIONS,
 } from "@/lib/tickets";
 
-import { roleLabel } from "@/utils/role";
-
 import type { AsistiaTicket, AsistiaTicketStatus } from "@/types/asistia";
-import type { TicketsTab } from "@/types/pages/tickets-page.types";
-
-const desktopTabs: Array<{
-  tab: TicketsTab;
-  label: string;
-  icon: typeof BarChart3;
-}> = [
-  { tab: "metricas", label: "Indicadores", icon: BarChart3 },
-
-  { tab: "crear", label: "Crear", icon: FilePlus2 },
-
-  { tab: "historial", label: "Historial", icon: History },
-];
 
 /**
  * Orquesta pestañas, métricas, formulario de creación e historial de tickets.
@@ -72,7 +52,7 @@ const desktopTabs: Array<{
  */
 export default function TicketsPage() {
   const navigate = useNavigate();
-  const { user, role, isTechnician, isSuperAdmin } = useAuth();
+  const { user, isTechnician, isSuperAdmin } = useAuth();
   const refreshMetricsRef = useRef<(() => Promise<void>) | undefined>(
     undefined,
   );
@@ -195,16 +175,6 @@ export default function TicketsPage() {
   };
 
   const badgeLocations = locations.length > 0 ? locations : historyLocations;
-  const userLocation = findLocationById(badgeLocations, user?.locationId);
-
-  const userLocationName = userLocation
-    ? locationDisplayName(userLocation)
-    : null;
-
-  const userCompanyName = userLocationName
-    ? locationCompanyName(userLocationName)
-    : null;
-
   const numericLimit =
     typeof pagination.limit === "number" ? pagination.limit : TICKETS_PAGE_SIZE_OPTIONS[0];
   const showingAll = isTicketsAllPageSize(pagination.limit);
@@ -233,72 +203,11 @@ export default function TicketsPage() {
           "w-full min-w-0 min-[1600px]:mx-auto min-[1600px]:max-w-[75vw]",
       )}
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-2">
-          <div>
-            {/*<p className="text-lg font-semibold">Tickets</p>*/}
-            {/* <p className="text-sm text-muted-foreground">
-              {isTechnician
-                ? "Gestioná solicitudes e incidentes asignados o del equipo."
-                : "Creá y seguí tus solicitudes de soporte."}
-            </p> */}
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Badge variant={role === "technician" ? "success" : "default"}>
-              {roleLabel(role)}
-            </Badge>
-
-            {user?.name ? (
-              <Badge className="bg-orange-50 text-orange-700 ring-orange-200 dark:bg-orange-950/40 dark:text-orange-200 dark:ring-orange-800">
-                {user.name}
-              </Badge>
-            ) : null}
-
-            {userCompanyName ? (
-              <Badge variant="info">{userCompanyName}</Badge>
-            ) : null}
-
-            {userLocationName ? (
-              <Badge variant="default">{userLocationName}</Badge>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="ml-auto hidden shrink-0 items-center gap-2 sm:flex">
-          <IrsErsSwitch />
-          {tab === "historial" || tab === "metricas" ? (
-            <div className="flex shrink-0 rounded-md border bg-card p-1">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="gap-2"
-                onClick={() => void handleRefresh()}
-              >
-                <RefreshCw className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            </div>
-          ) : null}
-
-          <div className="flex shrink-0 rounded-md border bg-card p-1">
-            {desktopTabs.map(({ tab: nextTab, label, icon: Icon }) => (
-              <Button
-                key={nextTab}
-                type="button"
-                size="sm"
-                variant={tab === nextTab ? "default" : "ghost"}
-                className={cn("gap-2")}
-                onClick={() => setTab(nextTab)}
-              >
-                <Icon className="h-4 w-4" aria-hidden="true" />
-
-                {label}
-              </Button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <WorkspaceHeader
+        locations={badgeLocations}
+        onRefresh={tab === "historial" || tab === "metricas" ? () => void handleRefresh() : undefined}
+        refreshing={tab === "historial" ? loading : metricsLoading}
+      />
 
       {metricsError && tab === "metricas" ? (
         <p className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -324,6 +233,11 @@ export default function TicketsPage() {
           onGoToHistorialForGroup={
             isTechnician
               ? () => goToHistorialWithFilters(buildMyGroupHistorialFilters())
+              : undefined
+          }
+          onGoToHistorialForUnassigned={
+            isTechnician
+              ? () => goToHistorialWithFilters(buildUnassignedHistorialFilters())
               : undefined
           }
           onGoToHistorialForSolved={
@@ -417,7 +331,6 @@ export default function TicketsPage() {
                         navigate(`/ers/nuevo?id=${ticket.id}`, { state: { prefillTicket: ticket } })
                     : undefined
                 }
-                escalateBlocked={!isTechnician}
                 assigning={assigning}
                 statusActionIds={
                   isTechnician && !isSuperAdmin

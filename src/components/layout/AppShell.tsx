@@ -7,7 +7,7 @@ import { BarChart3, Building2, ChevronDown, FilePlus2, History, LogOut, Menu, Me
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { BottomTabBar } from "@/components/layout/BottomTabBar";
-import { IrsErsModeProvider, IrsErsSwitch } from "@/components/layout/IrsErsSwitch";
+import { IrsErsSwitch } from "@/components/layout/IrsErsSwitch";
 import { InstallAppButton } from "@/components/layout/InstallAppButton";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -75,7 +75,6 @@ function NavSection({ title, expanded, onToggle, showBorder = false, children }:
 export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   const [open, setOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [isErsMode, setIsErsMode] = useState(false);
   const { isAuthenticated, user, role, isSuperAdmin, canAccessTickets, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -83,10 +82,12 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   const currentTab = readNavTab(searchParams.get("tab"));
   const onTicketsRoute = location.pathname.startsWith("/irs");
   const onErsRoute = location.pathname.startsWith("/ers");
+  const isErsMode = onErsRoute;
   const onSuperAdminRoute = location.pathname.startsWith("/admin");
   const isTicketsHistorialLayout = onTicketsRoute && currentTab === "historial";
   const [irsExpanded, setIrsExpanded] = useState(onTicketsRoute);
   const [superAdminExpanded, setSuperAdminExpanded] = useState(onSuperAdminRoute);
+  const isWideHistoryLayout = isTicketsHistorialLayout || location.pathname === '/ers';
 
   useEffect(() => {
     if (onTicketsRoute || onErsRoute) setIrsExpanded(true);
@@ -120,8 +121,7 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   }
 
   return (
-    <IrsErsModeProvider isErsMode={isErsMode} setIsErsMode={setIsErsMode}>
-      <div className={cn("min-h-screen bg-background", isErsMode && "ers-theme")}>
+    <div className={cn("min-h-screen bg-background", isErsMode && "ers-theme")}>
       <header className="sticky top-0 z-40 border-b bg-card/95 backdrop-blur">
         <div className="container flex h-16 items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -212,21 +212,23 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
                   </button>
                 );
               })}
-              <button
-                type="button"
-                onClick={() => {
-                  navigate("/ers");
-                  setOpen(false);
-                }}
-                aria-current={onErsRoute ? "page" : undefined}
-                className={cn(
-                  "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-                  onErsRoute && "bg-muted text-foreground",
-                )}
-              >
-                <ClipboardList className="h-4 w-4" aria-hidden="true" />
-                ERS / Proyectos
-              </button>
+              {role !== "final_user" ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigate("/ers");
+                    setOpen(false);
+                  }}
+                  aria-current={onErsRoute ? "page" : undefined}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                    onErsRoute && "bg-muted text-foreground",
+                  )}
+                >
+                  <ClipboardList className="h-4 w-4" aria-hidden="true" />
+                  ERS / Proyectos
+                </button>
+              ) : null}
             </NavSection>
           ) : null}
           {isSuperAdmin ? (
@@ -301,7 +303,7 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
         <p className="border-t px-4 py-3 text-center text-xs text-muted-foreground">
           Hecho con{" "}
           <span className="text-destructive/80" aria-hidden="true">
-            ♥
+            💡
           </span>{" "}
           por el equipo TI
         </p> 
@@ -319,15 +321,14 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
       <main
         className={cn(
           "py-5 pb-20 sm:py-7 sm:pb-7",
-          isTicketsHistorialLayout ? "w-full min-w-0 px-4 sm:px-6" : "container",
+          isWideHistoryLayout ? "w-full min-w-0 px-4 sm:px-6" : "container",
         )}
       >
         {children}
       </main>
 
-        <BottomTabBar />
-      </div>
-    </IrsErsModeProvider>
+      <BottomTabBar />
+    </div>
   );
 }
 

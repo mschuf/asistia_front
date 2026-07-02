@@ -14,7 +14,11 @@ import type {
 } from "../types/context/auth-context.types";
 import { clearAuthPublicKeyCache, encryptPassword, loadAuthPublicKey } from "../utils/crypto";
 import { parseExpiresInSeconds } from "../utils/parseExpiresIn";
-import { accessFlagsFromUser, canAccessTickets as resolveCanAccessTickets } from "../utils/auth-access";
+import {
+  accessFlagsFromUser,
+  canAccessTickets as resolveCanAccessTickets,
+  hasTechnicianAccess,
+} from "../utils/auth-access";
 import { isTechnicianRole, resolveRole } from "../utils/role";
 import { useLoading } from "./LoadingContext";
 import { useToast } from "./ToastContext";
@@ -173,7 +177,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       role,
       isAuthenticated: Boolean(user),
       isBootstrapping,
-      isTechnician: isTechnicianRole(role),
+      isTechnician: isTechnicianRole(role) || hasTechnicianAccess(user),
       isSuperAdmin,
       canAccessTickets,
       login,

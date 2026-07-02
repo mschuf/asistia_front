@@ -182,6 +182,11 @@ export interface OpenByLocationMetric {
   open: number;
 }
 
+/** Conteo global de tickets abiertos pendientes de asignación humana. */
+export interface UnassignedMetric {
+  open: number;
+}
+
 /** Respuesta del endpoint de métricas para el panel de TI. */
 export interface TiMetricsResponse {
   myTickets: MyTicketsMetricSlice;
@@ -189,6 +194,7 @@ export interface TiMetricsResponse {
   myIncidents: TicketMetricSlice;
   myRequests: TicketMetricSlice;
   myGroup: TicketMetricSlice;
+  unassigned?: UnassignedMetric;
   mySolved: TicketMetricSlice;
   myClosed: TicketMetricSlice;
   openByLocation: OpenByLocationMetric[];

@@ -2,16 +2,17 @@
  * @file ErsFilters.tsx
  * @description Filtro general + búsqueda avanzada para listado de ERS.
  */
-import { useCallback, useState, type KeyboardEvent } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ChevronDown, Search } from "lucide-react";
-import { listarTecnicosPorSede } from "@/api/ers";
+import { listarSolicitantesErs, listarTecnicosPorSede } from "@/api/ers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ServerSearchableSelect } from "@/components/ui/server-searchable-select";
-import type { SearchableSelectOption } from "@/components/ui/searchable-select";
+import { SearchableSelect, type SearchableSelectOption } from "@/components/ui/searchable-select";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import type { ErsProjectState } from "@/api/ers";
+import { buildLocationFilterOptions, buildRequesterDisplayLabel } from "@/lib/tickets";
+import type { ErsLocation, ErsProjectState } from "@/api/ers";
 import type { ErsFilterState } from "@/types/pages/ers-page.types";
 
 interface ErsFiltersProps {
@@ -20,15 +21,26 @@ interface ErsFiltersProps {
   onApply: (next?: ErsFilterState) => void;
   states: ErsProjectState[];
   isTechnician: boolean;
+  locations: ErsLocation[];
+  locationsLoading?: boolean;
 }
 
 /** Panel de filtros del listado ERS. */
-export function ErsFilters({ filters, onChange, onApply, states, isTechnician }: ErsFiltersProps) {
+export function ErsFilters({
+  filters,
+  onChange,
+  onApply,
+  states,
+  isTechnician,
+  locations,
+  locationsLoading = false,
+}: ErsFiltersProps) {
   const [expanded, setExpanded] = useState(false);
+  const locationOptions = useMemo(() => buildLocationFilterOptions(locations), [locations]);
 
   const update = useCallback(
     (key: keyof ErsFilterState, value: string) => {
-      onChange({ ...filters, [key]: value });
+      onChange({ ...filters, [key]: value } as ErsFilterState);
     },
     [filters, onChange],
   );
@@ -44,38 +56,127 @@ export function ErsFilters({ filters, onChange, onApply, states, isTechnician }:
           { signal },
         );
 
-        return response.items.map((technician) => ({
-          value: technician.fullName,
-          label: technician.fullName,
-          searchText: technician.fullName.toLowerCase(),
-        }));
+        return response.items.map((technician) => {
+          const label = buildRequesterDisplayLabel(
+            { fullName: technician.fullName, login: "", locationId: technician.locationId },
+            locations,
+          );
+          return {
+            value: technician.fullName,
+            label,
+            searchText: label.toLowerCase(),
+          };
+        });
       } catch {
         return [];
       }
     },
-    [],
+    [locations],
   );
 
   const resolveApproverOption = useCallback(
-    async (value: string, _signal: AbortSignal): Promise<SearchableSelectOption | null> => {
+    async (value: string, signal: AbortSignal): Promise<SearchableSelectOption | null> => {
       const label = value.trim();
       if (!label) return null;
-      return {
-        value: label,
-        label,
-        searchText: label.toLowerCase(),
-      };
+      try {
+        const response = await listarTecnicosPorSede(
+          { search: label, limit: 50 },
+          { signal },
+        );
+        const technician = response.items.find((item) => item.fullName === label);
+        const displayLabel = technician
+          ? buildRequesterDisplayLabel(
+              { fullName: technician.fullName, login: "", locationId: technician.locationId },
+              locations,
+            )
+          : label;
+        return { value: label, label: displayLabel, searchText: displayLabel.toLowerCase() };
+      } catch {
+        return { value: label, label, searchText: label.toLowerCase() };
+      }
     },
-    [],
+    [locations],
   );
 
-  const handleGeneralSearchEnter = useCallback(
-    (event: KeyboardEvent<HTMLInputElement>) => {
-      if (event.key !== "Enter") return;
-      event.preventDefault();
-      onApply({ ...filters, search: event.currentTarget.value });
+  const loadRequesterOptions = useCallback(
+    async (query: string, signal: AbortSignal): Promise<SearchableSelectOption[]> => {
+      try {
+        const response = await listarSolicitantesErs(
+          { search: query.trim() || undefined, limit: 50 },
+          { signal },
+        );
+        return response.items.map((requester) => {
+          const label = buildRequesterDisplayLabel(
+            { fullName: requester.fullName, login: "", locationId: requester.locationId },
+            locations,
+          );
+          return {
+            value: String(requester.id),
+            label,
+            searchText: label.toLowerCase(),
+          };
+        });
+      } catch {
+        return [];
+      }
     },
-    [filters, onApply],
+    [locations],
+  );
+
+  const resolveRequesterOption = useCallback(
+    async (value: string, signal: AbortSignal): Promise<SearchableSelectOption | null> => {
+      const response = await listarSolicitantesErs({ search: value, limit: 50 }, { signal });
+      const requester = response.items.find((item) => String(item.id) === value);
+      const label = requester
+        ? buildRequesterDisplayLabel(
+            { fullName: requester.fullName, login: "", locationId: requester.locationId },
+            locations,
+          )
+        : "";
+      return requester
+        ? {
+            value,
+            label,
+            searchText: label.toLowerCase(),
+          }
+        : null;
+    },
+    [locations],
+  );
+
+  const loadAssignedMemberOptions = useCallback(
+    async (query: string, signal: AbortSignal): Promise<SearchableSelectOption[]> => {
+      try {
+        const response = await listarTecnicosPorSede(
+          { search: query.trim() || undefined, limit: 50 },
+          { signal },
+        );
+        return response.items.map((member) => {
+          const label = buildRequesterDisplayLabel(
+            { fullName: member.fullName, login: "", locationId: member.locationId },
+            locations,
+          );
+          return { value: String(member.id), label, searchText: label.toLowerCase() };
+        });
+      } catch {
+        return [];
+      }
+    },
+    [locations],
+  );
+
+  const resolveAssignedMemberOption = useCallback(
+    async (value: string, signal: AbortSignal): Promise<SearchableSelectOption | null> => {
+      const response = await listarTecnicosPorSede({ search: value, limit: 50 }, { signal });
+      const member = response.items.find((item) => String(item.id) === value);
+      if (!member) return null;
+      const label = buildRequesterDisplayLabel(
+        { fullName: member.fullName, login: "", locationId: member.locationId },
+        locations,
+      );
+      return { value, label, searchText: label.toLowerCase() };
+    },
+    [locations],
   );
 
   return (
@@ -86,7 +187,6 @@ export function ErsFilters({ filters, onChange, onApply, states, isTechnician }:
           <Input
             value={filters.search}
             onChange={(event) => update("search", event.target.value)}
-            onKeyDown={handleGeneralSearchEnter}
             placeholder="Buscar por ID, nombre, caso, estado, avance, aprobado por o creado..."
             className="pl-9 pr-10"
           />
@@ -103,10 +203,15 @@ export function ErsFilters({ filters, onChange, onApply, states, isTechnician }:
             />
           </button>
         </div>
+        <div className="flex justify-end pb-0.5">
+          <Button type="button" className="w-full sm:w-28" onClick={() => onApply()}>
+            Buscar
+          </Button>
+        </div>
       </div>
 
       {expanded ? (
-        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(12rem,1.6fr)_repeat(4,minmax(7rem,1fr))]">
           <label className="flex min-w-0 flex-col gap-1 pb-0.5 text-sm">
             <span className="text-muted-foreground">Nombre proyecto</span>
             <Input
@@ -118,16 +223,30 @@ export function ErsFilters({ filters, onChange, onApply, states, isTechnician }:
             <>
               <label className="flex min-w-0 flex-col gap-1 pb-0.5 text-sm">
                 <span className="text-muted-foreground">Solicitante</span>
-                <Input
-                  value={filters.requesterName}
-                  onChange={(event) => update("requesterName", event.target.value)}
+                <ServerSearchableSelect
+                  id="ers-filter-requester"
+                  value={filters.requesterId}
+                  onChange={(value) => update("requesterId", value)}
+                  onLoadOptions={loadRequesterOptions}
+                  resolveSelectedOption={resolveRequesterOption}
+                  placeholder="Todos los solicitantes"
+                  searchPlaceholder="Buscar solicitante..."
+                  emptyOption={{ value: "", label: "Todos los solicitantes" }}
+                  noResultsText="Sin solicitantes para mostrar"
+                  loadingText="Buscando solicitantes..."
                 />
               </label>
               <label className="flex min-w-0 flex-col gap-1 pb-0.5 text-sm">
                 <span className="text-muted-foreground">Sede</span>
-                <Input
-                  value={filters.locationName}
-                  onChange={(event) => update("locationName", event.target.value)}
+                <SearchableSelect
+                  id="ers-filter-location"
+                  value={filters.locationId}
+                  onChange={(value) => update("locationId", value)}
+                  options={locationOptions}
+                  placeholder={locationsLoading ? "Cargando sedes..." : "Todas las sedes"}
+                  searchPlaceholder="Buscar sede..."
+                  emptyOption={{ value: "", label: "Todas las sedes" }}
+                  disabled={locationsLoading}
                 />
               </label>
             </>
@@ -140,7 +259,7 @@ export function ErsFilters({ filters, onChange, onApply, states, isTechnician }:
               onLoadOptions={loadApproverOptions}
               resolveSelectedOption={resolveApproverOption}
               placeholder="Todos"
-              searchPlaceholder="Buscar TI de GLPI..."
+              searchPlaceholder="Buscar TI..."
               emptyOption={{ value: "", label: "Todos", searchText: "todos" }}
               noResultsText="Sin TI para mostrar"
               loadingText="Buscando TI..."
@@ -160,14 +279,57 @@ export function ErsFilters({ filters, onChange, onApply, states, isTechnician }:
               ))}
             </Select>
           </label>
-          <div className="flex items-end">
-            <Button type="button" className="w-full" onClick={() => onApply()}>
-              Buscar
-            </Button>
+          <div className="grid grid-cols-1 gap-2 sm:col-span-2 sm:grid-cols-2 lg:col-span-5 lg:flex lg:items-end">
+          <label className="flex min-w-0 flex-col gap-1 pb-0.5 text-sm lg:w-56 lg:shrink-0">
+            <span className="text-muted-foreground">Ciclo de vida</span>
+            <Select
+              value={filters.lifecycle}
+              onChange={(event) => update("lifecycle", event.target.value)}
+            >
+              <option value="">Todos</option>
+              <option value="active">Activos</option>
+              <option value="finished">Finalizados</option>
+            </Select>
+          </label>
+          <label className="flex min-w-0 flex-col gap-1 pb-0.5 text-sm lg:w-[9rem] lg:shrink-0">
+            <span className="text-muted-foreground">Desde</span>
+            <Input
+              type="date"
+              value={filters.createdFrom}
+              max={filters.createdTo || undefined}
+              onChange={(event) => update("createdFrom", event.target.value)}
+            />
+          </label>
+          <label className="flex min-w-0 flex-col gap-1 pb-0.5 text-sm lg:w-[9rem] lg:shrink-0">
+            <span className="text-muted-foreground">Hasta</span>
+            <Input
+              type="date"
+              value={filters.createdTo}
+              min={filters.createdFrom || undefined}
+              onChange={(event) => update("createdTo", event.target.value)}
+            />
+          </label>
+          {isTechnician ? (
+            <label className="flex min-w-0 flex-col gap-1 pb-0.5 text-sm lg:w-56 lg:shrink-0">
+              <span className="text-muted-foreground">Integrante asignado</span>
+              <ServerSearchableSelect
+                id="ers-filter-assigned-member"
+                value={filters.assignedMemberId}
+                onChange={(value) => update("assignedMemberId", value)}
+                onLoadOptions={loadAssignedMemberOptions}
+                resolveSelectedOption={resolveAssignedMemberOption}
+                placeholder="Todos los integrantes"
+                searchPlaceholder="Buscar integrante..."
+                emptyOption={{ value: "", label: "Todos los integrantes" }}
+                noResultsText="Sin integrantes para mostrar"
+                loadingText="Buscando integrantes..."
+              />
+            </label>
+          ) : null}
           </div>
         </div>
       ) : null}
+
     </div>
   );
 }
-

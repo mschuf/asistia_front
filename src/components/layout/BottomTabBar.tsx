@@ -1,82 +1,61 @@
-﻿/**
- * @file BottomTabBar.tsx
- * @description Barra de pestañas inferior móvil para la ruta de tickets.
- */
-import { BarChart3, FilePlus2, History } from "lucide-react";
-import { useLocation, useSearchParams } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/context/AuthContext";
+import { BarChart3, FilePlus2, History } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  resolveWorkspaceMode,
+  resolveWorkspaceTab,
+  workspaceTabPath,
+  type WorkspaceTab,
+} from '@/components/layout/IrsErsSwitch';
+import { useAuth } from '@/context/AuthContext';
+import { cn } from '@/lib/utils';
 
-type BottomTab = "metricas" | "crear" | "historial";
-
-interface BottomTabItem {
-  tab: BottomTab;
-  label: string;
-  icon: typeof FilePlus2;
-}
-
-const items: BottomTabItem[] = [
-  { tab: "metricas", label: "Indicadores", icon: BarChart3 },
-  { tab: "crear", label: "Crear", icon: FilePlus2 },
-  { tab: "historial", label: "Historial", icon: History },
+const items: Array<{ tab: WorkspaceTab; label: string; icon: typeof FilePlus2 }> = [
+  { tab: 'metricas', label: 'Indicadores', icon: BarChart3 },
+  { tab: 'crear', label: 'Crear', icon: FilePlus2 },
+  { tab: 'historial', label: 'Historial', icon: History },
 ];
 
-/** @param value - Query `tab`. @returns Pestaña inferior normalizada. */
-function readBottomTab(value: string | null): BottomTab {
-  if (value === "crear" || value === "create") return "crear";
-  if (value === "historial" || value === "history") return "historial";
-  return "metricas";
-}
-
-/**
- * Navegación rápida móvil entre indicadores, crear e historial.
- * @returns Barra fija inferior o null fuera de /tickets.
- */
 export function BottomTabBar() {
   const location = useLocation();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const { isAuthenticated, isTechnician, isSuperAdmin } = useAuth();
+  const isMainWorkspace =
+    location.pathname === '/irs' ||
+    location.pathname === '/ers' ||
+    location.pathname === '/ers/indicadores' ||
+    location.pathname === '/ers/nuevo';
+  if (!isAuthenticated || !isMainWorkspace) return null;
 
-  if (!isAuthenticated || !location.pathname.startsWith("/irs")) {
-    return null;
-  }
-
-  const current = readBottomTab(searchParams.get("tab"));
-
-  /**
-   * Cambia la pestaña activa vía query string.
-   * @param tab - Pestaña seleccionada.
-   * @returns void
-   */
-  const handleSelect = (tab: BottomTab) => {
-    if (tab === "metricas") {
-      setSearchParams({});
-    } else {
-      setSearchParams({ tab });
-    }
-  };
+  const mode = resolveWorkspaceMode(location.pathname);
+  const current = resolveWorkspaceTab(location.pathname, location.search);
+  const visibleItems =
+    mode === "ers" && !isTechnician && !isSuperAdmin
+      ? items.filter((item) => item.tab === "historial")
+      : items;
 
   return (
     <nav
-      aria-label="Navegación rápida"
-      className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 backdrop-blur sm:hidden"
+      aria-label='Navegación rápida'
+      className='fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 backdrop-blur sm:hidden'
     >
-      <ul className="mx-auto flex max-w-screen-md items-stretch">
-        {items.map((item) => {
+      <ul className='mx-auto flex max-w-screen-md items-stretch'>
+        {visibleItems.map((item) => {
           const Icon = item.icon;
-          const isActive = current === item.tab;
+          const active = current === item.tab;
           return (
-            <li key={item.tab} className="flex-1">
+            <li key={item.tab} className='flex-1'>
               <button
-                type="button"
-                onClick={() => handleSelect(item.tab)}
-                aria-current={isActive ? "page" : undefined}
+                type='button'
+                onClick={() => {
+                  if (!active) navigate(workspaceTabPath(mode, item.tab));
+                }}
+                aria-current={active ? 'page' : undefined}
                 className={cn(
-                  "flex w-full flex-col items-center justify-center gap-1 px-2 py-2 text-xs font-medium transition-colors",
-                  isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                  'flex w-full flex-col items-center justify-center gap-1 px-2 py-2 text-xs font-medium transition-colors',
+                  active ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
                 )}
               >
-                <Icon className="h-5 w-5" aria-hidden="true" />
+                <Icon className='h-5 w-5' aria-hidden='true' />
                 <span>{item.label}</span>
               </button>
             </li>

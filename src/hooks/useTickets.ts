@@ -24,6 +24,7 @@ import type { AuthUser } from "../types/auth";
 import type { HistorySortColumn, HistorySortState, TicketFilterState, TicketsTab, UseTicketsOptions, UseTicketsResult } from "../types/pages/tickets-page.types";
 import { ApiError } from "../api/apiClient";
 import { isAbortError } from "../lib/http";
+import { hasTechnicianAccess } from "../utils/auth-access";
 import {
   buildInitialTicketFilters,
   canTransitionTicketStatus,
@@ -89,7 +90,7 @@ function withFinalUserLocationFilter(
   filters: TicketFilterState,
   user: AuthUser | null,
 ): TicketFilterState {
-  if (user?.role === "technician" || user?.locationId == null) {
+  if (hasTechnicianAccess(user) || user?.locationId == null) {
     return filters;
   }
   return { ...filters, locationId: String(user.locationId) };
@@ -247,7 +248,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
       return;
     }
     if (
-      user?.role === "technician" &&
+      hasTechnicianAccess(user) &&
       !candidate.assignedToId &&
       !candidate.requesterId
     ) {

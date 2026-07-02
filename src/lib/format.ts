@@ -72,7 +72,9 @@ export function formatOpenDuration(
 
   const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
   if (totalHours < 24) {
-    return totalHours < 1 ? "<1 h" : `${totalHours} h`;
+    return totalHours < 1
+      ? "<1 hora"
+      : `${totalHours} ${totalHours === 1 ? "hora" : "horas"}`;
   }
 
   const totalDays = Math.floor(totalHours / 24);

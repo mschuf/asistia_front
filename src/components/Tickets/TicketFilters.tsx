@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { TICKET_STATUS_LABELS, TICKET_TYPE_LABELS } from "@/lib/constants";
 import {
+  ASISTIA_UNASSIGNED_TECHNICIAN_ID,
   buildLocationFilterOptions,
   buildRequesterDisplayLabel,
   buildTechnicianFilterOptions,
@@ -62,7 +63,7 @@ export function TicketFilters({
   techniciansLoading = false,
 }: TicketFiltersProps) {
   const [expanded, setExpanded] = useState(false);
-  const isTechnician = user?.role === "technician";
+  const isTechnician = user?.role === "technician" || user?.isSuperAdmin === true;
 
   /**
    * Actualiza un campo del filtro preservando el resto del estado.
@@ -92,10 +93,20 @@ export function TicketFilters({
     if (isTechnician || user?.locationId == null) return technicians;
     return technicians.filter((technician) => technician.locationId === user.locationId);
   }, [technicians, isTechnician, user]);
-  const technicianOptions = useMemo(
-    () => buildTechnicianFilterOptions(visibleTechnicians, user, locations),
-    [visibleTechnicians, user, locations]
-  );
+  const technicianOptions = useMemo(() => {
+    const options = buildTechnicianFilterOptions(visibleTechnicians, user, locations);
+    const unassignedId = String(ASISTIA_UNASSIGNED_TECHNICIAN_ID);
+    if (
+      filters.assignedToId !== unassignedId ||
+      options.some((option) => option.value === unassignedId)
+    ) {
+      return options;
+    }
+    return [
+      { value: unassignedId, label: "Sin asignar", searchText: "sin asignar asistia" },
+      ...options,
+    ];
+  }, [filters.assignedToId, visibleTechnicians, user, locations]);
 
   /** @param query - Texto de búsqueda. @param signal - Señal de aborto. @returns Opciones de solicitante. */
   const loadRequesterOptions = useCallback(

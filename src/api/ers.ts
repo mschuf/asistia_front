@@ -7,7 +7,7 @@ import { apiClient } from "./apiClient";
 export interface ErsListItem {
   projectId: number;
   projectName: string;
-  ticketId: number;
+  ticketId: number | null;
   requesterId: number | null;
   requesterName: string | null;
   locationId: number | null;
@@ -42,7 +42,7 @@ export interface ErsTask {
 export interface ErsDetail {
   projectId: number;
   projectName: string;
-  ticketId: number;
+  ticketId: number | null;
   requesterId: number | null;
   requesterName: string | null;
   locationId: number | null;
@@ -84,12 +84,53 @@ export interface ListarErsQuery {
   limit?: number;
   search?: string;
   projectName?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  requesterId?: number;
   requesterName?: string;
   locationName?: string;
   approverName?: string;
   projectStateId?: number;
+  lifecycle?: 'active' | 'finished';
+  locationId?: number;
+  assignedMemberId?: number;
   sortBy?: ErsSortColumn;
   sortOrder?: ErsSortOrder;
+}
+
+export interface ErsMetricSlice {
+  active: number;
+  activePercent: number;
+  activeThisMonth: number;
+  totalThisMonth: number;
+}
+
+export interface ErsActiveByLocationMetric {
+  locationId: number | null;
+  name: string;
+  active: number;
+}
+
+export interface ErsMetricsResponse {
+  myGroup: ErsMetricSlice;
+  mySite: ErsMetricSlice | null;
+  myProjects: ErsMetricSlice;
+  activeByLocation: ErsActiveByLocationMetric[];
+}
+
+export interface ErsEligibleTicket {
+  ticketId: number;
+  subject: string;
+  requesterName: string | null;
+  locationId: number | null;
+  locationName: string | null;
+}
+
+export interface ErsEligibleTicketResponse {
+  items: ErsEligibleTicket[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 export interface EscalarTicketErsPayload {
@@ -156,6 +197,29 @@ export async function listarErs(query: ListarErsQuery = {}): Promise<ErsListResp
   });
 }
 
+export interface ErsLocation {
+  id: number;
+  name: string;
+  fullPath: string;
+  building: string | null;
+  room: string | null;
+}
+
+export async function obtenerMetricasErs(options?: { signal?: AbortSignal }): Promise<ErsMetricsResponse> {
+  return apiClient.get<ErsMetricsResponse>('/ers/metrics', { ...options, showBackdrop: false });
+}
+
+export async function listarTicketsElegiblesErs(
+  query: { search?: string; page?: number; limit?: number } = {},
+  options?: { signal?: AbortSignal },
+): Promise<ErsEligibleTicketResponse> {
+  return apiClient.get<ErsEligibleTicketResponse>('/ers/eligible-tickets', {
+    ...options,
+    showBackdrop: false,
+    query,
+  });
+}
+
 /** Obtiene un ERS por ID de proyecto. */
 export async function obtenerErs(projectId: number, options?: { signal?: AbortSignal }): Promise<ErsDetail> {
   return apiClient.get<ErsDetail>(`/ers/${projectId}`, options);
@@ -185,5 +249,21 @@ export async function listarTecnicosPorSede(
     ...options,
     query: query as Record<string, string | number | boolean | undefined | null>,
   });
+}
+
+/** Lista solicitantes activos mediante SQL directo sobre MySQL de GLPI. */
+export async function listarSolicitantesErs(
+  query: Omit<ListarErsTechniciansQuery, "locationId"> = {},
+  options?: { signal?: AbortSignal },
+): Promise<ErsTechnicianListResponse> {
+  return apiClient.get<ErsTechnicianListResponse>("/ers/requesters", {
+    ...options,
+    query,
+  });
+}
+
+/** Lista sedes mediante SQL directo sobre MySQL de GLPI. */
+export async function listarSedesErs(options?: { signal?: AbortSignal }): Promise<ErsLocation[]> {
+  return apiClient.get<ErsLocation[]>("/ers/locations", options);
 }
 

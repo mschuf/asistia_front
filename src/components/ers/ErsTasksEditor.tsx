@@ -94,7 +94,7 @@ export function ErsTasksEditor({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [taskToDeleteIndex, setTaskToDeleteIndex] = useState<number | null>(null);
   const [taskErrors, setTaskErrors] = useState<TaskValidationErrors>({});
-  const fieldRefs: Record<TaskFieldKey, RefObject<HTMLElement | null>> = {
+  const fieldRefs = {
     name: useRef<HTMLInputElement>(null),
     percentDone: useRef<HTMLInputElement>(null),
     projectStateId: useRef<HTMLSelectElement>(null),

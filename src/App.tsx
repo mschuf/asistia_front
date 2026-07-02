@@ -20,6 +20,7 @@ const EmpresasPage = lazy(() => import("./pages/EmpresasPage"));
 const PromptsPage = lazy(() => import("./pages/PromptsPage"));
 const TicketCreatedReportPage = lazy(() => import("./pages/TicketCreatedReportPage"));
 const ErsPage = lazy(() => import("./pages/ErsPage"));
+const ErsIndicatorsPage = lazy(() => import("./pages/ErsIndicatorsPage"));
 const NuevoErsPage = lazy(() => import("./pages/NuevoErsPage"));
 const ErsEditPage = lazy(() => import("./pages/ErsEditPage"));
 const ErsHistoryPage = lazy(() => import("./pages/ErsHistoryPage"));
@@ -48,6 +49,14 @@ export default function App() {
             </ProtectedRoute>
           }
         >
+          <Route
+            path='ers/indicadores'
+            element={
+              <TicketsRoute>
+                <ErsIndicatorsPage />
+              </TicketsRoute>
+            }
+          />
           <Route index element={<Navigate to={defaultAuthenticatedPath} replace />} />
           <Route
             path="irs"

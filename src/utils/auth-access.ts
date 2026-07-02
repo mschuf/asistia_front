@@ -19,6 +19,11 @@ export function canAccessTickets(flags: AccessFlags): boolean {
   return Boolean(flags.role);
 }
 
+/** Indica si el usuario puede ejecutar operaciones de TI. */
+export function hasTechnicianAccess(user: AuthUser | null): boolean {
+  return user?.role === "technician" || user?.isSuperAdmin === true;
+}
+
 /**
  * Resuelve la ruta de inicio tras autenticación según el perfil del usuario.
  * @param flags - Flags de sesión del usuario.

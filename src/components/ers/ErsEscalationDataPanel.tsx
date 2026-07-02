@@ -28,7 +28,7 @@ export function ErsEscalationDataPanel({ detail, form, onChange }: ErsEscalation
         </label>
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground">Ticket origen</span>
-          <Input value={`#${detail.ticketId}`} readOnly />
+          <Input value={detail.ticketId ? `#${detail.ticketId}` : "—"} readOnly />
         </label>
       </div>
 

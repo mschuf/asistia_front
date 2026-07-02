@@ -3,16 +3,21 @@
  * @description Pantalla de listado de ERS para TI y final_user.
  */
 import { useEffect, useState } from "react";
-import { RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { listarEstadosProyecto, type ErsProjectState } from "@/api/ers";
+import {
+  listarEstadosProyecto,
+  listarSedesErs,
+  type ErsLocation,
+  type ErsProjectState,
+} from "@/api/ers";
 import { ErsFilters } from "@/components/ers/ErsFilters";
 import { ErsTable } from "@/components/ers/ErsTable";
+import { MobileRefreshFab } from "@/components/layout/MobileRefreshFab";
+import { WorkspaceHeader } from "@/components/layout/WorkspaceHeader";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
 import { useErsList } from "@/hooks/useErsList";
-import { cn } from "@/lib/utils";
 import { ERS_PAGE_SIZE_ALL, ERS_PAGE_SIZE_OPTIONS, isErsAllPageSize, parseErsPageSize } from "@/lib/ers";
 
 /** Página principal de ERS. */
@@ -34,6 +39,8 @@ export default function ErsPage() {
     reload,
   } = useErsList();
   const [states, setStates] = useState<ErsProjectState[]>([]);
+  const [locations, setLocations] = useState<ErsLocation[]>([]);
+  const [locationsLoading, setLocationsLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -50,6 +57,21 @@ export default function ErsPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isTechnician) return;
+    const controller = new AbortController();
+    setLocationsLoading(true);
+    void listarSedesErs({ signal: controller.signal })
+      .then(setLocations)
+      .catch(() => {
+        if (!controller.signal.aborted) setLocations([]);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLocationsLoading(false);
+      });
+    return () => controller.abort();
+  }, [isTechnician]);
+
   const numericLimit =
     typeof pagination.limit === "number" ? pagination.limit : ERS_PAGE_SIZE_OPTIONS[0];
   const showingAll = isErsAllPageSize(pagination.limit);
@@ -59,26 +81,7 @@ export default function ErsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs text-muted-foreground">IRS</p>
-          <h1 className="text-lg font-semibold">ERS</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {isTechnician ? "Vista TI: edición de proyectos ERS." : "Vista usuario: seguimiento de tus ERS."}
-          </p>
-        </div>
-        <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            aria-label="Actualizar"
-            title="Actualizar"
-            disabled={loading}
-            onClick={() => void reload()}
-          >
-            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} aria-hidden="true" />
-          </Button>
-      </div>
+      <WorkspaceHeader onRefresh={() => void reload()} refreshing={loading} />
 
       <ErsFilters
         filters={filters}
@@ -86,6 +89,8 @@ export default function ErsPage() {
         onApply={applyFilters}
         states={states}
         isTechnician={isTechnician}
+        locations={locations}
+        locationsLoading={locationsLoading}
       />
 
       {error ? (
@@ -161,6 +166,8 @@ export default function ErsPage() {
           ) : null}
         </div>
       ) : null}
+
+      <MobileRefreshFab visible onClick={() => void reload()} loading={loading} />
 
     </div>
   );

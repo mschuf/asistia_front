@@ -3,7 +3,7 @@
  * @description Panel de indicadores TI con tarjetas y gráfico por sede.
  */
 import type { ReactNode } from "react";
-import { Archive, Building2, CheckCircle2, History, Ticket, Users } from "lucide-react";
+import { Archive, Building2, CheckCircle2, History, Inbox, Ticket, Users } from "lucide-react";
 import { MobileRefreshFab } from "@/components/layout/MobileRefreshFab";
 import { Loading } from "@/components/ui/loading";
 import { TiOpenBySiteChart } from "@/components/tickets/TiOpenBySiteChart";
@@ -18,6 +18,7 @@ interface TiMetricsProps {
   onGoToHistorial: () => void;
   onGoToHistorialForSite?: () => void;
   onGoToHistorialForGroup?: () => void;
+  onGoToHistorialForUnassigned?: () => void;
   onGoToHistorialForSolved?: () => void;
   onGoToHistorialForClosed?: () => void;
   onRefresh?: () => void;
@@ -127,6 +128,7 @@ export function TiMetrics({
   onGoToHistorial,
   onGoToHistorialForSite,
   onGoToHistorialForGroup,
+  onGoToHistorialForUnassigned,
   onGoToHistorialForSolved,
   onGoToHistorialForClosed,
   onRefresh,
@@ -166,7 +168,9 @@ export function TiMetrics({
         className={cn(
           "grid gap-3 sm:grid-cols-2",
           showMySite
-            ? "xl:grid-cols-3"
+            ? isTechnician
+              ? "xl:grid-cols-4"
+              : "xl:grid-cols-3"
             : isTechnician
               ? "xl:grid-cols-2"
               : "xl:grid-cols-3"
@@ -198,7 +202,7 @@ export function TiMetrics({
           />
         ) : null}
         <MetricCard
-          label="Mis Servicios"
+          label="Mis Solicitudes"
           value={metrics.myTickets.inProgress}
           icon={Ticket}
           className="cursor-pointer border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-200"
@@ -209,7 +213,7 @@ export function TiMetrics({
         {!isTechnician ? (
           <>
             <MetricCard
-              label="Resueltos"
+              label="Mis Solicitudes"
               value={metrics.mySolved.open}
               icon={CheckCircle2}
               className="cursor-pointer border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200"
@@ -219,8 +223,8 @@ export function TiMetrics({
               subtitle={<MetricPercent slice={metrics.mySolved} />}
             />
             <MetricCard
-              label="Cerrados"
-              value={metrics.myClosed.open}
+              label="Mis Solicitudes"
+              value={metrics.myClosed.openThisMonth}
               icon={Archive}
               className="cursor-pointer border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"
               onClick={onGoToHistorialForClosed}
@@ -229,6 +233,16 @@ export function TiMetrics({
               subtitle={<MetricPercent slice={metrics.myClosed} />}
             />
           </>
+        ) : null}
+        {isTechnician && metrics.unassigned ? (
+          <MetricCard
+            label="Sin asignar"
+            value={metrics.unassigned.open}
+            icon={Inbox}
+            className="cursor-pointer border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200"
+            onClick={onGoToHistorialForUnassigned}
+            ariaLabel="Ir a historial filtrado por tickets sin asignar"
+          />
         ) : null}
       </div>
 
@@ -242,7 +256,7 @@ export function TiMetrics({
       <p className="flex items-center gap-1 text-xs text-muted-foreground">
         <History className="h-3.5 w-3.5" aria-hidden="true" />
         {showMySite
-          ? "Mi Grupo, Mi Sede y Mis Servicios abren Historial con filtros aplicados"
+          ? "Mi Grupo, Mi Sede, Mis Servicios y Sin asignar abren Historial con filtros aplicados"
           : isTechnician
             ? "Mi Grupo y Mis Servicios abren Historial con filtros aplicados"
             : "Mis Servicios, Resueltos y Cerrados abren Historial con filtros aplicados"}
