@@ -179,6 +179,7 @@ export interface ErsTechnician {
   id: number;
   fullName: string;
   locationId: number | null;
+  locationName?: string | null;
 }
 
 export interface ErsTechnicianListResponse {

@@ -4,7 +4,6 @@
  */
 import { useCallback, useMemo, useState } from "react";
 import { ChevronDown, Search } from "lucide-react";
-import { listarSolicitantesErs, listarTecnicosPorSede } from "@/api/ers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ServerSearchableSelect } from "@/components/ui/server-searchable-select";
@@ -12,6 +11,7 @@ import { SearchableSelect, type SearchableSelectOption } from "@/components/ui/s
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { buildLocationFilterOptions, buildRequesterDisplayLabel } from "@/lib/tickets";
+import { getUserById, searchTechnicians, searchUsers } from "@/services/ticketsService";
 import type { ErsLocation, ErsProjectState } from "@/api/ers";
 import type { ErsFilterState } from "@/types/pages/ers-page.types";
 
@@ -48,15 +48,13 @@ export function ErsFilters({
   const loadApproverOptions = useCallback(
     async (query: string, signal: AbortSignal): Promise<SearchableSelectOption[]> => {
       try {
-        const response = await listarTecnicosPorSede(
-          {
-            search: query.trim() || undefined,
-            limit: 50,
-          },
+        const response = await searchTechnicians(
+          query.trim() || undefined,
+          50,
           { signal },
         );
 
-        return response.items.map((technician) => {
+        return response.items.filter((technician) => technician.isActive).map((technician) => {
           const label = buildRequesterDisplayLabel(
             { fullName: technician.fullName, login: "", locationId: technician.locationId },
             locations,
@@ -79,20 +77,18 @@ export function ErsFilters({
       const label = value.trim();
       if (!label) return null;
       try {
-        const response = await listarTecnicosPorSede(
-          { search: label, limit: 50 },
-          { signal },
+        const response = await searchTechnicians(label, 50, { signal });
+        const technician = response.items.find(
+          (item) => item.isActive && item.fullName === label,
         );
-        const technician = response.items.find((item) => item.fullName === label);
-        const displayLabel = technician
-          ? buildRequesterDisplayLabel(
-              { fullName: technician.fullName, login: "", locationId: technician.locationId },
-              locations,
-            )
-          : label;
+        if (!technician) return null;
+        const displayLabel = buildRequesterDisplayLabel(
+          { fullName: technician.fullName, login: "", locationId: technician.locationId },
+          locations,
+        );
         return { value: label, label: displayLabel, searchText: displayLabel.toLowerCase() };
       } catch {
-        return { value: label, label, searchText: label.toLowerCase() };
+        return null;
       }
     },
     [locations],
@@ -101,11 +97,8 @@ export function ErsFilters({
   const loadRequesterOptions = useCallback(
     async (query: string, signal: AbortSignal): Promise<SearchableSelectOption[]> => {
       try {
-        const response = await listarSolicitantesErs(
-          { search: query.trim() || undefined, limit: 50 },
-          { signal },
-        );
-        return response.items.map((requester) => {
+        const response = await searchUsers(query.trim() || undefined, 50, { signal });
+        return response.items.filter((requester) => requester.isActive).map((requester) => {
           const label = buildRequesterDisplayLabel(
             { fullName: requester.fullName, login: "", locationId: requester.locationId },
             locations,
@@ -125,21 +118,17 @@ export function ErsFilters({
 
   const resolveRequesterOption = useCallback(
     async (value: string, signal: AbortSignal): Promise<SearchableSelectOption | null> => {
-      const response = await listarSolicitantesErs({ search: value, limit: 50 }, { signal });
-      const requester = response.items.find((item) => String(item.id) === value);
-      const label = requester
-        ? buildRequesterDisplayLabel(
-            { fullName: requester.fullName, login: "", locationId: requester.locationId },
-            locations,
-          )
-        : "";
-      return requester
-        ? {
-            value,
-            label,
-            searchText: label.toLowerCase(),
-          }
-        : null;
+      const requester = await getUserById(Number(value), { signal });
+      if (!requester.isActive) return null;
+      const label = buildRequesterDisplayLabel(
+        { fullName: requester.fullName, login: "", locationId: requester.locationId },
+        locations,
+      );
+      return {
+        value,
+        label,
+        searchText: label.toLowerCase(),
+      };
     },
     [locations],
   );
@@ -147,11 +136,8 @@ export function ErsFilters({
   const loadAssignedMemberOptions = useCallback(
     async (query: string, signal: AbortSignal): Promise<SearchableSelectOption[]> => {
       try {
-        const response = await listarTecnicosPorSede(
-          { search: query.trim() || undefined, limit: 50 },
-          { signal },
-        );
-        return response.items.map((member) => {
+        const response = await searchTechnicians(query.trim() || undefined, 50, { signal });
+        return response.items.filter((member) => member.isActive).map((member) => {
           const label = buildRequesterDisplayLabel(
             { fullName: member.fullName, login: "", locationId: member.locationId },
             locations,
@@ -167,8 +153,10 @@ export function ErsFilters({
 
   const resolveAssignedMemberOption = useCallback(
     async (value: string, signal: AbortSignal): Promise<SearchableSelectOption | null> => {
-      const response = await listarTecnicosPorSede({ search: value, limit: 50 }, { signal });
-      const member = response.items.find((item) => String(item.id) === value);
+      const response = await searchTechnicians(value, 50, { signal });
+      const member = response.items.find(
+        (item) => item.isActive && String(item.id) === value,
+      );
       if (!member) return null;
       const label = buildRequesterDisplayLabel(
         { fullName: member.fullName, login: "", locationId: member.locationId },

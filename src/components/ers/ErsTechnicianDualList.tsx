@@ -13,6 +13,7 @@ interface ErsTechnicianDualListProps {
   onRemove: (userId: string) => void;
   loading?: boolean;
   filterQuery?: string;
+  showLocation?: boolean;
   availableTitle?: string;
   selectedTitle?: string;
   emptyTechniciansMessage?: string;
@@ -31,6 +32,7 @@ export function ErsTechnicianDualList({
   onRemove,
   loading = false,
   filterQuery = "",
+  showLocation = false,
   availableTitle = "Técnicos disponibles",
   selectedTitle = "Seleccionados",
   emptyTechniciansMessage = "No hay técnicos disponibles para esta sede.",
@@ -46,7 +48,7 @@ export function ErsTechnicianDualList({
         technicians.filter((user) => {
           if (selectedSet.has(String(user.id))) return false;
           if (!query) return true;
-          return user.fullName.toLowerCase().includes(query);
+          return `${user.fullName} ${user.locationName ?? ""}`.toLowerCase().includes(query);
         }),
       ),
     [technicians, selectedSet, query],
@@ -84,7 +86,12 @@ export function ErsTechnicianDualList({
                     className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent"
                     onClick={() => onAdd(String(user.id))}
                   >
-                    <span className="truncate">{user.fullName}</span>
+                    <span className="min-w-0 truncate">
+                      {user.fullName}
+                      {showLocation && user.locationName ? (
+                        <span className="text-muted-foreground"> · {user.locationName}</span>
+                      ) : null}
+                    </span>
                     <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                   </button>
                 </li>
@@ -111,7 +118,12 @@ export function ErsTechnicianDualList({
                     className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent"
                     onClick={() => onRemove(String(user.id))}
                   >
-                    <span className="truncate">{user.fullName}</span>
+                    <span className="min-w-0 truncate">
+                      {user.fullName}
+                      {showLocation && user.locationName ? (
+                        <span className="text-muted-foreground"> · {user.locationName}</span>
+                      ) : null}
+                    </span>
                     <X className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                   </button>
                 </li>

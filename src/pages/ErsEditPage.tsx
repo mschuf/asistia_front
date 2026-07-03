@@ -92,8 +92,10 @@ export default function ErsEditPage() {
   const [loadingDetail, setLoadingDetail] = useState(true);
   const [loadingStates, setLoadingStates] = useState(false);
   const [loadingTechnicians, setLoadingTechnicians] = useState(false);
+  const [loadingTeamTechnicians, setLoadingTeamTechnicians] = useState(false);
   const [saving, setSaving] = useState(false);
   const [technicians, setTechnicians] = useState<ErsTechnician[]>([]);
+  const [teamTechnicians, setTeamTechnicians] = useState<ErsTechnician[]>([]);
   const [userLocationTechnicians, setUserLocationTechnicians] = useState<ErsTechnician[]>([]);
   const [teamSearch, setTeamSearch] = useState("");
 
@@ -167,6 +169,30 @@ export default function ErsEditPage() {
   }, [detail?.locationId, toast]);
 
   useEffect(() => {
+    const controller = new AbortController();
+    setLoadingTeamTechnicians(true);
+    void listarTecnicosPorSede(
+      { limit: 200 },
+      { signal: controller.signal, showBackdrop: false },
+    )
+      .then((response) => {
+        if (!controller.signal.aborted) setTeamTechnicians(response.items);
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        setTeamTechnicians([]);
+        toast.error(
+          error instanceof ApiError ? error.message : "No se pudo cargar el equipo técnico.",
+          "ERS",
+        );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoadingTeamTechnicians(false);
+      });
+    return () => controller.abort();
+  }, [toast]);
+
+  useEffect(() => {
     if (!user?.locationId) {
       setUserLocationTechnicians([]);
       return;
@@ -207,10 +233,10 @@ export default function ErsEditPage() {
       resolveTaskAssigneeOptions(
         detail?.team ?? [],
         form.teamMemberIds,
-        technicians,
+        teamTechnicians,
         userLocationTechnicians,
       ),
-    [detail?.team, form.teamMemberIds, technicians, userLocationTechnicians],
+    [detail?.team, form.teamMemberIds, teamTechnicians, userLocationTechnicians],
   );
 
   const setSection = (nextSection: ErsEditSection) => {
@@ -354,8 +380,11 @@ export default function ErsEditPage() {
               onChange={setForm}
               states={states}
               technicians={technicians}
+              teamTechnicians={teamTechnicians}
               loadingStates={loadingStates}
               loadingTechnicians={loadingTechnicians}
+              loadingTeamTechnicians={loadingTeamTechnicians}
+              showTeamLocations
               progressFromTasks={progressFromTasks}
               teamSearch={teamSearch}
               onTeamSearchChange={setTeamSearch}
@@ -366,7 +395,7 @@ export default function ErsEditPage() {
               form={form}
               onChange={setForm}
               states={states}
-              technicians={technicians}
+              technicians={teamTechnicians}
               assigneeOptions={taskAssigneeOptions}
             />
           ) : null}

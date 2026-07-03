@@ -10,7 +10,7 @@
     --foreground: 222 24% 13%;
     --card: 0 0% 100%;
     --card-foreground: 222 24% 13%;
-    --primary: 217 78% 48%; /* Color IRS */
+    --primary: 217 78% 38%; /* Color IRS */
     --primary-foreground: 0 0% 100%;
     --secondary: 147 41% 35%;
     --secondary-foreground: 0 0% 100%;
@@ -22,7 +22,7 @@
     --destructive-foreground: 0 0% 100%;
     --border: 35 18% 84%;
     --input: 35 18% 84%;
-    --ring: 217 78% 48%; /* Color IRS */
+    --ring: 217 78% 38%; /* Color IRS */
   }
 
   .dark {
@@ -30,7 +30,7 @@
     --foreground: 40 24% 94%;
     --card: 220 16% 14%;
     --card-foreground: 40 24% 94%;
-    --primary: 213 94% 68%; /* Color IRS */
+    --primary: 213 78% 50%; /* Color IRS */
     --primary-foreground: 0 0% 100%;
     --secondary: 150 38% 44%;
     --secondary-foreground: 0 0% 100%;
@@ -42,17 +42,17 @@
     --destructive-foreground: 0 0% 100%;
     --border: 220 12% 24%;
     --input: 220 12% 24%;
-    --ring: 213 94% 68%; /* Color IRS */
+    --ring: 213 78% 50%; /* Color IRS */
   }
 
   .ers-theme {
-    --primary: 147 41% 35%; /* Color ERS */
-    --ring: 147 41% 35%; /* Color ERS */
+    --primary: 147 41% 27%; /* Color ERS */
+    --ring: 147 41% 27%; /* Color ERS */
   }
 
   .dark .ers-theme {
-    --primary: 150 38% 44%; /* Color ERS */
-    --ring: 150 38% 44%; /* Color ERS */
+    --primary: 150 38% 34%; /* Color ERS */
+    --ring: 150 38% 34%; /* Color ERS */
   }
 
   * {

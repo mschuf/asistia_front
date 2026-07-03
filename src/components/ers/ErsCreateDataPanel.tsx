@@ -3,12 +3,13 @@
  * @description Datos iniciales para crear un ERS sin ticket previo.
  */
 import { useCallback, useMemo } from "react";
-import { listarSolicitantesErs, type ErsLocation, type ErsTechnician } from "@/api/ers";
+import type { ErsLocation, ErsTechnician } from "@/api/ers";
 import { Input } from "@/components/ui/input";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import type { SearchableSelectOption } from "@/components/ui/searchable-select";
 import { ServerSearchableSelect } from "@/components/ui/server-searchable-select";
 import { Textarea } from "@/components/ui/textarea";
+import { getUserById, searchUsers } from "@/services/ticketsService";
 import type { ErsEditState } from "@/types/pages/ers-page.types";
 
 interface ErsCreateDataPanelProps {
@@ -22,11 +23,13 @@ interface ErsCreateDataPanelProps {
   onChange: (next: ErsEditState) => void;
 }
 
-function toOption(user: ErsTechnician): SearchableSelectOption {
+function toOption(user: ErsTechnician, locations: ErsLocation[]): SearchableSelectOption {
+  const location = locations.find((item) => item.id === user.locationId);
+  const locationName = location ? location.fullPath || location.name : "";
   return {
     value: String(user.id),
-    label: user.fullName,
-    searchText: `${user.id} ${user.fullName}`,
+    label: locationName ? `${user.fullName} (${locationName})` : user.fullName,
+    searchText: `${user.id} ${user.fullName} ${locationName}`,
   };
 }
 
@@ -41,22 +44,25 @@ export function ErsCreateDataPanel({
   onLocationChange,
   onChange,
 }: ErsCreateDataPanelProps) {
-  const loadRequesterOptions = useCallback(async (query: string, signal: AbortSignal) => {
-    const response = await listarSolicitantesErs(
-      { search: query.trim() || undefined, limit: 50 },
-      { signal, showBackdrop: false },
-    );
-    return response.items.map(toOption);
-  }, []);
+  const loadRequesterOptions = useCallback(
+    async (query: string, signal: AbortSignal) => {
+      const response = await searchUsers(
+        query.trim() || undefined,
+        50,
+        { signal, showBackdrop: false },
+      );
+      return response.items.map((item) => toOption(item, locations));
+    },
+    [locations],
+  );
 
-  const resolveRequesterOption = useCallback(async (value: string, signal: AbortSignal) => {
-    const response = await listarSolicitantesErs(
-      { search: value, limit: 50 },
-      { signal, showBackdrop: false },
-    );
-    const exact = response.items.find((item) => String(item.id) === value) ?? null;
-    return exact ? toOption(exact) : null;
-  }, []);
+  const resolveRequesterOption = useCallback(
+    async (value: string, signal: AbortSignal) => {
+      const requester = await getUserById(Number(value), { signal, showBackdrop: false });
+      return toOption(requester, locations);
+    },
+    [locations],
+  );
 
   const locationOptions = useMemo(
     () =>
@@ -74,11 +80,12 @@ export function ErsCreateDataPanel({
       return;
     }
     try {
-      const response = await listarSolicitantesErs(
-        { search: value, limit: 50 },
-        { showBackdrop: false },
-      );
-      onRequesterChange(response.items.find((item) => String(item.id) === value) ?? null);
+      const nextRequester = await getUserById(Number(value), { showBackdrop: false });
+      onRequesterChange({
+        id: nextRequester.id,
+        fullName: nextRequester.fullName,
+        locationId: nextRequester.locationId,
+      });
     } catch {
       onRequesterChange(null);
     }
@@ -94,7 +101,7 @@ export function ErsCreateDataPanel({
             onChange={(value) => void changeRequester(value)}
             onLoadOptions={loadRequesterOptions}
             resolveSelectedOption={resolveRequesterOption}
-            defaultSelectedOption={requester ? toOption(requester) : null}
+            defaultSelectedOption={requester ? toOption(requester, locations) : null}
             placeholder="Seleccionar solicitante"
             searchPlaceholder="Buscar solicitante..."
             noResultsText="No se encontraron solicitantes"
@@ -127,15 +134,17 @@ export function ErsCreateDataPanel({
       <label className="flex flex-col gap-1 text-sm">
         <span className="text-muted-foreground">Objetivo</span>
         <Textarea
-          className="min-h-24"
+          className="min-h-[4.8rem]"
+          placeholder="¿Qué problema quieres solucionar?"
           value={form.objective}
           onChange={(event) => onChange({ ...form, objective: event.target.value })}
         />
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        <span className="text-muted-foreground">Descripción</span>
+        <span className="text-muted-foreground">Descripción Funcional</span>
         <Textarea
-          className="min-h-24"
+          className="min-h-[4.8rem]"
+          placeholder="¿Cómo lo solucionarás?"
           value={form.description}
           onChange={(event) => onChange({ ...form, description: event.target.value })}
         />
@@ -143,7 +152,8 @@ export function ErsCreateDataPanel({
       <label className="flex flex-col gap-1 text-sm">
         <span className="text-muted-foreground">Medición de impacto</span>
         <Textarea
-          className="min-h-24"
+          className="min-h-[4.8rem]"
+          placeholder="¿Como medirías operativamente luego de implementar?"
           value={form.impact}
           onChange={(event) => onChange({ ...form, impact: event.target.value })}
         />

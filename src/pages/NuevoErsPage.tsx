@@ -81,9 +81,11 @@ export default function NuevoErsPage() {
   const [locations, setLocations] = useState<ErsLocation[]>([]);
   const [states, setStates] = useState<ErsProjectState[]>([]);
   const [technicians, setTechnicians] = useState<ErsTechnician[]>([]);
+  const [teamTechnicians, setTeamTechnicians] = useState<ErsTechnician[]>([]);
   const [form, setForm] = useState<ErsEditState>(EMPTY_FORM);
   const [loadingStates, setLoadingStates] = useState(true);
   const [loadingTechnicians, setLoadingTechnicians] = useState(false);
+  const [loadingTeamTechnicians, setLoadingTeamTechnicians] = useState(false);
   const [teamSearch, setTeamSearch] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -129,6 +131,30 @@ export default function NuevoErsPage() {
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoadingStates(false);
+      });
+    return () => controller.abort();
+  }, [toast]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoadingTeamTechnicians(true);
+    void listarTecnicosPorSede(
+      { limit: 200 },
+      { signal: controller.signal, showBackdrop: false },
+    )
+      .then((response) => {
+        if (!controller.signal.aborted) setTeamTechnicians(response.items);
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        setTeamTechnicians([]);
+        toast.error(
+          error instanceof ApiError ? error.message : "No se pudo cargar el equipo técnico.",
+          "ERS",
+        );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoadingTeamTechnicians(false);
       });
     return () => controller.abort();
   }, [toast]);
@@ -181,10 +207,15 @@ export default function NuevoErsPage() {
     });
   }, [progressFromTasks, states]);
 
-  const taskAssigneeOptions = useMemo(
-    () => resolveTaskAssigneeOptions([], form.teamMemberIds, technicians, technicians),
-    [form.teamMemberIds, technicians],
-  );
+  const taskAssigneeOptions = useMemo(() => {
+    const activeTechnicianIds = new Set(teamTechnicians.map((technician) => technician.id));
+    return resolveTaskAssigneeOptions(
+      [],
+      form.teamMemberIds,
+      teamTechnicians,
+      technicians,
+    ).filter((technician) => activeTechnicianIds.has(technician.id));
+  }, [form.teamMemberIds, teamTechnicians, technicians]);
 
   const setSection = (nextSection: ErsEditSection) => {
     const next = new URLSearchParams(searchParams);
@@ -197,12 +228,17 @@ export default function NuevoErsPage() {
   const clearLocationAssignments = (nextLocationId: string) => {
     setLocationId(nextLocationId);
     setTeamSearch("");
-    setForm((current) => ({
-      ...current,
-      approverId: "",
-      teamMemberIds: [],
-      tasks: current.tasks.map((task) => ({ ...task, userId: "" })),
-    }));
+    setForm((current) => {
+      const teamMemberIds = new Set(current.teamMemberIds);
+      return {
+        ...current,
+        approverId: "",
+        tasks: current.tasks.map((task) => ({
+          ...task,
+          userId: teamMemberIds.has(task.userId) ? task.userId : "",
+        })),
+      };
+    });
   };
 
   const handleRequesterChange = (nextRequester: ErsTechnician | null) => {
@@ -351,8 +387,11 @@ export default function NuevoErsPage() {
               onChange={setForm}
               states={states}
               technicians={technicians}
+              teamTechnicians={teamTechnicians}
               loadingStates={loadingStates}
               loadingTechnicians={loadingTechnicians}
+              loadingTeamTechnicians={loadingTeamTechnicians}
+              showTeamLocations
               progressFromTasks={progressFromTasks}
               teamSearch={teamSearch}
               onTeamSearchChange={setTeamSearch}
@@ -363,7 +402,7 @@ export default function NuevoErsPage() {
               form={form}
               onChange={setForm}
               states={states}
-              technicians={technicians}
+              technicians={teamTechnicians}
               assigneeOptions={taskAssigneeOptions}
             />
           ) : null}

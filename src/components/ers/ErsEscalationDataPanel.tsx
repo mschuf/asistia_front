@@ -44,16 +44,18 @@ export function ErsEscalationDataPanel({ detail, form, onChange }: ErsEscalation
       <label className="flex flex-col gap-1 text-sm">
         <span className="text-muted-foreground">Objetivo</span>
         <Textarea
-          className="min-h-24"
+          className="min-h-[4.8rem]"
+          placeholder="¿Que problema quieres solucionar?"
           value={form.objective}
           onChange={(event) => onChange({ ...form, objective: event.target.value })}
         />
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="text-muted-foreground">Descripción</span>
+        <span className="text-muted-foreground">Descripción Funcional</span>
         <Textarea
-          className="min-h-24"
+          className="min-h-[4.8rem]"
+          placeholder="¿Cómo lo solucionarás?"
           value={form.description}
           onChange={(event) => onChange({ ...form, description: event.target.value })}
         />
@@ -62,26 +64,13 @@ export function ErsEscalationDataPanel({ detail, form, onChange }: ErsEscalation
       <label className="flex flex-col gap-1 text-sm">
         <span className="text-muted-foreground">Medición de impacto</span>
         <Textarea
-          className="min-h-24"
+          className="min-h-[4.8rem]"
+          placeholder="¿Como medirías operativamente luego de implementar?"
           value={form.impact}
           onChange={(event) => onChange({ ...form, impact: event.target.value })}
         />
       </label>
 
-      <div className="space-y-2 rounded-md border p-3">
-        <p className="text-sm font-medium">Equipo actual (referencia)</p>
-        {detail.team.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Sin miembros asignados.</p>
-        ) : (
-          <ul className="grid grid-cols-1 gap-1 text-sm text-muted-foreground sm:grid-cols-2">
-            {detail.team.map((member) => (
-              <li key={member.userId} className="truncate">
-                {member.fullName}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
     </div>
   );
 }

@@ -13,8 +13,11 @@ interface ErsProjectManagementPanelProps {
   onChange: (next: ErsEditState) => void;
   states: ErsProjectState[];
   technicians: ErsTechnician[];
+  teamTechnicians?: ErsTechnician[];
   loadingStates: boolean;
   loadingTechnicians: boolean;
+  loadingTeamTechnicians?: boolean;
+  showTeamLocations?: boolean;
   progressFromTasks: number;
   teamSearch: string;
   onTeamSearchChange: (value: string) => void;
@@ -26,8 +29,11 @@ export function ErsProjectManagementPanel({
   onChange,
   states,
   technicians,
+  teamTechnicians = technicians,
   loadingStates,
   loadingTechnicians,
+  loadingTeamTechnicians = loadingTechnicians,
+  showTeamLocations = false,
   progressFromTasks,
   teamSearch,
   onTeamSearchChange,
@@ -49,9 +55,9 @@ export function ErsProjectManagementPanel({
 
   return (
     <div className="space-y-4 rounded-md border bg-card p-4 shadow-soft">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-[26fr_17fr_17fr]">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted-foreground">Aprobador (GLPI)</span>
+          <span className="text-muted-foreground">Aprobador</span>
           <Select
             value={form.approverId}
             onChange={(event) => onChange({ ...form, approverId: event.target.value })}
@@ -60,7 +66,7 @@ export function ErsProjectManagementPanel({
             <option value="">Sin aprobador</option>
             {technicians.map((user) => (
               <option key={user.id} value={String(user.id)}>
-                {user.fullName}
+                {user.fullName}{user.locationName ? ` · ${user.locationName}` : ""}
               </option>
             ))}
           </Select>
@@ -94,12 +100,13 @@ export function ErsProjectManagementPanel({
           placeholder="Buscar técnico..."
         />
         <ErsTechnicianDualList
-          technicians={technicians}
+          technicians={teamTechnicians}
           selectedIds={form.teamMemberIds}
           onAdd={addTeamMember}
           onRemove={removeTeamMember}
-          loading={loadingTechnicians}
+          loading={loadingTeamTechnicians}
           filterQuery={teamSearch}
+          showLocation={showTeamLocations}
           selectedTitle="Equipo seleccionado"
           emptyTechniciansMessage="Sin técnicos para mostrar."
           emptyAvailableMessage="No hay más técnicos que coincidan con la búsqueda."
