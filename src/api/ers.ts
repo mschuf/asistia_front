@@ -4,6 +4,11 @@
  */
 import { apiClient } from "./apiClient";
 
+interface ErsReadOptions {
+  signal?: AbortSignal;
+  showBackdrop?: boolean;
+}
+
 export interface ErsListItem {
   projectId: number;
   projectName: string;
@@ -197,6 +202,14 @@ export async function listarErs(query: ListarErsQuery = {}): Promise<ErsListResp
   });
 }
 
+export interface CreateErsPayload extends SaveErsPayload {
+  requesterId: number;
+  locationId: number;
+  projectName: string;
+  objective: string;
+  description: string;
+}
+
 export interface ErsLocation {
   id: number;
   name: string;
@@ -236,14 +249,14 @@ export async function guardarErs(projectId: number, payload: SaveErsPayload): Pr
 }
 
 /** Lista estados de proyecto disponibles en GLPI. */
-export async function listarEstadosProyecto(): Promise<ErsProjectState[]> {
-  return apiClient.get<ErsProjectState[]>("/ers/states");
+export async function listarEstadosProyecto(options?: ErsReadOptions): Promise<ErsProjectState[]> {
+  return apiClient.get<ErsProjectState[]>("/ers/states", options);
 }
 
 /** Lista técnicos elegibles, opcionalmente filtrados por sede. */
 export async function listarTecnicosPorSede(
   query: ListarErsTechniciansQuery = {},
-  options?: { signal?: AbortSignal },
+  options?: ErsReadOptions,
 ): Promise<ErsTechnicianListResponse> {
   return apiClient.get<ErsTechnicianListResponse>("/ers/technicians", {
     ...options,
@@ -251,10 +264,15 @@ export async function listarTecnicosPorSede(
   });
 }
 
+/** Crea atómicamente el ticket técnico y el proyecto ERS completo. */
+export async function crearErs(payload: CreateErsPayload): Promise<ErsDetail> {
+  return apiClient.post<ErsDetail>("/ers", payload, { timeoutMs: 60_000 });
+}
+
 /** Lista solicitantes activos mediante SQL directo sobre MySQL de GLPI. */
 export async function listarSolicitantesErs(
   query: Omit<ListarErsTechniciansQuery, "locationId"> = {},
-  options?: { signal?: AbortSignal },
+  options?: ErsReadOptions,
 ): Promise<ErsTechnicianListResponse> {
   return apiClient.get<ErsTechnicianListResponse>("/ers/requesters", {
     ...options,
@@ -263,7 +281,7 @@ export async function listarSolicitantesErs(
 }
 
 /** Lista sedes mediante SQL directo sobre MySQL de GLPI. */
-export async function listarSedesErs(options?: { signal?: AbortSignal }): Promise<ErsLocation[]> {
+export async function listarSedesErs(options?: ErsReadOptions): Promise<ErsLocation[]> {
   return apiClient.get<ErsLocation[]>("/ers/locations", options);
 }
 
