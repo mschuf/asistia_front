@@ -50,17 +50,28 @@ export interface ErsDetail {
   ticketId: number | null;
   requesterId: number | null;
   requesterName: string | null;
+  requesterSectors: string[];
   locationId: number | null;
   locationName: string | null;
   objective: string | null;
   description: string | null;
   impact: string | null;
+  requestType: string | null;
+  priority: number;
+  approved: boolean;
   approverId: number | null;
   approverName: string | null;
   projectStateId: number | null;
   projectStateName: string | null;
+  projectTypeId: number | null;
+  projectTypeName: string | null;
   progress: number;
+  createdAt: string | null;
   updatedAt: string | null;
+  ticketCreatedAt: string | null;
+  ticketStatus: number | null;
+  ticketSolvedAt: string | null;
+  ticketClosedAt: string | null;
   team: ErsTeamMember[];
   tasks: ErsTask[];
 }
@@ -143,6 +154,7 @@ export interface EscalarTicketErsPayload {
   projectName: string;
   objective?: string;
   description?: string;
+  projectTypeId?: number;
   impact?: string;
   responsibleIds: number[];
 }
@@ -158,12 +170,16 @@ export interface SaveErsTaskPayload {
 }
 
 export interface SaveErsPayload {
+  requestType: string;
+  priority: number;
+  approved: boolean;
   projectName?: string;
   objective?: string;
   description?: string;
   impact?: string;
   approverId?: number;
   projectStateId?: number;
+  projectTypeId?: number;
   teamMemberIds: number[];
   tasks: SaveErsTaskPayload[];
 }
@@ -180,6 +196,11 @@ export interface ErsTechnician {
   fullName: string;
   locationId: number | null;
   locationName?: string | null;
+}
+
+export interface ErsProjectType {
+  id: number;
+  name: string;
 }
 
 export interface ErsTechnicianListResponse {
@@ -252,6 +273,16 @@ export async function guardarErs(projectId: number, payload: SaveErsPayload): Pr
 /** Lista estados de proyecto disponibles en GLPI. */
 export async function listarEstadosProyecto(options?: ErsReadOptions): Promise<ErsProjectState[]> {
   return apiClient.get<ErsProjectState[]>("/ers/states", options);
+}
+
+/** Lista sistemas relacionados disponibles para proyectos ERS. */
+export async function listarTiposProyecto(options?: ErsReadOptions): Promise<ErsProjectType[]> {
+  return apiClient.get<ErsProjectType[]>("/ers/project-types", options);
+}
+
+/** Lista tipos de requerimiento configurados para ERS. */
+export async function listarTiposRequerimiento(options?: ErsReadOptions): Promise<string[]> {
+  return apiClient.get<string[]>("/ers/request-types", options);
 }
 
 /** Lista técnicos elegibles, opcionalmente filtrados por sede. */

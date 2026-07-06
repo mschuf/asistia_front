@@ -7,17 +7,22 @@ import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import {
   crearErs,
   listarEstadosProyecto,
+  listarTiposProyecto,
+  listarTiposRequerimiento,
   listarSedesErs,
   listarTecnicosPorSede,
   type ErsLocation,
   type ErsProjectState,
+  type ErsProjectType,
   type ErsTechnician,
 } from "@/api/ers";
 import { ApiError } from "@/api/apiClient";
 import { ErsCreateDataPanel } from "@/components/ers/ErsCreateDataPanel";
 import { ErsEditSidebar, type ErsEditSection } from "@/components/ers/ErsEditSidebar";
 import { ErsProjectManagementPanel } from "@/components/ers/ErsProjectManagementPanel";
+import { ErsDocumentsPanel } from "@/components/ers/ErsDocumentsPanel";
 import { ErsTasksPanel } from "@/components/ers/ErsTasksPanel";
+import { ErsUnapprovedTasksConfirmDialog } from "@/components/ers/ErsUnapprovedTasksConfirmDialog";
 import { WorkspaceHeader } from "@/components/layout/WorkspaceHeader";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -30,14 +35,19 @@ import { toIsoDate } from "@/lib/ers";
 import { resolveTaskAssigneeOptions } from "@/lib/ers-task-assignees";
 import { cn } from "@/lib/utils";
 import type { ErsEditState } from "@/types/pages/ers-page.types";
+import { uploadErsDocument } from "@/services/ersDocumentsService";
 
 const EMPTY_FORM: ErsEditState = {
   projectName: "",
   objective: "",
   description: "",
   impact: "",
+  requestType: "",
+  priority: 3,
+  approved: false,
   approverId: "",
   projectStateId: "",
+  projectTypeId: "",
   teamMemberIds: [],
   tasks: [],
 };
@@ -46,6 +56,7 @@ const SECTION_OPTIONS: Array<{ id: ErsEditSection; label: string }> = [
   { id: "escalador", label: "Datos iniciales" },
   { id: "gestion", label: "Gestión" },
   { id: "tareas", label: "Tareas" },
+  { id: "documentos", label: "Documentos" },
 ];
 
 function resolveInitialState(states: ErsProjectState[]): ErsProjectState | null {
@@ -66,7 +77,7 @@ export default function NuevoErsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const section = ((): ErsEditSection => {
     const value = searchParams.get("seccion");
-    return value === "gestion" || value === "tareas" ? value : "escalador";
+    return value === "gestion" || value === "tareas" || value === "documentos" ? value : "escalador";
   })();
 
   const defaultRequester = useMemo<ErsTechnician | null>(
@@ -80,14 +91,22 @@ export default function NuevoErsPage() {
   const [locationId, setLocationId] = useState(user?.locationId ? String(user.locationId) : "");
   const [locations, setLocations] = useState<ErsLocation[]>([]);
   const [states, setStates] = useState<ErsProjectState[]>([]);
+  const [projectTypes, setProjectTypes] = useState<ErsProjectType[]>([]);
+  const [requestTypes, setRequestTypes] = useState<string[]>([]);
   const [technicians, setTechnicians] = useState<ErsTechnician[]>([]);
   const [teamTechnicians, setTeamTechnicians] = useState<ErsTechnician[]>([]);
   const [form, setForm] = useState<ErsEditState>(EMPTY_FORM);
   const [loadingStates, setLoadingStates] = useState(true);
+  const [loadingProjectTypes, setLoadingProjectTypes] = useState(true);
+  const [projectTypesUnavailable, setProjectTypesUnavailable] = useState(false);
+  const [loadingRequestTypes, setLoadingRequestTypes] = useState(true);
+  const [requestTypesUnavailable, setRequestTypesUnavailable] = useState(false);
   const [loadingTechnicians, setLoadingTechnicians] = useState(false);
   const [loadingTeamTechnicians, setLoadingTeamTechnicians] = useState(false);
   const [teamSearch, setTeamSearch] = useState("");
   const [saving, setSaving] = useState(false);
+  const [unapprovedTasksDialogOpen, setUnapprovedTasksDialogOpen] = useState(false);
+  const [documents, setDocuments] = useState<File[]>([]);
 
   useEffect(() => {
     if (!searchParams.has("id") && !searchParams.has("ticketId")) return;
@@ -131,6 +150,52 @@ export default function NuevoErsPage() {
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoadingStates(false);
+      });
+    return () => controller.abort();
+  }, [toast]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoadingProjectTypes(true);
+    setProjectTypesUnavailable(false);
+    void listarTiposProyecto({ signal: controller.signal, showBackdrop: false })
+      .then((response) => {
+        if (!controller.signal.aborted) setProjectTypes(response);
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        setProjectTypes([]);
+        setProjectTypesUnavailable(true);
+        toast.error(
+          error instanceof ApiError ? error.message : "No se pudieron cargar los sistemas relacionados.",
+          "ERS",
+        );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoadingProjectTypes(false);
+      });
+    return () => controller.abort();
+  }, [toast]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoadingRequestTypes(true);
+    setRequestTypesUnavailable(false);
+    void listarTiposRequerimiento({ signal: controller.signal, showBackdrop: false })
+      .then((response) => {
+        if (!controller.signal.aborted) setRequestTypes(response);
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        setRequestTypes([]);
+        setRequestTypesUnavailable(true);
+        toast.error(
+          error instanceof ApiError ? error.message : "No se pudieron cargar los tipos de requerimiento.",
+          "ERS",
+        );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoadingRequestTypes(false);
       });
     return () => controller.abort();
   }, [toast]);
@@ -213,15 +278,16 @@ export default function NuevoErsPage() {
       [],
       form.teamMemberIds,
       teamTechnicians,
-      technicians,
+      teamTechnicians,
     ).filter((technician) => activeTechnicianIds.has(technician.id));
-  }, [form.teamMemberIds, teamTechnicians, technicians]);
+  }, [form.teamMemberIds, teamTechnicians]);
 
   const setSection = (nextSection: ErsEditSection) => {
+    if (nextSection === "tareas" && !form.approved) return;
     const next = new URLSearchParams(searchParams);
     next.delete("id");
     next.delete("ticketId");
-    next.set("seccion", nextSection);
+    next.set("seccion", nextSection === "escalador" ? "datos_iniciales" : nextSection);
     setSearchParams(next, { replace: true });
   };
 
@@ -246,7 +312,12 @@ export default function NuevoErsPage() {
     clearLocationAssignments(nextRequester?.locationId ? String(nextRequester.locationId) : "");
   };
 
-  const handleSave = async () => {
+  const handleSave = async (discardUnapprovedTasks = false) => {
+    if (loadingRequestTypes || requestTypesUnavailable) {
+      toast.error("No están disponibles los tipos de requerimiento.", "ERS");
+      setSection("gestion");
+      return;
+    }
     if (!requester) {
       toast.error("Selecciona un solicitante.", "ERS");
       setSection("escalador");
@@ -272,7 +343,12 @@ export default function NuevoErsPage() {
       setSection("escalador");
       return;
     }
-    const hasInvalidTask = form.tasks.some(
+    if (!form.requestType || !requestTypes.includes(form.requestType)) {
+      toast.error("Selecciona un tipo de requerimiento válido.", "ERS");
+      setSection("gestion");
+      return;
+    }
+    const hasInvalidTask = form.approved && form.tasks.some(
       (task) =>
         !task.name.trim() ||
         !task.content.trim() ||
@@ -286,6 +362,10 @@ export default function NuevoErsPage() {
       setSection("tareas");
       return;
     }
+    if (!form.approved && form.tasks.length > 0 && !discardUnapprovedTasks) {
+      setUnapprovedTasksDialogOpen(true);
+      return;
+    }
 
     const projectStateId = applyErsFinishedProjectStateAtFullProgress(
       form.projectStateId,
@@ -295,6 +375,9 @@ export default function NuevoErsPage() {
     setSaving(true);
     try {
       const created = await crearErs({
+        requestType: form.requestType,
+        priority: form.priority,
+        approved: form.approved,
         requesterId: requester.id,
         locationId: Number(locationId),
         projectName: form.projectName.trim(),
@@ -303,8 +386,9 @@ export default function NuevoErsPage() {
         impact: form.impact.trim() || undefined,
         approverId: form.approverId ? Number(form.approverId) : undefined,
         projectStateId: projectStateId ? Number(projectStateId) : undefined,
+        projectTypeId: form.projectTypeId ? Number(form.projectTypeId) : undefined,
         teamMemberIds: form.teamMemberIds.map(Number),
-        tasks: form.tasks.map((task) => ({
+        tasks: (form.approved ? form.tasks : []).map((task) => ({
           name: task.name.trim(),
           content: task.content.trim() || undefined,
           percentDone: Math.max(0, Math.min(100, Number(task.percentDone) || 0)),
@@ -314,8 +398,22 @@ export default function NuevoErsPage() {
           planEndDate: toIsoDate(task.planEndDate),
         })),
       });
-      toast.success(`ERS #${created.projectId} creado correctamente.`, "ERS");
-      navigate("/ers");
+      const failedDocuments: string[] = [];
+      for (const file of documents) {
+        try {
+          await uploadErsDocument(created.projectId, file);
+        } catch {
+          failedDocuments.push(file.name);
+        }
+      }
+      setUnapprovedTasksDialogOpen(false);
+      if (failedDocuments.length > 0) {
+        toast.error(`El ERS fue creado, pero no se pudieron subir: ${failedDocuments.join(", ")}.`, "ERS");
+        navigate(`/ers/${created.projectId}/editar?seccion=documentos`);
+      } else {
+        toast.success(`ERS #${created.projectId} creado correctamente.`, "ERS");
+        navigate("/ers");
+      }
     } catch (error) {
       toast.error(
         error instanceof ApiError ? error.message : "No se pudo crear el proyecto ERS.",
@@ -338,21 +436,27 @@ export default function NuevoErsPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button type="button" variant="outline" onClick={() => navigate("/ers")}>Volver</Button>
-          <Button type="button" onClick={() => void handleSave()} disabled={saving}>
+          <Button
+            type="button"
+            onClick={() => void handleSave()}
+            disabled={saving || loadingRequestTypes || requestTypesUnavailable}
+          >
             {saving ? "Guardando..." : "Guardar"}
           </Button>
         </div>
       </div>
 
       <div className="rounded-md border bg-card p-2 md:hidden">
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-4 gap-2">
           {SECTION_OPTIONS.map((option) => (
             <button
               key={option.id}
               type="button"
               onClick={() => setSection(option.id)}
+              disabled={option.id === "tareas" && !form.approved}
               className={cn(
                 "rounded-md px-2 py-2 text-xs font-medium transition-colors",
+                option.id === "tareas" && !form.approved && "cursor-not-allowed opacity-50",
                 section === option.id
                   ? "bg-muted text-foreground"
                   : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
@@ -366,7 +470,7 @@ export default function NuevoErsPage() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[240px_minmax(0,1fr)]">
         <div className="hidden md:block">
-          <ErsEditSidebar activeSection={section} onChange={setSection} tasksCount={form.tasks.length} />
+          <ErsEditSidebar activeSection={section} onChange={setSection} tasksCount={form.tasks.length} tasksEnabled={form.approved} documentsCount={documents.length} />
         </div>
         <div className="min-w-0">
           {section === "escalador" ? (
@@ -375,6 +479,8 @@ export default function NuevoErsPage() {
               requester={requester}
               locationId={locationId}
               locations={locations}
+              projectTypes={projectTypes}
+              projectTypesDisabled={loadingProjectTypes || projectTypesUnavailable}
               form={form}
               onRequesterChange={handleRequesterChange}
               onLocationChange={clearLocationAssignments}
@@ -386,9 +492,12 @@ export default function NuevoErsPage() {
               form={form}
               onChange={setForm}
               states={states}
+              requestTypes={requestTypes}
               technicians={technicians}
+              currentUser={user!}
               teamTechnicians={teamTechnicians}
               loadingStates={loadingStates}
+              requestTypesDisabled={loadingRequestTypes || requestTypesUnavailable}
               loadingTechnicians={loadingTechnicians}
               loadingTeamTechnicians={loadingTeamTechnicians}
               showTeamLocations
@@ -404,10 +513,20 @@ export default function NuevoErsPage() {
               states={states}
               technicians={teamTechnicians}
               assigneeOptions={taskAssigneeOptions}
+              approved={form.approved}
             />
+          ) : null}
+          {section === "documentos" ? (
+            <ErsDocumentsPanel files={documents} onFilesChange={setDocuments} />
           ) : null}
         </div>
       </div>
+      <ErsUnapprovedTasksConfirmDialog
+        open={unapprovedTasksDialogOpen}
+        saving={saving}
+        onOpenChange={setUnapprovedTasksDialogOpen}
+        onConfirm={() => void handleSave(true)}
+      />
     </div>
   );
 }

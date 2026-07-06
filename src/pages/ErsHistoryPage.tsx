@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
+import { isRequesterSummary, toErsHistoryDisplayState } from "@/lib/ers-history";
 import { cn } from "@/lib/utils";
 
 const colorByAction: Record<ErsHistoryItem["actionType"], string> = {
@@ -231,9 +232,12 @@ function HistoryStateComparison({
   beforeState: Record<string, unknown> | null;
   afterState: Record<string, unknown> | null;
 }) {
-  const changedFieldPaths = getChangedFieldPaths(beforeState, afterState);
+  const nowValue = Date.now();
+  const displayBeforeState = toErsHistoryDisplayState(beforeState, nowValue);
+  const displayAfterState = toErsHistoryDisplayState(afterState, nowValue);
+  const changedFieldPaths = getChangedFieldPaths(displayBeforeState, displayAfterState);
   const fieldKeys = Array.from(
-    new Set([...Object.keys(beforeState ?? {}), ...Object.keys(afterState ?? {})]),
+    new Set([...Object.keys(displayBeforeState ?? {}), ...Object.keys(displayAfterState ?? {})]),
   ).filter((key) => !isIgnoredHistoryField(key));
 
   return (
@@ -260,15 +264,15 @@ function HistoryStateComparison({
                 >
                   <HistoryStateComparisonCell
                     fieldKey={key}
-                    value={beforeState?.[key]}
-                    hasValue={Boolean(beforeState && Object.prototype.hasOwnProperty.call(beforeState, key))}
+                    value={displayBeforeState?.[key]}
+                    hasValue={Boolean(displayBeforeState && Object.prototype.hasOwnProperty.call(displayBeforeState, key))}
                     isChanged={isChanged}
                     changedFieldPaths={changedFieldPaths}
                   />
                   <HistoryStateComparisonCell
                     fieldKey={key}
-                    value={afterState?.[key]}
-                    hasValue={Boolean(afterState && Object.prototype.hasOwnProperty.call(afterState, key))}
+                    value={displayAfterState?.[key]}
+                    hasValue={Boolean(displayAfterState && Object.prototype.hasOwnProperty.call(displayAfterState, key))}
                     isChanged={isChanged}
                     changedFieldPaths={changedFieldPaths}
                   />
@@ -404,6 +408,10 @@ function HistoryStateValue({
     return <>{value ? "Sí" : "No"}</>;
   }
 
+  if (fieldPath === "requesterSummary" && isRequesterSummary(value)) {
+    return <RequesterHistoryValue name={value.name} sectors={value.sectors} />;
+  }
+
   if (Array.isArray(value)) {
     if (value.length === 0) return <span className="text-muted-foreground">Sin elementos</span>;
 
@@ -436,6 +444,31 @@ function HistoryStateValue({
   }
 
   return <>{String(value)}</>;
+}
+
+function RequesterHistoryValue({
+  name,
+  sectors,
+}: {
+  name: string | number | null;
+  sectors: string[] | null;
+}) {
+  return (
+    <div className="space-y-1">
+      <div>{name === null || name === "" ? "—" : String(name)}</div>
+      {sectors === null ? (
+        <div className="text-xs text-muted-foreground">—</div>
+      ) : sectors.length === 0 ? (
+        <div className="text-xs text-muted-foreground">Sin sector</div>
+      ) : (
+        sectors.map((sector) => (
+          <div key={sector} className="text-xs text-muted-foreground">
+            {sector}
+          </div>
+        ))
+      )}
+    </div>
+  );
 }
 
 function getChangedFieldPaths(
@@ -520,6 +553,31 @@ function areHistoryValuesEqual(beforeValue: unknown, afterValue: unknown): boole
 }
 
 function formatFieldLabel(value: string): string {
+  const labels: Record<string, string> = {
+    projectId: "ID Proyecto",
+    projectName: "Nombre proyecto",
+    priority: "Prioridad TI",
+    requesterSummary: "Solicitante",
+    locationName: "Sede",
+    projectTypeName: "Sistema relacionado",
+    projectStateName: "Estado",
+    progress: "Avance",
+    approved: "Aprobado",
+    createdAt: "Creado el",
+    ticketCreatedAt: "Ticket abierto el",
+    vigente: "Vigente",
+    objective: "Objetivo",
+    description: "Descripción",
+    impact: "Impacto",
+    requestType: "Tipo de requerimiento",
+    approverName: "Aprobador",
+    team: "Equipo",
+    tasks: "Tareas",
+    ticketId: "ID Ticket",
+    updatedAt: "Actualizado el",
+  };
+  if (labels[value]) return labels[value];
+
   const label = value
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/[_-]+/g, " ")

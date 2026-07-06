@@ -4,22 +4,25 @@
  */
 import { cn } from "@/lib/utils";
 
-export type ErsEditSection = "escalador" | "gestion" | "tareas";
+export type ErsEditSection = "escalador" | "gestion" | "tareas" | "documentos";
 
 interface ErsEditSidebarProps {
   activeSection: ErsEditSection;
   onChange: (section: ErsEditSection) => void;
   tasksCount: number;
+  tasksEnabled: boolean;
+  documentsCount: number;
 }
 
 const SECTIONS: Array<{ id: ErsEditSection; label: string }> = [
   { id: "escalador", label: "1. Datos iniciales" },
   { id: "gestion", label: "2. Gestión del proyecto" },
   { id: "tareas", label: "3. Tareas" },
+  { id: "documentos", label: "4. Documentos" },
 ];
 
 /** Menú vertical de navegación interna de edición ERS. */
-export function ErsEditSidebar({ activeSection, onChange, tasksCount }: ErsEditSidebarProps) {
+export function ErsEditSidebar({ activeSection, onChange, tasksCount, tasksEnabled, documentsCount }: ErsEditSidebarProps) {
   return (
     <nav className="rounded-md border bg-card p-2">
       <ul className="space-y-1">
@@ -28,8 +31,11 @@ export function ErsEditSidebar({ activeSection, onChange, tasksCount }: ErsEditS
             <button
               type="button"
               onClick={() => onChange(section.id)}
+              disabled={section.id === "tareas" && !tasksEnabled}
+              title={section.id === "tareas" && !tasksEnabled ? "Aprueba el proyecto para habilitar las tareas" : undefined}
               className={cn(
                 "flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors",
+                section.id === "tareas" && !tasksEnabled && "cursor-not-allowed opacity-50",
                 activeSection === section.id
                   ? "bg-muted font-semibold text-foreground"
                   : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
@@ -38,6 +44,8 @@ export function ErsEditSidebar({ activeSection, onChange, tasksCount }: ErsEditS
               <span>{section.label}</span>
               {section.id === "tareas" ? (
                 <span className="rounded-full border px-2 py-0.5 text-xs tabular-nums">{tasksCount}</span>
+              ) : section.id === "documentos" ? (
+                <span className="rounded-full border px-2 py-0.5 text-xs tabular-nums">{documentsCount}</span>
               ) : null}
             </button>
           </li>

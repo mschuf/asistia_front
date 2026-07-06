@@ -49,8 +49,12 @@ export interface ErsEditState {
   objective: string;
   description: string;
   impact: string;
+  requestType: string;
+  priority: number;
+  approved: boolean;
   approverId: string;
   projectStateId: string;
+  projectTypeId: string;
   teamMemberIds: string[];
   tasks: Array<{
     id?: number;

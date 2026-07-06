@@ -3,7 +3,7 @@
  * @description Datos iniciales para crear un ERS sin ticket previo.
  */
 import { useCallback, useMemo } from "react";
-import type { ErsLocation, ErsTechnician } from "@/api/ers";
+import type { ErsLocation, ErsProjectType, ErsTechnician } from "@/api/ers";
 import { Input } from "@/components/ui/input";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import type { SearchableSelectOption } from "@/components/ui/searchable-select";
@@ -17,6 +17,8 @@ interface ErsCreateDataPanelProps {
   requester: ErsTechnician | null;
   locationId: string;
   locations: ErsLocation[];
+  projectTypes: ErsProjectType[];
+  projectTypesDisabled: boolean;
   form: ErsEditState;
   onRequesterChange: (requester: ErsTechnician | null) => void;
   onLocationChange: (locationId: string) => void;
@@ -39,6 +41,8 @@ export function ErsCreateDataPanel({
   requester,
   locationId,
   locations,
+  projectTypes,
+  projectTypesDisabled,
   form,
   onRequesterChange,
   onLocationChange,
@@ -123,14 +127,32 @@ export function ErsCreateDataPanel({
         </label>
       </div>
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="text-muted-foreground">Nombre del proyecto</span>
-        <Input
-          maxLength={200}
-          value={form.projectName}
-          onChange={(event) => onChange({ ...form, projectName: event.target.value })}
-        />
-      </label>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-muted-foreground">Nombre del proyecto</span>
+          <Input
+            maxLength={200}
+            value={form.projectName}
+            onChange={(event) => onChange({ ...form, projectName: event.target.value })}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-muted-foreground">Sistema Relacionado</span>
+          <SearchableSelect
+            value={form.projectTypeId}
+            onChange={(projectTypeId) => onChange({ ...form, projectTypeId })}
+            options={projectTypes.map((projectType) => ({
+              value: String(projectType.id),
+              label: projectType.name,
+            }))}
+            emptyOption={{ value: "", label: "Sin sistema relacionado" }}
+            placeholder="Sin sistema relacionado"
+            searchPlaceholder="Buscar sistema..."
+            noResultsText="No se encontraron sistemas"
+            disabled={projectTypesDisabled}
+          />
+        </label>
+      </div>
       <label className="flex flex-col gap-1 text-sm">
         <span className="text-muted-foreground">Objetivo</span>
         <Textarea

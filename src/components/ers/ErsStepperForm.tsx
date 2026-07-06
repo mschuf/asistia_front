@@ -6,15 +6,17 @@ import { useState } from "react";
 import { ErsTechnicianDualList } from "@/components/ers/ErsTechnicianDualList";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Textarea } from "@/components/ui/textarea";
 import type { AsistiaTicket } from "@/types/asistia";
-import type { ErsTechnician } from "@/api/ers";
+import type { ErsProjectType, ErsTechnician } from "@/api/ers";
 
 export interface ErsStepperSubmitInput {
   ticketId: number;
   projectName: string;
   objective: string;
   description: string;
+  projectTypeId?: number;
   impact: string;
   responsibleIds: number[];
 }
@@ -22,7 +24,9 @@ export interface ErsStepperSubmitInput {
 interface ErsStepperFormProps {
   ticket: AsistiaTicket;
   technicians: ErsTechnician[];
+  projectTypes: ErsProjectType[];
   loadingTechnicians: boolean;
+  projectTypesDisabled: boolean;
   onSubmit: (input: ErsStepperSubmitInput) => Promise<void>;
 }
 
@@ -30,15 +34,19 @@ interface ErsStepperFormProps {
 export function ErsStepperForm({
   ticket,
   technicians,
+  projectTypes,
   loadingTechnicians,
+  projectTypesDisabled,
   onSubmit,
 }: ErsStepperFormProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [projectName, setProjectName] = useState("");
   const [objective, setObjective] = useState("");
   const [description, setDescription] = useState(ticket.description ?? "");
+  const [projectTypeId, setProjectTypeId] = useState("");
   const [impact, setImpact] = useState("");
   const [responsibleIds, setResponsibleIds] = useState<number[]>([]);
+  const [responsibleSearch, setResponsibleSearch] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const canContinueStep1 =
@@ -65,6 +73,7 @@ export function ErsStepperForm({
         projectName: projectName.trim(),
         objective: objective.trim(),
         description: description.trim(),
+        projectTypeId: projectTypeId ? Number(projectTypeId) : 0,
         impact: impact.trim(),
         responsibleIds,
       });
@@ -93,28 +102,57 @@ export function ErsStepperForm({
               <Input value={ticket.location?.name ?? "—"} readOnly />
             </label>
           </div>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted-foreground">Nombre del proyecto</span>
-            <Input
-              value={projectName}
-              onChange={(event) => setProjectName(event.target.value)}
-              placeholder="Nombre del proyecto"
-            />
-          </label>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="text-muted-foreground">Nombre del proyecto</span>
+              <Input
+                value={projectName}
+                onChange={(event) => setProjectName(event.target.value)}
+                placeholder="Nombre del proyecto"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="text-muted-foreground">Sistema Relacionado</span>
+              <SearchableSelect
+                value={projectTypeId}
+                onChange={setProjectTypeId}
+                options={projectTypes.map((projectType) => ({
+                  value: String(projectType.id),
+                  label: projectType.name,
+                }))}
+                emptyOption={{ value: "", label: "Sin sistema relacionado" }}
+                placeholder="Sin sistema relacionado"
+                searchPlaceholder="Buscar sistema..."
+                noResultsText="No se encontraron sistemas"
+                disabled={projectTypesDisabled}
+              />
+            </label>
+          </div>
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-muted-foreground">Objetivo</span>
             <Textarea
-              className="min-h-24"
+              className="min-h-[4.8rem]"
+              placeholder="¿Qué problema quieres solucionar?"
               value={objective}
               onChange={(event) => setObjective(event.target.value)}
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted-foreground">Descripción</span>
+            <span className="text-muted-foreground">Descripción Funcional</span>
             <Textarea
-              className="min-h-24"
+              className="min-h-[4.8rem]"
+              placeholder="¿Cómo lo solucionarás?"
               value={description}
               onChange={(event) => setDescription(event.target.value)}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-muted-foreground">Medición de impacto</span>
+            <Textarea
+              className="min-h-[4.8rem]"
+              placeholder="¿Cómo medirías operativamente luego de implementar?"
+              value={impact}
+              onChange={(event) => setImpact(event.target.value)}
             />
           </label>
           <div className="flex justify-end">
@@ -125,24 +163,25 @@ export function ErsStepperForm({
         </div>
       ) : (
         <div className="space-y-3">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted-foreground">Medición de impacto</span>
-            <Textarea
-              className="min-h-24"
-              value={impact}
-              onChange={(event) => setImpact(event.target.value)}
-            />
-          </label>
-
           <div className="space-y-2">
-            <p className="text-sm font-medium">Responsables (técnicos de la sede del solicitante)</p>
+            <p className="text-sm font-medium">Responsables del proyecto</p>
+            <Input
+              value={responsibleSearch}
+              onChange={(event) => setResponsibleSearch(event.target.value)}
+              placeholder="Buscar técnico por nombre o sede..."
+            />
             <ErsTechnicianDualList
               technicians={technicians}
               selectedIds={responsibleIds.map(String)}
               onAdd={addResponsible}
               onRemove={removeResponsible}
               loading={loadingTechnicians}
+              filterQuery={responsibleSearch}
+              showLocation
+              availableTitle="Técnicos disponibles"
               selectedTitle="Responsables seleccionados"
+              emptyTechniciansMessage="Sin técnicos activos para mostrar."
+              emptyAvailableMessage="No hay más técnicos que coincidan con la búsqueda."
             />
           </div>
 

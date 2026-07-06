@@ -149,7 +149,9 @@ export function ErsTasksEditor({
     () =>
       assigneeOptions.map((user) => ({
         value: String(user.id),
-        label: user.fullName,
+        label: user.locationName
+          ? `${user.fullName} · ${user.locationName}`
+          : user.fullName,
       })),
     [assigneeOptions],
   );

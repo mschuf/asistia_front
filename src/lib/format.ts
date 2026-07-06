@@ -53,7 +53,8 @@ export function formatDateParts(
  */
 export function formatOpenDuration(
   value: string | null | undefined,
-  endValue?: string | null
+  endValue?: string | null,
+  nowValue: number = Date.now(),
 ): string {
   if (!value) return "—";
   const parsed = new Date(value);
@@ -61,7 +62,7 @@ export function formatOpenDuration(
 
   const endTime =
     endValue === undefined
-      ? Date.now()
+      ? nowValue
       : endValue
         ? new Date(endValue).getTime()
         : NaN;

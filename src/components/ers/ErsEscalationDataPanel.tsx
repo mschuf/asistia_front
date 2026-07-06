@@ -2,8 +2,10 @@
  * @file ErsEscalationDataPanel.tsx
  * @description Sección editable de datos cargados al escalar ERS.
  */
-import type { ErsDetail } from "@/api/ers";
+import { useMemo } from "react";
+import type { ErsDetail, ErsProjectType } from "@/api/ers";
 import { Input } from "@/components/ui/input";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Textarea } from "@/components/ui/textarea";
 import type { ErsEditState } from "@/types/pages/ers-page.types";
 
@@ -11,10 +13,33 @@ interface ErsEscalationDataPanelProps {
   detail: ErsDetail;
   form: ErsEditState;
   onChange: (next: ErsEditState) => void;
+  projectTypes: ErsProjectType[];
+  projectTypesDisabled: boolean;
 }
 
 /** Panel de datos del escalador con campos editables de requerimiento. */
-export function ErsEscalationDataPanel({ detail, form, onChange }: ErsEscalationDataPanelProps) {
+export function ErsEscalationDataPanel({
+  detail,
+  form,
+  onChange,
+  projectTypes,
+  projectTypesDisabled,
+}: ErsEscalationDataPanelProps) {
+  const projectTypeOptions = useMemo(() => {
+    const options = projectTypes.map((projectType) => ({
+      value: String(projectType.id),
+      label: projectType.name,
+    }));
+    if (
+      form.projectTypeId &&
+      detail.projectTypeName &&
+      !options.some((option) => option.value === form.projectTypeId)
+    ) {
+      options.push({ value: form.projectTypeId, label: detail.projectTypeName });
+    }
+    return options;
+  }, [detail.projectTypeName, form.projectTypeId, projectTypes]);
+
   return (
     <div className="space-y-4 rounded-md border bg-card p-4 shadow-soft">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -32,14 +57,30 @@ export function ErsEscalationDataPanel({ detail, form, onChange }: ErsEscalation
         </label>
       </div>
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="text-muted-foreground">Nombre del proyecto</span>
-        <Input
-          value={form.projectName}
-          onChange={(event) => onChange({ ...form, projectName: event.target.value })}
-          placeholder="Nombre del proyecto"
-        />
-      </label>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-muted-foreground">Nombre del proyecto</span>
+          <Input
+            value={form.projectName}
+            onChange={(event) => onChange({ ...form, projectName: event.target.value })}
+            placeholder="Nombre del proyecto"
+          />
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-muted-foreground">Sistema Relacionado</span>
+          <SearchableSelect
+            value={form.projectTypeId}
+            onChange={(projectTypeId) => onChange({ ...form, projectTypeId })}
+            options={projectTypeOptions}
+            emptyOption={{ value: "", label: "Sin sistema relacionado" }}
+            placeholder="Sin sistema relacionado"
+            searchPlaceholder="Buscar sistema..."
+            noResultsText="No se encontraron sistemas"
+            disabled={projectTypesDisabled}
+          />
+        </label>
+      </div>
 
       <label className="flex flex-col gap-1 text-sm">
         <span className="text-muted-foreground">Objetivo</span>

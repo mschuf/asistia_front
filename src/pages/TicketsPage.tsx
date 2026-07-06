@@ -325,6 +325,11 @@ export default function TicketsPage() {
                 onStatusChange={handleTicketStatusChange}
                 statusChanging={statusChanging}
                 onAssignClick={isTechnician ? setAssignTarget : undefined}
+                onEscalate={
+                  isTechnician
+                    ? (ticket) => navigate(`/ers/escalar/${ticket.id}`)
+                    : undefined
+                }
                 assigning={assigning}
                 statusActionIds={
                   isTechnician && !isSuperAdmin
