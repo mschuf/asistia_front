@@ -175,7 +175,7 @@ export function ErsFilters({
           <Input
             value={filters.search}
             onChange={(event) => update("search", event.target.value)}
-            placeholder="Buscar por ID, nombre, caso, estado, avance, aprobado por o creado..."
+            placeholder="Buscar por ID, nombre, caso, área, estado, avance, aprobado por o creado..."
             className="pl-9 pr-10"
           />
           <button

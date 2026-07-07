@@ -29,6 +29,7 @@ function getSortableColumns(isTechnician: boolean): Array<{ id: ErsSortColumn; l
     { id: "projectName", label: "Nombre proyecto" },
     { id: "ticketId", label: isTechnician ? "Caso" : "Caso" },
     { id: "requesterName", label: "Solicitante" },
+    { id: "requesterArea", label: "Área" },
     { id: "locationName", label: "Sede" },
     { id: "stateName", label: "Estado" },
     { id: "progress", label: "Avance" },
@@ -151,7 +152,7 @@ export function ErsTable({
   return (
     <div className="overflow-hidden rounded-md border bg-card shadow-soft">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[980px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[1080px] border-collapse text-left text-sm">
           <thead className="bg-muted text-xs uppercase tracking-normal text-muted-foreground">
             <tr>
               {sortableColumns.map(({ id, label }) => (
@@ -190,6 +191,7 @@ export function ErsTable({
                   {row.ticketId ? `#${row.ticketId}` : "—"}
                 </td>
                 <td className="px-4 py-3">{row.requesterName ?? "—"}</td>
+                <td className="px-4 py-3">{row.requesterArea ?? "—"}</td>
                 <td className="px-4 py-3">{row.locationName ?? "—"}</td>
                 <td className="px-4 py-3 text-center">
                   {row.projectStateName ? (
