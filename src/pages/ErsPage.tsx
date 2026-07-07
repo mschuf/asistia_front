@@ -22,7 +22,7 @@ import { ERS_PAGE_SIZE_ALL, ERS_PAGE_SIZE_OPTIONS, isErsAllPageSize, parseErsPag
 
 /** Página principal de ERS. */
 export default function ErsPage() {
-  const { isTechnician } = useAuth();
+  const { isTechnician, isSuperAdmin, user } = useAuth();
   const navigate = useNavigate();
   const {
     items,
@@ -37,7 +37,7 @@ export default function ErsPage() {
     loading,
     error,
     reload,
-  } = useErsList();
+  } = useErsList(isSuperAdmin ? undefined : user?.id);
   const [states, setStates] = useState<ErsProjectState[]>([]);
   const [locations, setLocations] = useState<ErsLocation[]>([]);
   const [locationsLoading, setLocationsLoading] = useState(false);

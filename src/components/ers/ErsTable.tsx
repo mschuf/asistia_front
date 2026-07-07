@@ -5,6 +5,7 @@
 import { ArrowDown, ArrowUp, ArrowUpDown, History, Pencil } from "lucide-react";
 import type { ErsListItem, ErsSortColumn, ErsSortOrder } from "@/api/ers";
 import { ErsProjectStateBadge } from "@/components/ers/ErsProjectStateBadge";
+import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 
@@ -52,7 +53,12 @@ function SortableHeader({
 
   if (!onSortColumnChange) {
     return (
-      <th className={cn("px-4 py-3 font-semibold", column === "stateName" && "text-center")}>
+      <th
+        className={cn(
+          "px-4 py-3 font-semibold",
+          (column === "stateName" || column === "approved") && "text-center",
+        )}
+      >
         {label}
       </th>
     );
@@ -60,7 +66,10 @@ function SortableHeader({
 
   return (
     <th
-      className={cn("px-4 py-3 font-semibold", column === "stateName" && "text-center")}
+      className={cn(
+        "px-4 py-3 font-semibold",
+        (column === "stateName" || column === "approved") && "text-center",
+      )}
       aria-sort={ariaSort}
     >
       <button
@@ -68,7 +77,7 @@ function SortableHeader({
         onClick={() => onSortColumnChange(column)}
         className={cn(
           "inline-flex items-center gap-1.5 transition-colors hover:text-foreground",
-          column === "stateName" && "justify-center",
+          (column === "stateName" || column === "approved") && "justify-center",
         )}
       >
         <span>{label}</span>
@@ -155,8 +164,20 @@ export function ErsTable({
                   onSortColumnChange={onSortColumnChange}
                 />
               ))}
-              <th className="px-4 py-3 font-semibold normal-case">Aprobado por</th>
-              <th className="px-4 py-3 font-semibold normal-case">Creado</th>
+              <SortableHeader
+                column="approved"
+                label="Aprobado"
+                sortColumn={sortColumn}
+                sortOrder={sortOrder}
+                onSortColumnChange={onSortColumnChange}
+              />
+              <SortableHeader
+                column="createdAt"
+                label="Creado"
+                sortColumn={sortColumn}
+                sortOrder={sortOrder}
+                onSortColumnChange={onSortColumnChange}
+              />
               {isTechnician ? <th className="px-4 py-3 font-semibold">Acciones</th> : null}
             </tr>
           </thead>
@@ -184,7 +205,14 @@ export function ErsTable({
                 <td className="px-4 py-3">
                   <ProgressCell value={row.progress} />
                 </td>
-                <td className="px-4 py-3">{row.approverName ?? "—"}</td>
+                <td className="px-4 py-3 text-center">
+                  <Badge
+                    variant={row.approved ? "success" : "default"}
+                    className="w-10 justify-center"
+                  >
+                    {row.approved ? "SI" : "NO"}
+                  </Badge>
+                </td>
                 <td className="px-4 py-3">{formatCreatedDate(row.createdAt)}</td>
                 {isTechnician ? (
                   <td className="px-4 py-3">

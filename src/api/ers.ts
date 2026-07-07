@@ -19,6 +19,7 @@ export interface ErsListItem {
   locationName: string | null;
   approverId: number | null;
   approverName: string | null;
+  approved: boolean;
   projectStateId: number | null;
   projectStateName: string | null;
   progress: number;
@@ -91,6 +92,8 @@ export type ErsSortColumn =
   | "locationName"
   | "stateName"
   | "progress"
+  | "approved"
+  | "createdAt"
   | "updatedAt";
 
 export type ErsSortOrder = "asc" | "desc";
@@ -149,14 +152,11 @@ export interface ErsEligibleTicketResponse {
   limit: number;
 }
 
-export interface EscalarTicketErsPayload {
+export interface EscalarTicketErsPayload extends SaveErsPayload {
   ticketId: number;
   projectName: string;
-  objective?: string;
-  description?: string;
-  projectTypeId?: number;
-  impact?: string;
-  responsibleIds: number[];
+  objective: string;
+  description: string;
 }
 
 export interface SaveErsTaskPayload {

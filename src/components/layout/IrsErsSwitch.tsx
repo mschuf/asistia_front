@@ -9,7 +9,9 @@ export function resolveWorkspaceMode(pathname: string): WorkspaceMode {
   return pathname.startsWith('/ers') ? 'ers' : 'irs';
 }
 
-export function resolveWorkspaceTab(pathname: string, search: string): WorkspaceTab {
+export function resolveWorkspaceTab(pathname: string, search: string): WorkspaceTab | null {
+  if (pathname.startsWith('/ers/escalar/')) return null;
+  if (/^\/ers\/\d+\/editar\/?$/.test(pathname)) return null;
   if (pathname.startsWith('/ers/indicadores')) return 'metricas';
   if (pathname.startsWith('/ers/nuevo')) return 'crear';
   if (pathname === '/ers' || pathname.startsWith('/ers?')) return 'historial';
@@ -46,7 +48,7 @@ export function IrsErsSwitch({ className }: IrsErsSwitchProps) {
   if ((!isTechnician && !isSuperAdmin) || !isWorkspaceRoute(location.pathname)) return null;
 
   const mode = resolveWorkspaceMode(location.pathname);
-  const tab = resolveWorkspaceTab(location.pathname, location.search);
+  const tab = resolveWorkspaceTab(location.pathname, location.search) ?? 'historial';
   const isErsMode = mode === 'ers';
 
   return (

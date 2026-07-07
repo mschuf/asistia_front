@@ -468,7 +468,10 @@ export default function ErsEditPage() {
         <div className="min-w-0">
           {section === "escalador" ? (
             <ErsEscalationDataPanel
-              detail={detail}
+              requesterName={detail.requesterName}
+              locationName={detail.locationName}
+              ticketId={detail.ticketId}
+              projectTypeName={detail.projectTypeName}
               form={form}
               onChange={setForm}
               projectTypes={projectTypes}

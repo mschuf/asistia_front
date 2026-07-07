@@ -17,7 +17,12 @@ import {
 import type { ErsFilterState, UseErsListResult } from "@/types/pages/ers-page.types";
 
 /** @returns Filtros ERS en estado inicial. */
-function createInitialFilters(searchParams?: URLSearchParams): ErsFilterState {
+function createInitialFilters(
+  searchParams?: URLSearchParams,
+  defaultAssignedMemberId?: number,
+): ErsFilterState {
+  const hasLifecycleParam = searchParams?.has("lifecycle") ?? false;
+  const hasAssignedMemberParam = searchParams?.has("assignedMemberId") ?? false;
   return {
     search: "",
     projectName: "",
@@ -26,14 +31,19 @@ function createInitialFilters(searchParams?: URLSearchParams): ErsFilterState {
     requesterId: "",
     approverName: "",
     projectStateId: "",
-    lifecycle:
-      searchParams?.get("lifecycle") === "finished"
+    lifecycle: searchParams?.get("lifecycle") === "finished"
         ? "finished"
         : searchParams?.get("lifecycle") === "active"
           ? "active"
-          : "",
+          : hasLifecycleParam
+            ? ""
+            : "active",
     locationId: searchParams?.get("locationId") ?? "",
-    assignedMemberId: searchParams?.get("assignedMemberId") ?? "",
+    assignedMemberId: hasAssignedMemberParam
+      ? searchParams?.get("assignedMemberId") ?? ""
+      : defaultAssignedMemberId
+        ? String(defaultAssignedMemberId)
+        : "",
   };
 }
 
@@ -63,9 +73,12 @@ function toListParams(
 }
 
 /** Hook principal para la pantalla `/ers`. */
-export function useErsList(): UseErsListResult {
+export function useErsList(defaultAssignedMemberId?: number): UseErsListResult {
   const [searchParams] = useSearchParams();
-  const initialFilters = useMemo(() => createInitialFilters(searchParams), []);
+  const initialFilters = useMemo(
+    () => createInitialFilters(searchParams, defaultAssignedMemberId),
+    [],
+  );
   const [items, setItems] = useState<UseErsListResult["items"]>([]);
   const [filters, setFiltersState] = useState<ErsFilterState>(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState<ErsFilterState>(initialFilters);

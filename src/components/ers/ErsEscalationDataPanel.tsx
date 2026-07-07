@@ -3,14 +3,20 @@
  * @description Sección editable de datos cargados al escalar ERS.
  */
 import { useMemo } from "react";
-import type { ErsDetail, ErsProjectType } from "@/api/ers";
+import { Eye } from "lucide-react";
+import type { ErsProjectType } from "@/api/ers";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Textarea } from "@/components/ui/textarea";
 import type { ErsEditState } from "@/types/pages/ers-page.types";
 
 interface ErsEscalationDataPanelProps {
-  detail: ErsDetail;
+  requesterName: string | null;
+  locationName: string | null;
+  ticketId: number | null;
+  projectTypeName?: string | null;
+  onTicketPreview?: () => void;
   form: ErsEditState;
   onChange: (next: ErsEditState) => void;
   projectTypes: ErsProjectType[];
@@ -19,7 +25,11 @@ interface ErsEscalationDataPanelProps {
 
 /** Panel de datos del escalador con campos editables de requerimiento. */
 export function ErsEscalationDataPanel({
-  detail,
+  requesterName,
+  locationName,
+  ticketId,
+  projectTypeName,
+  onTicketPreview,
   form,
   onChange,
   projectTypes,
@@ -32,29 +42,48 @@ export function ErsEscalationDataPanel({
     }));
     if (
       form.projectTypeId &&
-      detail.projectTypeName &&
+      projectTypeName &&
       !options.some((option) => option.value === form.projectTypeId)
     ) {
-      options.push({ value: form.projectTypeId, label: detail.projectTypeName });
+      options.push({ value: form.projectTypeId, label: projectTypeName });
     }
     return options;
-  }, [detail.projectTypeName, form.projectTypeId, projectTypes]);
+  }, [form.projectTypeId, projectTypeName, projectTypes]);
 
   return (
     <div className="space-y-4 rounded-md border bg-card p-4 shadow-soft">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground">Solicitante</span>
-          <Input value={detail.requesterName ?? "—"} readOnly />
+          <Input value={requesterName ?? "—"} readOnly />
         </label>
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground">Sede</span>
-          <Input value={detail.locationName ?? "—"} readOnly />
+          <Input value={locationName ?? "—"} readOnly />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <div className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground">Ticket origen</span>
-          <Input value={detail.ticketId ? `#${detail.ticketId}` : "—"} readOnly />
-        </label>
+          <div className="relative">
+            {onTicketPreview ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute left-1 top-1 z-10 h-8 w-8"
+                aria-label="Ver detalle del ticket origen"
+                title="Ver detalle del ticket origen"
+                onClick={onTicketPreview}
+              >
+                <Eye className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            ) : null}
+            <Input
+              className={onTicketPreview ? "pl-10" : undefined}
+              value={ticketId ? `#${ticketId}` : "—"}
+              readOnly
+            />
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
