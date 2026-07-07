@@ -1,10 +1,43 @@
-import { Building2, FolderKanban, History, Users } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowRightLeft, Building2, FolderKanban, History, Inbox, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { ErsMetricSlice, ErsMetricsResponse } from '@/api/ers';
 import { MobileRefreshFab } from '@/components/layout/MobileRefreshFab';
+import { Button } from '@/components/ui/button';
 import { Loading } from '@/components/ui/loading';
 import { useAuth } from '@/context/AuthContext';
-import { getSiteMetricBarStyle } from '@/lib/site-metric-bar-colors';
+
+type ErsChartMode = 'system' | 'area';
+
+const ERS_ACTIVE_BAR_COLORS = [
+  '#2563eb',
+  '#16a34a',
+  '#ea580c',
+  '#7c3aed',
+  '#0891b2',
+  '#dc2626',
+  '#ca8a04',
+  '#059669',
+  '#db2777',
+  '#4f46e5',
+  '#9333ea',
+  '#0d9488',
+  '#be123c',
+  '#65a30d',
+  '#475569',
+];
+
+function getErsActiveBarBackground(index: number): string {
+  if (index < ERS_ACTIVE_BAR_COLORS.length) return ERS_ACTIVE_BAR_COLORS[index];
+
+  const offset = index - ERS_ACTIVE_BAR_COLORS.length;
+  const firstColor = ERS_ACTIVE_BAR_COLORS[offset % ERS_ACTIVE_BAR_COLORS.length];
+  const secondColor = ERS_ACTIVE_BAR_COLORS[
+    Math.floor(offset / ERS_ACTIVE_BAR_COLORS.length + offset + 5) % ERS_ACTIVE_BAR_COLORS.length
+  ];
+
+  return `repeating-linear-gradient(-45deg, ${firstColor}, ${firstColor} 5px, ${secondColor} 5px, ${secondColor} 10px)`;
+}
 
 function Percent({ slice }: { slice: ErsMetricSlice }) {
   return (
@@ -58,17 +91,23 @@ export function ErsMetrics({
 }) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [chartMode, setChartMode] = useState<ErsChartMode>('system');
   if (loading && !metrics) {
     return <div className='flex min-h-40 items-center justify-center'><Loading label='Cargando indicadores ERS...' /></div>;
   }
   if (!metrics) return <MobileRefreshFab visible onClick={onRefresh} loading={loading} />;
-  const sorted = [...metrics.activeByLocation].sort((a, b) => b.active - a.active || a.name.localeCompare(b.name, 'es'));
+  const chartRows = chartMode === 'system' ? metrics.activeBySystem : metrics.activeByArea;
+  const chartTitle = chartMode === 'system' ? 'Proyectos activos por SISTEMA' : 'Proyectos activos por ÁREA/GRUPO';
+  const nextChartLabel = chartMode === 'system'
+    ? 'Ver proyectos activos por área/grupo'
+    : 'Ver proyectos activos por sistema';
+  const sorted = [...chartRows].sort((a, b) => b.active - a.active || a.name.localeCompare(b.name, 'es'));
   const max = Math.max(0, ...sorted.map((item) => item.active));
 
   return (
     <>
       <div className='space-y-4'>
-        <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-3'>
+        <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-4'>
           <MetricCard
             label='Mi Grupo'
             slice={metrics.myGroup}
@@ -92,17 +131,37 @@ export function ErsMetrics({
             className='border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-200'
             onClick={() => navigate(`/ers?lifecycle=active&assignedMemberId=${user?.id ?? ''}`)}
           />
+          <MetricCard
+            label='Sin aprobar'
+            slice={metrics.unapproved}
+            icon={Inbox}
+            className='border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200'
+            onClick={() => navigate('/ers?lifecycle=active&approved=unapproved&assignedMemberId=')}
+          />
         </div>
 
         <div className='rounded-md border bg-card p-4'>
-          <p className='text-sm font-medium'>Indicadores</p>
-          <p className='mt-1 text-xs text-muted-foreground'>Proyectos activos por sede</p>
+          <div className='flex items-start justify-between gap-3'>
+            <div>
+              <p className='text-sm font-medium'>{chartTitle}</p>
+            </div>
+            <Button
+              type='button'
+              variant='ghost'
+              size='icon'
+              aria-label={nextChartLabel}
+              title={nextChartLabel}
+              onClick={() => setChartMode((value) => (value === 'system' ? 'area' : 'system'))}
+            >
+              <ArrowRightLeft className='h-4 w-4' aria-hidden='true' />
+            </Button>
+          </div>
           {sorted.length ? (
             <ul className='scrollbar-brand mt-4 max-h-96 space-y-3 overflow-y-auto pr-2'>
-              {sorted.map((item) => {
+              {sorted.map((item, index) => {
                 const width = max > 0 ? Math.round((item.active / max) * 100) : 0;
                 return (
-                  <li key={item.locationId ?? 'without-location'}>
+                  <li key={`${chartMode}-${item.name}`}>
                     <div className='mb-1 flex items-center justify-between gap-2 text-sm'>
                       <span className='truncate font-medium'>{item.name}</span>
                       <span className='tabular-nums text-muted-foreground'>{item.active}</span>
@@ -110,7 +169,7 @@ export function ErsMetrics({
                     <div className='h-2 overflow-hidden rounded-full bg-muted'>
                       <div
                         className='h-full min-w-[2px] rounded-full'
-                        style={{ ...getSiteMetricBarStyle(item.name), width: `${width}%` }}
+                        style={{ background: getErsActiveBarBackground(index), width: `${width}%` }}
                       />
                     </div>
                   </li>

@@ -113,6 +113,7 @@ export interface ListarErsQuery {
   approverName?: string;
   projectStateId?: number;
   lifecycle?: 'active' | 'finished';
+  approved?: 'approved' | 'unapproved';
   locationId?: number;
   assignedMemberId?: number;
   sortBy?: ErsSortColumn;
@@ -132,11 +133,25 @@ export interface ErsActiveByLocationMetric {
   active: number;
 }
 
+export interface ErsActiveBySystemMetric {
+  projectTypeId: number | null;
+  name: string;
+  active: number;
+}
+
+export interface ErsActiveByAreaMetric {
+  name: string;
+  active: number;
+}
+
 export interface ErsMetricsResponse {
   myGroup: ErsMetricSlice;
   mySite: ErsMetricSlice | null;
   myProjects: ErsMetricSlice;
+  unapproved: ErsMetricSlice;
   activeByLocation: ErsActiveByLocationMetric[];
+  activeBySystem: ErsActiveBySystemMetric[];
+  activeByArea: ErsActiveByAreaMetric[];
 }
 
 export interface ErsEligibleTicket {

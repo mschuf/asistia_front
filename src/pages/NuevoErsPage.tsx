@@ -18,11 +18,12 @@ import {
 } from "@/api/ers";
 import { ApiError } from "@/api/apiClient";
 import { ErsCreateDataPanel } from "@/components/ers/ErsCreateDataPanel";
-import { ErsEditSidebar, type ErsEditSection } from "@/components/ers/ErsEditSidebar";
+import { ERS_EDIT_SECTIONS, ErsEditSidebar, type ErsEditSection } from "@/components/ers/ErsEditSidebar";
 import { ErsProjectManagementPanel } from "@/components/ers/ErsProjectManagementPanel";
 import { ErsDocumentsPanel } from "@/components/ers/ErsDocumentsPanel";
 import { ErsTasksPanel } from "@/components/ers/ErsTasksPanel";
 import { ErsUnapprovedTasksConfirmDialog } from "@/components/ers/ErsUnapprovedTasksConfirmDialog";
+import { ErsUnapprovedTasksNoticeDialog } from "@/components/ers/ErsUnapprovedTasksNoticeDialog";
 import { WorkspaceHeader } from "@/components/layout/WorkspaceHeader";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -106,6 +107,7 @@ export default function NuevoErsPage() {
   const [teamSearch, setTeamSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const [unapprovedTasksDialogOpen, setUnapprovedTasksDialogOpen] = useState(false);
+  const [unapprovedTasksNoticeOpen, setUnapprovedTasksNoticeOpen] = useState(false);
   const [documents, setDocuments] = useState<File[]>([]);
 
   useEffect(() => {
@@ -283,12 +285,31 @@ export default function NuevoErsPage() {
   }, [form.teamMemberIds, teamTechnicians]);
 
   const setSection = (nextSection: ErsEditSection) => {
-    if (nextSection === "tareas" && !form.approved) return;
     const next = new URLSearchParams(searchParams);
     next.delete("id");
     next.delete("ticketId");
     next.set("seccion", nextSection === "escalador" ? "datos_iniciales" : nextSection);
     setSearchParams(next, { replace: true });
+  };
+
+  useEffect(() => {
+    if (section === "tareas" && !form.approved) {
+      setUnapprovedTasksNoticeOpen(true);
+    }
+  }, [form.approved, section]);
+
+  const isFinalSection = section === "documentos";
+
+  const handleNextSection = () => {
+    const currentIndex = ERS_EDIT_SECTIONS.findIndex((option) => option.id === section);
+    const nextSection = ERS_EDIT_SECTIONS[currentIndex + 1]?.id;
+    if (nextSection) setSection(nextSection);
+  };
+
+  const handlePreviousSection = () => {
+    const currentIndex = ERS_EDIT_SECTIONS.findIndex((option) => option.id === section);
+    const previousSection = ERS_EDIT_SECTIONS[currentIndex - 1]?.id;
+    if (previousSection) setSection(previousSection);
   };
 
   const clearLocationAssignments = (nextLocationId: string) => {
@@ -429,21 +450,9 @@ export default function NuevoErsPage() {
   return (
     <div className="space-y-4">
       <WorkspaceHeader />
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs text-muted-foreground">IRS / ERS</p>
+      <div className="flex flex-wrap items-baseline gap-2">
+        <p className="text-xs text-muted-foreground">IRS / ERS</p>
           <h1 className="text-lg font-semibold">Nuevo ERS</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button type="button" variant="outline" onClick={() => navigate("/ers")}>Volver</Button>
-          <Button
-            type="button"
-            onClick={() => void handleSave()}
-            disabled={saving || loadingRequestTypes || requestTypesUnavailable}
-          >
-            {saving ? "Guardando..." : "Guardar"}
-          </Button>
-        </div>
       </div>
 
       <div className="rounded-md border bg-card p-2 md:hidden">
@@ -453,10 +462,8 @@ export default function NuevoErsPage() {
               key={option.id}
               type="button"
               onClick={() => setSection(option.id)}
-              disabled={option.id === "tareas" && !form.approved}
               className={cn(
                 "rounded-md px-2 py-2 text-xs font-medium transition-colors",
-                option.id === "tareas" && !form.approved && "cursor-not-allowed opacity-50",
                 section === option.id
                   ? "bg-muted text-foreground"
                   : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
@@ -470,7 +477,7 @@ export default function NuevoErsPage() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[240px_minmax(0,1fr)]">
         <div className="hidden md:block">
-          <ErsEditSidebar activeSection={section} onChange={setSection} tasksCount={form.tasks.length} tasksEnabled={form.approved} documentsCount={documents.length} />
+          <ErsEditSidebar activeSection={section} onChange={setSection} tasksCount={form.tasks.length} documentsCount={documents.length} />
         </div>
         <div className="min-w-0">
           {section === "escalador" ? (
@@ -513,7 +520,6 @@ export default function NuevoErsPage() {
               states={states}
               technicians={teamTechnicians}
               assigneeOptions={taskAssigneeOptions}
-              approved={form.approved}
             />
           ) : null}
           {section === "documentos" ? (
@@ -521,11 +527,32 @@ export default function NuevoErsPage() {
           ) : null}
         </div>
       </div>
+      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handlePreviousSection}
+          disabled={section === "escalador"}
+        >
+          Anterior
+        </Button>
+        <Button
+          type="button"
+          onClick={isFinalSection ? () => void handleSave() : handleNextSection}
+          disabled={isFinalSection && (saving || loadingRequestTypes || requestTypesUnavailable)}
+        >
+          {isFinalSection ? (saving ? "Guardando..." : "Guardar") : "Siguiente"}
+        </Button>
+      </div>
       <ErsUnapprovedTasksConfirmDialog
         open={unapprovedTasksDialogOpen}
         saving={saving}
         onOpenChange={setUnapprovedTasksDialogOpen}
         onConfirm={() => void handleSave(true)}
+      />
+      <ErsUnapprovedTasksNoticeDialog
+        open={unapprovedTasksNoticeOpen}
+        onOpenChange={setUnapprovedTasksNoticeOpen}
       />
     </div>
   );

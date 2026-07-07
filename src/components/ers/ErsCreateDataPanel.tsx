@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file ErsCreateDataPanel.tsx
  * @description Datos iniciales para crear un ERS sin ticket previo.
  */
@@ -156,7 +156,7 @@ export function ErsCreateDataPanel({
       <label className="flex flex-col gap-1 text-sm">
         <span className="text-muted-foreground">Objetivo</span>
         <Textarea
-          className="min-h-[4.8rem]"
+          className="min-h-[3.75rem]"
           placeholder="¿Qué problema quieres solucionar?"
           value={form.objective}
           onChange={(event) => onChange({ ...form, objective: event.target.value })}
@@ -174,7 +174,7 @@ export function ErsCreateDataPanel({
       <label className="flex flex-col gap-1 text-sm">
         <span className="text-muted-foreground">Medición de impacto</span>
         <Textarea
-          className="min-h-[4.8rem]"
+          className="min-h-[3.75rem]"
           placeholder="¿Como medirías operativamente luego de implementar?"
           value={form.impact}
           onChange={(event) => onChange({ ...form, impact: event.target.value })}

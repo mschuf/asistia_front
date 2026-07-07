@@ -15,6 +15,7 @@ export interface ErsFilterState {
   approverName: string;
   projectStateId: string;
   lifecycle: '' | 'active' | 'finished';
+  approved: '' | 'approved' | 'unapproved';
   locationId: string;
   assignedMemberId: string;
 }

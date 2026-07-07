@@ -19,6 +19,7 @@ const AssistantPage = lazy(() => import("./pages/AssistantPage"));
 const EmpresasPage = lazy(() => import("./pages/EmpresasPage"));
 const PromptsPage = lazy(() => import("./pages/PromptsPage"));
 const TicketCreatedReportPage = lazy(() => import("./pages/TicketCreatedReportPage"));
+const TicketsCloseBulkPage = lazy(() => import("./pages/TicketsCloseBulkPage"));
 const ErsPage = lazy(() => import("./pages/ErsPage"));
 const ErsIndicatorsPage = lazy(() => import("./pages/ErsIndicatorsPage"));
 const NuevoErsPage = lazy(() => import("./pages/NuevoErsPage"));
@@ -136,6 +137,14 @@ export default function App() {
             element={
               <SuperAdminRoute>
                 <TicketCreatedReportPage />
+              </SuperAdminRoute>
+            }
+          />
+          <Route
+            path="admin/cierre-tickets"
+            element={
+              <SuperAdminRoute>
+                <TicketsCloseBulkPage />
               </SuperAdminRoute>
             }
           />

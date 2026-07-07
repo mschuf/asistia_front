@@ -17,11 +17,12 @@ import {
   type ErsTechnician,
 } from "@/api/ers";
 import { ErsDocumentsPanel } from "@/components/ers/ErsDocumentsPanel";
-import { ErsEditSidebar, type ErsEditSection } from "@/components/ers/ErsEditSidebar";
+import { ERS_EDIT_SECTIONS, ErsEditSidebar, type ErsEditSection } from "@/components/ers/ErsEditSidebar";
 import { ErsEscalationDataPanel } from "@/components/ers/ErsEscalationDataPanel";
 import { ErsProjectManagementPanel } from "@/components/ers/ErsProjectManagementPanel";
 import { ErsTasksPanel } from "@/components/ers/ErsTasksPanel";
 import { ErsUnapprovedTasksConfirmDialog } from "@/components/ers/ErsUnapprovedTasksConfirmDialog";
+import { ErsUnapprovedTasksNoticeDialog } from "@/components/ers/ErsUnapprovedTasksNoticeDialog";
 import { WorkspaceHeader } from "@/components/layout/WorkspaceHeader";
 import { TicketDetailModal } from "@/components/tickets/TicketDetailModal";
 import { Button } from "@/components/ui/button";
@@ -107,6 +108,7 @@ export default function EscalarTicketErsPage() {
   const [requestTypesUnavailable, setRequestTypesUnavailable] = useState(false);
   const [saving, setSaving] = useState(false);
   const [unapprovedTasksDialogOpen, setUnapprovedTasksDialogOpen] = useState(false);
+  const [unapprovedTasksNoticeOpen, setUnapprovedTasksNoticeOpen] = useState(false);
   const [ticketDetailOpen, setTicketDetailOpen] = useState(false);
   const [error, setError] = useState("");
 
@@ -267,10 +269,29 @@ export default function EscalarTicketErsPage() {
   );
 
   const setSection = (nextSection: ErsEditSection) => {
-    if (nextSection === "tareas" && !form.approved) return;
     const next = new URLSearchParams(searchParams);
     next.set("seccion", nextSection === "escalador" ? "datos_iniciales" : nextSection);
     setSearchParams(next, { replace: true });
+  };
+
+  useEffect(() => {
+    if (section === "tareas" && !form.approved) {
+      setUnapprovedTasksNoticeOpen(true);
+    }
+  }, [form.approved, section]);
+
+  const isFinalSection = section === "documentos";
+
+  const handleNextSection = () => {
+    const currentIndex = ERS_EDIT_SECTIONS.findIndex((option) => option.id === section);
+    const nextSection = ERS_EDIT_SECTIONS[currentIndex + 1]?.id;
+    if (nextSection) setSection(nextSection);
+  };
+
+  const handlePreviousSection = () => {
+    const currentIndex = ERS_EDIT_SECTIONS.findIndex((option) => option.id === section);
+    const previousSection = ERS_EDIT_SECTIONS[currentIndex - 1]?.id;
+    if (previousSection) setSection(previousSection);
   };
 
   const handleSave = async (discardUnapprovedTasks = false) => {
@@ -373,12 +394,6 @@ export default function EscalarTicketErsPage() {
           <p className="text-xs text-muted-foreground">IRS / ERS</p>
           <h1 className="text-lg font-semibold">Escalar ticket #{numericTicketId}</h1>
         </div>
-        <div className="flex items-center gap-2">
-          <Button type="button" variant="outline" onClick={() => navigate("/irs?tab=historial")}>Volver</Button>
-          <Button type="button" onClick={() => void handleSave()} disabled={saving || loadingTicket || !!error || loadingRequestTypes || requestTypesUnavailable}>
-            {saving ? "Escalando..." : "Escalar"}
-          </Button>
-        </div>
       </div>
 
       {loadingTicket ? (
@@ -397,10 +412,8 @@ export default function EscalarTicketErsPage() {
                   key={option.id}
                   type="button"
                   onClick={() => setSection(option.id)}
-                  disabled={option.id === "tareas" && !form.approved}
                   className={cn(
                     "rounded-md px-2 py-2 text-xs font-medium transition-colors",
-                    option.id === "tareas" && !form.approved && "cursor-not-allowed opacity-50",
                     section === option.id ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                   )}
                 >
@@ -412,7 +425,7 @@ export default function EscalarTicketErsPage() {
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[240px_minmax(0,1fr)]">
             <div className="hidden md:block">
-              <ErsEditSidebar activeSection={section} onChange={setSection} tasksCount={form.tasks.length} tasksEnabled={form.approved} documentsCount={documents.length} />
+              <ErsEditSidebar activeSection={section} onChange={setSection} tasksCount={form.tasks.length} documentsCount={documents.length} />
             </div>
             <div className="min-w-0">
               {section === "escalador" ? (
@@ -447,7 +460,7 @@ export default function EscalarTicketErsPage() {
                 />
               ) : null}
               {section === "tareas" ? (
-                <ErsTasksPanel form={form} onChange={setForm} states={states} technicians={teamTechnicians} assigneeOptions={taskAssigneeOptions} approved={form.approved} />
+                <ErsTasksPanel form={form} onChange={setForm} states={states} technicians={teamTechnicians} assigneeOptions={taskAssigneeOptions} />
               ) : null}
               {section === "documentos" ? (
                 <ErsDocumentsPanel files={documents} onFilesChange={setDocuments} />
@@ -457,11 +470,35 @@ export default function EscalarTicketErsPage() {
         </>
       ) : null}
 
+      {!loadingTicket && !error && ticket ? (
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handlePreviousSection}
+            disabled={section === "escalador"}
+          >
+            Anterior
+          </Button>
+          <Button
+            type="button"
+            onClick={isFinalSection ? () => void handleSave() : handleNextSection}
+            disabled={isFinalSection && (saving || loadingTicket || !!error || loadingRequestTypes || requestTypesUnavailable)}
+          >
+            {isFinalSection ? (saving ? "Guardando..." : "Guardar") : "Siguiente"}
+          </Button>
+        </div>
+      ) : null}
+
       <ErsUnapprovedTasksConfirmDialog
         open={unapprovedTasksDialogOpen}
         saving={saving}
         onOpenChange={setUnapprovedTasksDialogOpen}
         onConfirm={() => void handleSave(true)}
+      />
+      <ErsUnapprovedTasksNoticeDialog
+        open={unapprovedTasksNoticeOpen}
+        onOpenChange={setUnapprovedTasksNoticeOpen}
       />
       <TicketDetailModal
         ticket={ticket}

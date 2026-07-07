@@ -38,6 +38,11 @@ function createInitialFilters(
           : hasLifecycleParam
             ? ""
             : "active",
+    approved: searchParams?.get("approved") === "approved"
+      ? "approved"
+      : searchParams?.get("approved") === "unapproved"
+        ? "unapproved"
+        : "",
     locationId: searchParams?.get("locationId") ?? "",
     assignedMemberId: hasAssignedMemberParam
       ? searchParams?.get("assignedMemberId") ?? ""
@@ -65,6 +70,7 @@ function toListParams(
     approverName: filters.approverName || undefined,
     projectStateId: filters.projectStateId ? Number(filters.projectStateId) : undefined,
     lifecycle: filters.lifecycle || undefined,
+    approved: filters.approved || undefined,
     locationId: filters.locationId ? Number(filters.locationId) : undefined,
     assignedMemberId: filters.assignedMemberId ? Number(filters.assignedMemberId) : undefined,
     sortBy: sort?.column,

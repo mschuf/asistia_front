@@ -17,12 +17,13 @@ import {
   type ErsTechnician,
 } from "@/api/ers";
 import { ApiError } from "@/api/apiClient";
-import { ErsEditSidebar, type ErsEditSection } from "@/components/ers/ErsEditSidebar";
+import { ERS_EDIT_SECTIONS, ErsEditSidebar, type ErsEditSection } from "@/components/ers/ErsEditSidebar";
 import { ErsEscalationDataPanel } from "@/components/ers/ErsEscalationDataPanel";
 import { ErsProjectManagementPanel } from "@/components/ers/ErsProjectManagementPanel";
 import { ErsDocumentsPanel } from "@/components/ers/ErsDocumentsPanel";
 import { ErsTasksPanel } from "@/components/ers/ErsTasksPanel";
 import { ErsUnapprovedTasksConfirmDialog } from "@/components/ers/ErsUnapprovedTasksConfirmDialog";
+import { ErsUnapprovedTasksNoticeDialog } from "@/components/ers/ErsUnapprovedTasksNoticeDialog";
 import { WorkspaceHeader } from "@/components/layout/WorkspaceHeader";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -117,6 +118,7 @@ export default function ErsEditPage() {
   const [loadingTeamTechnicians, setLoadingTeamTechnicians] = useState(false);
   const [saving, setSaving] = useState(false);
   const [unapprovedTasksDialogOpen, setUnapprovedTasksDialogOpen] = useState(false);
+  const [unapprovedTasksNoticeOpen, setUnapprovedTasksNoticeOpen] = useState(false);
   const [documents, setDocuments] = useState<File[]>([]);
   const [documentsCount, setDocumentsCount] = useState(0);
   const [technicians, setTechnicians] = useState<ErsTechnician[]>([]);
@@ -303,10 +305,29 @@ export default function ErsEditPage() {
   );
 
   const setSection = (nextSection: ErsEditSection) => {
-    if (nextSection === "tareas" && !form.approved) return;
     const nextParams = new URLSearchParams(searchParams);
     nextParams.set("seccion", nextSection);
     setSearchParams(nextParams, { replace: true });
+  };
+
+  useEffect(() => {
+    if (section === "tareas" && !form.approved) {
+      setUnapprovedTasksNoticeOpen(true);
+    }
+  }, [form.approved, section]);
+
+  const isFinalSection = section === "documentos";
+
+  const handleNextSection = () => {
+    const currentIndex = ERS_EDIT_SECTIONS.findIndex((option) => option.id === section);
+    const nextSection = ERS_EDIT_SECTIONS[currentIndex + 1]?.id;
+    if (nextSection) setSection(nextSection);
+  };
+
+  const handlePreviousSection = () => {
+    const currentIndex = ERS_EDIT_SECTIONS.findIndex((option) => option.id === section);
+    const previousSection = ERS_EDIT_SECTIONS[currentIndex - 1]?.id;
+    if (previousSection) setSection(previousSection);
   };
 
   const reloadDetail = async () => {
@@ -418,33 +439,19 @@ export default function ErsEditPage() {
             Editar ERS #{detail.projectId} - {detail.projectName}
           </h1>
         </div>
-        <div className="flex items-center gap-2">
-          <Button type="button" variant="outline" onClick={() => navigate("/ers")}>
-            Volver
-          </Button>
-          <Button
-            type="button"
-            onClick={() => void handleSave()}
-            disabled={saving || loadingRequestTypes || requestTypesUnavailable}
-          >
-            {saving ? "Guardando..." : "Guardar"}
-          </Button>
-        </div>
       </div>
 
       <div className="rounded-md border bg-card p-2 md:hidden">
         <div className="grid grid-cols-4 gap-2">
           {SECTION_OPTIONS.map((option) => (
             <button
-              key={option.id}
-              type="button"
-              onClick={() => setSection(option.id)}
-              disabled={option.id === "tareas" && !form.approved}
-              className={cn(
-                "rounded-md px-2 py-2 text-xs font-medium transition-colors",
-                option.id === "tareas" && !form.approved && "cursor-not-allowed opacity-50",
-                section === option.id
-                  ? "bg-muted text-foreground"
+            key={option.id}
+            type="button"
+            onClick={() => setSection(option.id)}
+            className={cn(
+              "rounded-md px-2 py-2 text-xs font-medium transition-colors",
+              section === option.id
+                ? "bg-muted text-foreground"
                   : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
               )}
             >
@@ -460,7 +467,6 @@ export default function ErsEditPage() {
             activeSection={section}
             onChange={setSection}
             tasksCount={form.tasks.length}
-            tasksEnabled={form.approved}
             documentsCount={documentsCount}
           />
         </div>
@@ -504,7 +510,6 @@ export default function ErsEditPage() {
               states={states}
               technicians={teamTechnicians}
               assigneeOptions={taskAssigneeOptions}
-              approved={form.approved}
             />
           ) : null}
           {section === "documentos" ? (
@@ -517,11 +522,32 @@ export default function ErsEditPage() {
           ) : null}
         </div>
       </div>
+      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handlePreviousSection}
+          disabled={section === "escalador"}
+        >
+          Anterior
+        </Button>
+        <Button
+          type="button"
+          onClick={isFinalSection ? () => void handleSave() : handleNextSection}
+          disabled={isFinalSection && (saving || loadingRequestTypes || requestTypesUnavailable)}
+        >
+          {isFinalSection ? (saving ? "Guardando..." : "Guardar") : "Siguiente"}
+        </Button>
+      </div>
       <ErsUnapprovedTasksConfirmDialog
         open={unapprovedTasksDialogOpen}
         saving={saving}
         onOpenChange={setUnapprovedTasksDialogOpen}
         onConfirm={() => void handleSave(true)}
+      />
+      <ErsUnapprovedTasksNoticeDialog
+        open={unapprovedTasksNoticeOpen}
+        onOpenChange={setUnapprovedTasksNoticeOpen}
       />
     </div>
   );
