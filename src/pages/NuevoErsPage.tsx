@@ -2,10 +2,11 @@
  * @file NuevoErsPage.tsx
  * @description Alta completa y atómica de ticket técnico y proyecto ERS.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import {
   crearErs,
+  isExecutionOrderConflict,
   listarEstadosProyecto,
   listarTiposProyecto,
   listarTiposRequerimiento,
@@ -22,6 +23,7 @@ import { ERS_EDIT_SECTIONS, ErsEditSidebar, type ErsEditSection } from "@/compon
 import { ErsProjectManagementPanel } from "@/components/ers/ErsProjectManagementPanel";
 import { ErsDocumentsPanel } from "@/components/ers/ErsDocumentsPanel";
 import { ErsTasksPanel } from "@/components/ers/ErsTasksPanel";
+import type { ErsTasksEditorHandle } from "@/components/ers/ErsTasksEditor";
 import { ErsUnapprovedTasksConfirmDialog } from "@/components/ers/ErsUnapprovedTasksConfirmDialog";
 import { ErsUnapprovedTasksNoticeDialog } from "@/components/ers/ErsUnapprovedTasksNoticeDialog";
 import { WorkspaceHeader } from "@/components/layout/WorkspaceHeader";
@@ -35,7 +37,7 @@ import {
 import { toIsoDate } from "@/lib/ers";
 import { resolveTaskAssigneeOptions } from "@/lib/ers-task-assignees";
 import { cn } from "@/lib/utils";
-import type { ErsEditState } from "@/types/pages/ers-page.types";
+import type { ErsEditState, ErsFieldErrors, ErsFocusSignal } from "@/types/pages/ers-page.types";
 import { uploadErsDocument } from "@/services/ersDocumentsService";
 
 const EMPTY_FORM: ErsEditState = {
@@ -45,6 +47,7 @@ const EMPTY_FORM: ErsEditState = {
   impact: "",
   requestType: "",
   priority: 3,
+  executionOrder: "",
   approved: false,
   approverId: "",
   projectStateId: "",
@@ -109,6 +112,14 @@ export default function NuevoErsPage() {
   const [unapprovedTasksDialogOpen, setUnapprovedTasksDialogOpen] = useState(false);
   const [unapprovedTasksNoticeOpen, setUnapprovedTasksNoticeOpen] = useState(false);
   const [documents, setDocuments] = useState<File[]>([]);
+  const [fieldErrors, setFieldErrors] = useState<ErsFieldErrors>({});
+  const [focusSignal, setFocusSignal] = useState<ErsFocusSignal | null>(null);
+  const tasksEditorRef = useRef<ErsTasksEditorHandle>(null);
+
+  const failField = (field: keyof ErsFieldErrors, message: string) => {
+    setFieldErrors((prev) => ({ ...prev, [field]: message }));
+    setFocusSignal({ field, nonce: Date.now() });
+  };
 
   useEffect(() => {
     if (!searchParams.has("id") && !searchParams.has("ticketId")) return;
@@ -342,31 +353,37 @@ export default function NuevoErsPage() {
     if (!requester) {
       toast.error("Selecciona un solicitante.", "ERS");
       setSection("escalador");
+      failField("requester", "Selecciona un solicitante.");
       return;
     }
     if (!locationId) {
       toast.error("Selecciona una sede.", "ERS");
       setSection("escalador");
+      failField("location", "Selecciona una sede.");
       return;
     }
     if (form.projectName.trim().length < 3 || form.projectName.trim().length > 200) {
       toast.error("El nombre del proyecto debe tener entre 3 y 200 caracteres.", "ERS");
       setSection("escalador");
+      failField("projectName", "El nombre del proyecto debe tener entre 3 y 200 caracteres.");
       return;
     }
     if (!form.objective.trim()) {
       toast.error("El objetivo es obligatorio.", "ERS");
       setSection("escalador");
+      failField("objective", "El objetivo es obligatorio.");
       return;
     }
     if (!form.description.trim()) {
       toast.error("La descripción es obligatoria.", "ERS");
       setSection("escalador");
+      failField("description", "La descripción es obligatoria.");
       return;
     }
     if (!form.requestType || !requestTypes.includes(form.requestType)) {
       toast.error("Selecciona un tipo de requerimiento válido.", "ERS");
       setSection("gestion");
+      failField("requestType", "Selecciona un tipo de requerimiento válido.");
       return;
     }
     const hasInvalidTask = form.approved && form.tasks.some(
@@ -381,6 +398,7 @@ export default function NuevoErsPage() {
     if (hasInvalidTask) {
       toast.error("Completa todos los campos obligatorios de las tareas.", "ERS");
       setSection("tareas");
+      tasksEditorRef.current?.focusFirstInvalidTask();
       return;
     }
     if (!form.approved && form.tasks.length > 0 && !discardUnapprovedTasks) {
@@ -398,6 +416,7 @@ export default function NuevoErsPage() {
       const created = await crearErs({
         requestType: form.requestType,
         priority: form.priority,
+        executionOrder: form.executionOrder ? Number(form.executionOrder) : undefined,
         approved: form.approved,
         requesterId: requester.id,
         locationId: Number(locationId),
@@ -440,6 +459,10 @@ export default function NuevoErsPage() {
         error instanceof ApiError ? error.message : "No se pudo crear el proyecto ERS.",
         "ERS",
       );
+      if (isExecutionOrderConflict(error)) {
+        setSection("gestion");
+        failField("executionOrder", error instanceof ApiError ? error.message : "");
+      }
     } finally {
       setSaving(false);
     }
@@ -492,6 +515,8 @@ export default function NuevoErsPage() {
               onRequesterChange={handleRequesterChange}
               onLocationChange={clearLocationAssignments}
               onChange={setForm}
+              errors={fieldErrors}
+              focusSignal={focusSignal}
             />
           ) : null}
           {section === "gestion" ? (
@@ -511,10 +536,14 @@ export default function NuevoErsPage() {
               progressFromTasks={progressFromTasks}
               teamSearch={teamSearch}
               onTeamSearchChange={setTeamSearch}
+              executionOrderContext={{ locationId: locationId ? Number(locationId) : undefined }}
+              errors={fieldErrors}
+              focusSignal={focusSignal}
             />
           ) : null}
           {section === "tareas" ? (
             <ErsTasksPanel
+              ref={tasksEditorRef}
               form={form}
               onChange={setForm}
               states={states}

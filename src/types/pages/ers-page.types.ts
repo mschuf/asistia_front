@@ -52,6 +52,7 @@ export interface ErsEditState {
   impact: string;
   requestType: string;
   priority: number;
+  executionOrder: string;
   approved: boolean;
   approverId: string;
   projectStateId: string;
@@ -68,5 +69,24 @@ export interface ErsEditState {
     planStartDate: string;
     planEndDate: string;
   }>;
+}
+
+/** Campos obligatorios (o con foco especial) de las secciones "Datos iniciales" y "Gestión" del ERS. */
+export type ErsFocusField =
+  | "requester"
+  | "location"
+  | "projectName"
+  | "objective"
+  | "description"
+  | "requestType"
+  | "executionOrder";
+
+/** Mensajes de error por campo, para mostrar borde rojo mientras el campo está inválido. */
+export type ErsFieldErrors = Partial<Record<ErsFocusField, string>>;
+
+/** Señal de foco: cambia de referencia en cada intento de guardado fallido para disparar el `useEffect` del panel correspondiente. */
+export interface ErsFocusSignal {
+  field: ErsFocusField;
+  nonce: number;
 }
 

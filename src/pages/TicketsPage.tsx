@@ -34,6 +34,8 @@ import { useTiMetrics } from "@/hooks/useTiMetrics";
 import { useTickets } from "@/hooks/useTickets";
 
 import {
+  buildAssigneeHistorialFilters,
+  buildLocationHistorialFilters,
   buildSiteHistorialFilters,
   buildStatusHistorialFilters,
   buildMyGroupHistorialFilters,
@@ -252,6 +254,16 @@ export default function TicketsPage() {
           }
           onRefresh={() => void refreshMetrics()}
           showOpenBySiteChart={isTechnician}
+          onGoToHistorialForLocation={
+            isTechnician
+              ? (locationId) => goToHistorialWithFilters(buildLocationHistorialFilters(locationId))
+              : undefined
+          }
+          onGoToHistorialForAssignee={
+            isTechnician
+              ? (technicianId) => goToHistorialWithFilters(buildAssigneeHistorialFilters(technicianId))
+              : undefined
+          }
         />
       ) : null}
 

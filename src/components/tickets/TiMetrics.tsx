@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { Archive, Building2, CheckCircle2, History, Inbox, Ticket, Users } from "lucide-react";
 import { MobileRefreshFab } from "@/components/layout/MobileRefreshFab";
 import { Loading } from "@/components/ui/loading";
-import { TiOpenBySiteChart } from "@/components/tickets/TiOpenBySiteChart";
+import { TiTicketsChartCard } from "@/components/tickets/TiTicketsChartCard";
 import type { TiMetricsResponse, TicketMetricSlice, MyTicketsMetricSlice } from "@/types/asistia";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +24,8 @@ interface TiMetricsProps {
   onRefresh?: () => void;
   showOpenBySiteChart?: boolean;
   openBySiteChartDescription?: string;
+  onGoToHistorialForLocation?: (locationId: number) => void;
+  onGoToHistorialForAssignee?: (technicianId: number) => void;
 }
 
 /** @param props - Slice de métrica con porcentaje del mes. @returns Subtítulo con % y conteos. */
@@ -134,6 +136,8 @@ export function TiMetrics({
   onRefresh,
   showOpenBySiteChart = true,
   openBySiteChartDescription,
+  onGoToHistorialForLocation,
+  onGoToHistorialForAssignee,
 }: TiMetricsProps) {
   if (loading && !metrics) {
     return (
@@ -247,9 +251,12 @@ export function TiMetrics({
       </div>
 
       {showOpenBySiteChart ? (
-        <TiOpenBySiteChart
-          data={metrics.openByLocation}
+        <TiTicketsChartCard
+          openByLocation={metrics.openByLocation}
+          openByAssignee={metrics.openByAssignee}
           description={openBySiteChartDescription}
+          onSelectLocation={onGoToHistorialForLocation}
+          onSelectAssignee={onGoToHistorialForAssignee}
         />
       ) : null}
 

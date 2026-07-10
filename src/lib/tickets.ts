@@ -488,6 +488,38 @@ export function buildMyGroupHistorialFilters(): TicketFilterState {
   };
 }
 
+/** @param locationId - ID de sede. @returns Preset de historial filtrado por esa sede. */
+export function buildLocationHistorialFilters(locationId: number): TicketFilterState {
+  return {
+    search: "",
+    status: "",
+    type: "",
+    assignedToId: "",
+    requesterId: "",
+    locationId: String(locationId),
+    createdFrom: "",
+    createdTo: "",
+    involvingMe: false,
+    statusesPreset: [...OPEN_STATUSES],
+  };
+}
+
+/** @param technicianId - ID del técnico asignado. @returns Preset de historial filtrado por ese técnico. */
+export function buildAssigneeHistorialFilters(technicianId: number): TicketFilterState {
+  return {
+    search: "",
+    status: "",
+    type: "",
+    assignedToId: String(technicianId),
+    requesterId: "",
+    locationId: "",
+    createdFrom: "",
+    createdTo: "",
+    involvingMe: false,
+    statusesPreset: [...OPEN_STATUSES],
+  };
+}
+
 /** @returns Preset de tickets abiertos asignados al usuario de servicio asistIA. */
 export function buildUnassignedHistorialFilters(): TicketFilterState {
   return {

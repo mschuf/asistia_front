@@ -20,7 +20,15 @@ import {
 } from "@/lib/ers-project-state";
 import { cn } from "@/lib/utils";
 import type { ErsEditState } from "@/types/pages/ers-page.types";
-import { useMemo, useRef, useState, type RefObject } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 
 type TaskDraft = ErsEditState["tasks"][number];
 
@@ -46,6 +54,12 @@ interface ErsTasksEditorProps {
   technicians: ErsTechnician[];
   assigneeOptions: ErsTechnician[];
   onChange: (tasks: ErsEditState["tasks"]) => void;
+}
+
+/** API imperativa para que la página dispare el foco en la primera tarea inválida. */
+export interface ErsTasksEditorHandle {
+  /** Abre el modal de la primera tarea con campos obligatorios vacíos y enfoca el primero. @returns `true` si encontró una tarea inválida. */
+  focusFirstInvalidTask: () => boolean;
 }
 
 function emptyTask(): TaskDraft {
@@ -79,13 +93,10 @@ function resolveTaskLabel(task: TaskDraft, index: number): string {
 }
 
 /** Editor de tareas con botón "+" y carga local. */
-export function ErsTasksEditor({
-  tasks,
-  states,
-  technicians,
-  assigneeOptions,
-  onChange,
-}: ErsTasksEditorProps) {
+export const ErsTasksEditor = forwardRef<ErsTasksEditorHandle, ErsTasksEditorProps>(function ErsTasksEditor(
+  { tasks, states, technicians, assigneeOptions, onChange },
+  ref,
+) {
   const toast = useToast();
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -94,6 +105,7 @@ export function ErsTasksEditor({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [taskToDeleteIndex, setTaskToDeleteIndex] = useState<number | null>(null);
   const [taskErrors, setTaskErrors] = useState<TaskValidationErrors>({});
+  const pendingFocusFieldRef = useRef<TaskFieldKey | null>(null);
   const fieldRefs = {
     name: useRef<HTMLInputElement>(null),
     percentDone: useRef<HTMLInputElement>(null),
@@ -144,6 +156,38 @@ export function ErsTasksEditor({
     }
     (fieldRefs[field] as RefObject<HTMLElement>).current?.focus();
   };
+
+  useEffect(() => {
+    if (!taskModalOpen || !pendingFocusFieldRef.current) return;
+    const field = pendingFocusFieldRef.current;
+    pendingFocusFieldRef.current = null;
+    focusField(field);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskModalOpen]);
+
+  useImperativeHandle(ref, () => ({
+    focusFirstInvalidTask: () => {
+      const fieldOrder: TaskFieldKey[] = [
+        "name",
+        "percentDone",
+        "projectStateId",
+        "userId",
+        "planStartDate",
+        "planEndDate",
+        "content",
+      ];
+      for (let index = 0; index < tasks.length; index += 1) {
+        const validation = validateTaskDraft(tasks[index]);
+        if (validation.valid) continue;
+        const firstInvalidField = fieldOrder.find((field) => Boolean(validation.errors[field])) ?? null;
+        openEditModal(index);
+        setTaskErrors(validation.errors);
+        pendingFocusFieldRef.current = firstInvalidField;
+        return true;
+      }
+      return false;
+    },
+  }));
 
   const assigneeSelectOptions = useMemo(
     () =>
@@ -539,7 +583,7 @@ export function ErsTasksEditor({
       />
     </div>
   );
-}
+});
 
 function formatDateTime(value: string): string {
   const normalized = value.trim();

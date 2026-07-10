@@ -2,10 +2,11 @@
  * @file ErsEditPage.tsx
  * @description Pantalla de edición ERS con menú contextual en tres secciones.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   guardarErs,
+  isExecutionOrderConflict,
   listarEstadosProyecto,
   listarTiposProyecto,
   listarTiposRequerimiento,
@@ -22,6 +23,7 @@ import { ErsEscalationDataPanel } from "@/components/ers/ErsEscalationDataPanel"
 import { ErsProjectManagementPanel } from "@/components/ers/ErsProjectManagementPanel";
 import { ErsDocumentsPanel } from "@/components/ers/ErsDocumentsPanel";
 import { ErsTasksPanel } from "@/components/ers/ErsTasksPanel";
+import type { ErsTasksEditorHandle } from "@/components/ers/ErsTasksEditor";
 import { ErsUnapprovedTasksConfirmDialog } from "@/components/ers/ErsUnapprovedTasksConfirmDialog";
 import { ErsUnapprovedTasksNoticeDialog } from "@/components/ers/ErsUnapprovedTasksNoticeDialog";
 import { WorkspaceHeader } from "@/components/layout/WorkspaceHeader";
@@ -35,7 +37,7 @@ import {
 import { toDateTimeLocal, toIsoDate } from "@/lib/ers";
 import { resolveTaskAssigneeOptions } from "@/lib/ers-task-assignees";
 import { cn } from "@/lib/utils";
-import type { ErsEditState } from "@/types/pages/ers-page.types";
+import type { ErsEditState, ErsFieldErrors, ErsFocusSignal } from "@/types/pages/ers-page.types";
 import { listErsDocuments } from "@/services/ersDocumentsService";
 
 const EMPTY_FORM: ErsEditState = {
@@ -45,6 +47,7 @@ const EMPTY_FORM: ErsEditState = {
   impact: "",
   requestType: "",
   priority: 3,
+  executionOrder: "",
   approved: false,
   approverId: "",
   projectStateId: "",
@@ -73,6 +76,7 @@ function mapDetailToForm(detail: ErsDetail): ErsEditState {
     impact: detail.impact ?? "",
     requestType: detail.requestType ?? "",
     priority: detail.priority,
+    executionOrder: detail.executionOrder ? String(detail.executionOrder) : "",
     approved: detail.approved,
     approverId: detail.approverId ? String(detail.approverId) : "",
     projectStateId: detail.projectStateId ? String(detail.projectStateId) : "",
@@ -124,6 +128,14 @@ export default function ErsEditPage() {
   const [technicians, setTechnicians] = useState<ErsTechnician[]>([]);
   const [teamTechnicians, setTeamTechnicians] = useState<ErsTechnician[]>([]);
   const [teamSearch, setTeamSearch] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<ErsFieldErrors>({});
+  const [focusSignal, setFocusSignal] = useState<ErsFocusSignal | null>(null);
+  const tasksEditorRef = useRef<ErsTasksEditorHandle>(null);
+
+  const failField = (field: keyof ErsFieldErrors, message: string) => {
+    setFieldErrors((prev) => ({ ...prev, [field]: message }));
+    setFocusSignal({ field, nonce: Date.now() });
+  };
 
   useEffect(() => {
     if (!Number.isFinite(projectIdNumber) || projectIdNumber <= 0) {
@@ -347,21 +359,40 @@ export default function ErsEditPage() {
     if (form.projectName.trim().length < 3) {
       toast.error("El nombre del proyecto debe tener al menos 3 caracteres.", "ERS");
       setSection("escalador");
+      failField("projectName", "El nombre del proyecto debe tener al menos 3 caracteres.");
       return;
     }
     if (!form.objective.trim()) {
       toast.error("El objetivo es obligatorio.", "ERS");
       setSection("escalador");
+      failField("objective", "El objetivo es obligatorio.");
       return;
     }
     if (!form.description.trim()) {
       toast.error("La descripción es obligatoria.", "ERS");
       setSection("escalador");
+      failField("description", "La descripción es obligatoria.");
       return;
     }
     if (!form.requestType || !requestTypes.includes(form.requestType)) {
       toast.error("Selecciona un tipo de requerimiento válido.", "ERS");
       setSection("gestion");
+      failField("requestType", "Selecciona un tipo de requerimiento válido.");
+      return;
+    }
+    const hasInvalidTask = form.approved && form.tasks.some(
+      (task) =>
+        !task.name.trim() ||
+        !task.content.trim() ||
+        !task.projectStateId ||
+        !task.userId ||
+        !task.planStartDate ||
+        !task.planEndDate,
+    );
+    if (hasInvalidTask) {
+      toast.error("Completa todos los campos obligatorios de las tareas.", "ERS");
+      setSection("tareas");
+      tasksEditorRef.current?.focusFirstInvalidTask();
       return;
     }
     if (!form.approved && form.tasks.length > 0 && !discardUnapprovedTasks) {
@@ -380,6 +411,7 @@ export default function ErsEditPage() {
       await guardarErs(detail.projectId, {
         requestType: form.requestType,
         priority: form.priority,
+        executionOrder: form.executionOrder ? Number(form.executionOrder) : undefined,
         approved: form.approved,
         projectName: form.projectName.trim(),
         objective: form.objective.trim(),
@@ -405,6 +437,10 @@ export default function ErsEditPage() {
     } catch (error) {
       const message = error instanceof ApiError ? error.message : "No se pudo guardar el proyecto ERS.";
       toast.error(message, "ERS");
+      if (isExecutionOrderConflict(error)) {
+        setSection("gestion");
+        failField("executionOrder", message);
+      }
     } finally {
       setSaving(false);
     }
@@ -482,6 +518,8 @@ export default function ErsEditPage() {
               onChange={setForm}
               projectTypes={projectTypes}
               projectTypesDisabled={loadingProjectTypes || projectTypesUnavailable}
+              errors={fieldErrors}
+              focusSignal={focusSignal}
             />
           ) : null}
           {section === "gestion" ? (
@@ -501,10 +539,14 @@ export default function ErsEditPage() {
               progressFromTasks={progressFromTasks}
               teamSearch={teamSearch}
               onTeamSearchChange={setTeamSearch}
+              executionOrderContext={{ locationId: detail.locationId ?? undefined, excludeProjectId: detail.projectId }}
+              errors={fieldErrors}
+              focusSignal={focusSignal}
             />
           ) : null}
           {section === "tareas" ? (
             <ErsTasksPanel
+              ref={tasksEditorRef}
               form={form}
               onChange={setForm}
               states={states}

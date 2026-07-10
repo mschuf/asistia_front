@@ -182,6 +182,13 @@ export interface OpenByLocationMetric {
   open: number;
 }
 
+/** Conteo de tickets abiertos agrupados por técnico asignado. */
+export interface OpenByAssigneeMetric {
+  technicianId: number;
+  name: string;
+  open: number;
+}
+
 /** Conteo global de tickets abiertos pendientes de asignación humana. */
 export interface UnassignedMetric {
   open: number;
@@ -198,4 +205,5 @@ export interface TiMetricsResponse {
   mySolved: TicketMetricSlice;
   myClosed: TicketMetricSlice;
   openByLocation: OpenByLocationMetric[];
+  openByAssignee: OpenByAssigneeMetric[];
 }

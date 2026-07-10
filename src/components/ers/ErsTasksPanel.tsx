@@ -2,8 +2,9 @@
  * @file ErsTasksPanel.tsx
  * @description Sección de tareas del proyecto ERS con editor reutilizable.
  */
+import { forwardRef } from "react";
 import type { ErsProjectState, ErsTechnician } from "@/api/ers";
-import { ErsTasksEditor } from "@/components/ers/ErsTasksEditor";
+import { ErsTasksEditor, type ErsTasksEditorHandle } from "@/components/ers/ErsTasksEditor";
 import type { ErsEditState } from "@/types/pages/ers-page.types";
 
 interface ErsTasksPanelProps {
@@ -15,16 +16,14 @@ interface ErsTasksPanelProps {
 }
 
 /** Panel de edición de tareas con detalle completo por ítem. */
-export function ErsTasksPanel({
-  form,
-  onChange,
-  states,
-  technicians,
-  assigneeOptions,
-}: ErsTasksPanelProps) {
+export const ErsTasksPanel = forwardRef<ErsTasksEditorHandle, ErsTasksPanelProps>(function ErsTasksPanel(
+  { form, onChange, states, technicians, assigneeOptions },
+  ref,
+) {
   return (
     <div className="rounded-md border bg-card p-4 shadow-soft">
       <ErsTasksEditor
+        ref={ref}
         tasks={form.tasks}
         states={states}
         technicians={technicians}
@@ -33,4 +32,4 @@ export function ErsTasksPanel({
       />
     </div>
   );
-}
+});

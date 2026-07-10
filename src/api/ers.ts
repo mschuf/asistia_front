@@ -2,7 +2,7 @@
  * @file ers.ts
  * @description Cliente HTTP para ERS (ticket escalado a proyecto GLPI).
  */
-import { apiClient } from "./apiClient";
+import { apiClient, ApiError } from "./apiClient";
 
 interface ErsReadOptions {
   signal?: AbortSignal;
@@ -60,6 +60,7 @@ export interface ErsDetail {
   impact: string | null;
   requestType: string | null;
   priority: number;
+  executionOrder: number | null;
   approved: boolean;
   approverId: number | null;
   approverName: string | null;
@@ -189,6 +190,7 @@ export interface SaveErsTaskPayload {
 export interface SaveErsPayload {
   requestType: string;
   priority: number;
+  executionOrder?: number;
   approved: boolean;
   projectName?: string;
   objective?: string;
@@ -218,6 +220,26 @@ export interface ErsTechnician {
 export interface ErsProjectType {
   id: number;
   name: string;
+}
+
+export interface ErsExecutionOrderItem {
+  projectId: number;
+  projectName: string;
+  executionOrder: number;
+}
+
+export interface ErsExecutionOrderSuggestion {
+  items: ErsExecutionOrderItem[];
+  nextAvailable: number;
+}
+
+/** Mensaje estable emitido por el backend cuando el orden de ejecución ya está en uso en la sede. */
+export const EXECUTION_ORDER_CONFLICT_MESSAGE =
+  "Ya existe un proyecto con ese orden de ejecución en esta sede";
+
+/** Indica si un error de guardado ERS corresponde a un conflicto de orden de ejecución duplicado. */
+export function isExecutionOrderConflict(error: unknown): boolean {
+  return error instanceof ApiError && error.message === EXECUTION_ORDER_CONFLICT_MESSAGE;
 }
 
 export interface ErsTechnicianListResponse {
@@ -295,6 +317,14 @@ export async function listarEstadosProyecto(options?: ErsReadOptions): Promise<E
 /** Lista sistemas relacionados disponibles para proyectos ERS. */
 export async function listarTiposProyecto(options?: ErsReadOptions): Promise<ErsProjectType[]> {
   return apiClient.get<ErsProjectType[]>("/ers/project-types", options);
+}
+
+/** Lista órdenes de ejecución usados en una sede y sugiere el próximo libre. */
+export async function obtenerOrdenEjecucionErs(
+  query: { locationId: number; excludeProjectId?: number },
+  options?: ErsReadOptions,
+): Promise<ErsExecutionOrderSuggestion> {
+  return apiClient.get<ErsExecutionOrderSuggestion>("/ers/execution-order", { ...options, query });
 }
 
 /** Lista tipos de requerimiento configurados para ERS. */

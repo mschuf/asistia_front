@@ -1,15 +1,16 @@
-﻿/**
+/**
  * @file ErsEscalationDataPanel.tsx
  * @description Sección editable de datos cargados al escalar ERS.
  */
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Eye } from "lucide-react";
 import type { ErsProjectType } from "@/api/ers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Textarea } from "@/components/ui/textarea";
-import type { ErsEditState } from "@/types/pages/ers-page.types";
+import { cn } from "@/lib/utils";
+import type { ErsEditState, ErsFieldErrors, ErsFocusSignal } from "@/types/pages/ers-page.types";
 
 interface ErsEscalationDataPanelProps {
   requesterName: string | null;
@@ -21,6 +22,8 @@ interface ErsEscalationDataPanelProps {
   onChange: (next: ErsEditState) => void;
   projectTypes: ErsProjectType[];
   projectTypesDisabled: boolean;
+  errors?: ErsFieldErrors;
+  focusSignal?: ErsFocusSignal | null;
 }
 
 /** Panel de datos del escalador con campos editables de requerimiento. */
@@ -34,7 +37,34 @@ export function ErsEscalationDataPanel({
   onChange,
   projectTypes,
   projectTypesDisabled,
+  errors,
+  focusSignal,
 }: ErsEscalationDataPanelProps) {
+  const projectNameRef = useRef<HTMLInputElement>(null);
+  const objectiveRef = useRef<HTMLTextAreaElement>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (!focusSignal) return;
+    switch (focusSignal.field) {
+      case "projectName":
+        projectNameRef.current?.focus();
+        break;
+      case "objective":
+        objectiveRef.current?.focus();
+        break;
+      case "description":
+        descriptionRef.current?.focus();
+        break;
+      default:
+        break;
+    }
+  }, [focusSignal]);
+
+  const projectNameInvalid = Boolean(errors?.projectName) && form.projectName.trim().length < 3;
+  const objectiveInvalid = Boolean(errors?.objective) && !form.objective.trim();
+  const descriptionInvalid = Boolean(errors?.description) && !form.description.trim();
+
   const projectTypeOptions = useMemo(() => {
     const options = projectTypes.map((projectType) => ({
       value: String(projectType.id),
@@ -88,8 +118,12 @@ export function ErsEscalationDataPanel({
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted-foreground">Nombre del proyecto</span>
+          <span className="text-muted-foreground">
+            Nombre del proyecto <span className="text-destructive">*</span>
+          </span>
           <Input
+            ref={projectNameRef}
+            className={cn(projectNameInvalid && "border-destructive focus-visible:ring-destructive")}
             value={form.projectName}
             onChange={(event) => onChange({ ...form, projectName: event.target.value })}
             placeholder="Nombre del proyecto"
@@ -112,9 +146,12 @@ export function ErsEscalationDataPanel({
       </div>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="text-muted-foreground">Objetivo</span>
+        <span className="text-muted-foreground">
+          Objetivo <span className="text-destructive">*</span>
+        </span>
         <Textarea
-          className="min-h-[3.75rem]"
+          ref={objectiveRef}
+          className={cn("min-h-[3.75rem]", objectiveInvalid && "border-destructive focus-visible:ring-destructive")}
           placeholder="¿Que problema quieres solucionar?"
           value={form.objective}
           onChange={(event) => onChange({ ...form, objective: event.target.value })}
@@ -122,9 +159,12 @@ export function ErsEscalationDataPanel({
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="text-muted-foreground">Descripción Funcional</span>
+        <span className="text-muted-foreground">
+          Descripción Funcional <span className="text-destructive">*</span>
+        </span>
         <Textarea
-          className="min-h-[4.8rem]"
+          ref={descriptionRef}
+          className={cn("min-h-[4.8rem]", descriptionInvalid && "border-destructive focus-visible:ring-destructive")}
           placeholder="¿Cómo lo solucionarás?"
           value={form.description}
           onChange={(event) => onChange({ ...form, description: event.target.value })}

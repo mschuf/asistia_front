@@ -1,16 +1,18 @@
-﻿/**
+/**
  * @file ErsCreateDataPanel.tsx
  * @description Datos iniciales para crear un ERS sin ticket previo.
  */
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { ErsLocation, ErsProjectType, ErsTechnician } from "@/api/ers";
 import { Input } from "@/components/ui/input";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import type { SearchableSelectOption } from "@/components/ui/searchable-select";
+import type { SearchableSelectHandle, SearchableSelectOption } from "@/components/ui/searchable-select";
 import { ServerSearchableSelect } from "@/components/ui/server-searchable-select";
+import type { ServerSearchableSelectHandle } from "@/components/ui/server-searchable-select";
 import { Textarea } from "@/components/ui/textarea";
 import { getUserById, searchUsers } from "@/services/ticketsService";
-import type { ErsEditState } from "@/types/pages/ers-page.types";
+import { cn } from "@/lib/utils";
+import type { ErsEditState, ErsFieldErrors, ErsFocusSignal } from "@/types/pages/ers-page.types";
 
 interface ErsCreateDataPanelProps {
   requesterId: string;
@@ -23,6 +25,8 @@ interface ErsCreateDataPanelProps {
   onRequesterChange: (requester: ErsTechnician | null) => void;
   onLocationChange: (locationId: string) => void;
   onChange: (next: ErsEditState) => void;
+  errors?: ErsFieldErrors;
+  focusSignal?: ErsFocusSignal | null;
 }
 
 function toOption(user: ErsTechnician, locations: ErsLocation[]): SearchableSelectOption {
@@ -47,7 +51,44 @@ export function ErsCreateDataPanel({
   onRequesterChange,
   onLocationChange,
   onChange,
+  errors,
+  focusSignal,
 }: ErsCreateDataPanelProps) {
+  const requesterRef = useRef<ServerSearchableSelectHandle>(null);
+  const locationRef = useRef<SearchableSelectHandle>(null);
+  const projectNameRef = useRef<HTMLInputElement>(null);
+  const objectiveRef = useRef<HTMLTextAreaElement>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (!focusSignal) return;
+    switch (focusSignal.field) {
+      case "requester":
+        requesterRef.current?.focusAndOpen();
+        break;
+      case "location":
+        locationRef.current?.focusAndOpen();
+        break;
+      case "projectName":
+        projectNameRef.current?.focus();
+        break;
+      case "objective":
+        objectiveRef.current?.focus();
+        break;
+      case "description":
+        descriptionRef.current?.focus();
+        break;
+      default:
+        break;
+    }
+  }, [focusSignal]);
+
+  const requesterInvalid = Boolean(errors?.requester) && !requesterId;
+  const locationInvalid = Boolean(errors?.location) && !locationId;
+  const projectNameInvalid = Boolean(errors?.projectName) && form.projectName.trim().length < 3;
+  const objectiveInvalid = Boolean(errors?.objective) && !form.objective.trim();
+  const descriptionInvalid = Boolean(errors?.description) && !form.description.trim();
+
   const loadRequesterOptions = useCallback(
     async (query: string, signal: AbortSignal) => {
       const response = await searchUsers(
@@ -99,8 +140,11 @@ export function ErsCreateDataPanel({
     <div className="space-y-4 rounded-md border bg-card p-4 shadow-soft">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted-foreground">Solicitante</span>
+          <span className="text-muted-foreground">
+            Solicitante <span className="text-destructive">*</span>
+          </span>
           <ServerSearchableSelect
+            ref={requesterRef}
             value={requesterId}
             onChange={(value) => void changeRequester(value)}
             onLoadOptions={loadRequesterOptions}
@@ -109,16 +153,21 @@ export function ErsCreateDataPanel({
             placeholder="Seleccionar solicitante"
             searchPlaceholder="Buscar solicitante..."
             noResultsText="No se encontraron solicitantes"
+            invalid={requesterInvalid}
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted-foreground">Sede</span>
+          <span className="text-muted-foreground">
+            Sede <span className="text-destructive">*</span>
+          </span>
           <SearchableSelect
+            ref={locationRef}
             value={locationId}
             onChange={onLocationChange}
             options={locationOptions}
             placeholder="Seleccionar sede"
             searchPlaceholder="Buscar sede..."
+            invalid={locationInvalid}
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -129,9 +178,13 @@ export function ErsCreateDataPanel({
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted-foreground">Nombre del proyecto</span>
+          <span className="text-muted-foreground">
+            Nombre del proyecto <span className="text-destructive">*</span>
+          </span>
           <Input
+            ref={projectNameRef}
             maxLength={200}
+            className={cn(projectNameInvalid && "border-destructive focus-visible:ring-destructive")}
             value={form.projectName}
             onChange={(event) => onChange({ ...form, projectName: event.target.value })}
           />
@@ -154,18 +207,24 @@ export function ErsCreateDataPanel({
         </label>
       </div>
       <label className="flex flex-col gap-1 text-sm">
-        <span className="text-muted-foreground">Objetivo</span>
+        <span className="text-muted-foreground">
+          Objetivo <span className="text-destructive">*</span>
+        </span>
         <Textarea
-          className="min-h-[3.75rem]"
+          ref={objectiveRef}
+          className={cn("min-h-[3.75rem]", objectiveInvalid && "border-destructive focus-visible:ring-destructive")}
           placeholder="¿Qué problema quieres solucionar?"
           value={form.objective}
           onChange={(event) => onChange({ ...form, objective: event.target.value })}
         />
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        <span className="text-muted-foreground">Descripción Funcional</span>
+        <span className="text-muted-foreground">
+          Descripción Funcional <span className="text-destructive">*</span>
+        </span>
         <Textarea
-          className="min-h-[4.8rem]"
+          ref={descriptionRef}
+          className={cn("min-h-[4.8rem]", descriptionInvalid && "border-destructive focus-visible:ring-destructive")}
           placeholder="¿Cómo lo solucionarás?"
           value={form.description}
           onChange={(event) => onChange({ ...form, description: event.target.value })}
