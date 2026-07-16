@@ -109,6 +109,8 @@ export default function TicketsPage() {
 
     refreshTickets,
 
+    patchTicket,
+
     handleCreateTicket,
 
     handleStatusChange,
@@ -282,6 +284,7 @@ export default function TicketsPage() {
             categories={categories}
             locations={locations}
             isTechnician={isTechnician}
+            isSuperAdmin={isSuperAdmin}
             user={user}
             onSubmit={handleCreateTicket}
           />
@@ -350,6 +353,8 @@ export default function TicketsPage() {
                       ? undefined
                       : ["closed"]
                 }
+                isSuperAdmin={isSuperAdmin}
+                onTicketUpdated={patchTicket}
               />
 
               <TicketResolveModal

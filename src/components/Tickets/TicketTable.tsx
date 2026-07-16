@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDateParts, formatNameParts, formatOpenDuration } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { statusBadgeVariant, statusLabel, typeLabel, TICKETS_HISTORIAL_LAYOUT_MIN_WIDTH_CLASS } from "@/lib/tickets";
+import { formatTicketTitle, statusBadgeVariant, statusLabel, typeLabel, TICKETS_HISTORIAL_LAYOUT_MIN_WIDTH_CLASS } from "@/lib/tickets";
 import type { AsistiaTicket, AsistiaTicketStatus } from "@/types/asistia";
 import type { HistorySortColumn, HistorySortOrder } from "@/types/pages/tickets-page.types";
 
@@ -80,6 +80,10 @@ interface TicketTableProps {
   onEscalate?: (ticket: AsistiaTicket) => void;
   assigning?: { ticketId: number } | null;
   statusActionIds?: TicketStatusActionId[];
+  /** Habilita edición del tag en el modal de detalle. */
+  isSuperAdmin?: boolean;
+  /** Propaga a la lista un ticket actualizado (p. ej. tras editar el tag). */
+  onTicketUpdated?: (ticket: AsistiaTicket) => void;
 }
 
 /** @param props - Fecha ISO de apertura. @returns Celda con fecha y hora en dos líneas. */
@@ -150,7 +154,7 @@ function renderTicketCell(
     case "type":
       return typeLabel(ticket.type);
     case "subject":
-      return ticket.subject;
+      return formatTicketTitle(ticket);
     case "status":
       return <Badge variant={statusBadgeVariant(ticket.status)}>{statusLabel(ticket.status)}</Badge>;
     case "technician":
@@ -246,6 +250,8 @@ export function TicketTable({
   onEscalate,
   assigning = null,
   statusActionIds,
+  isSuperAdmin = false,
+  onTicketUpdated,
 }: TicketTableProps) {
   const showActionsColumn = Boolean(onStatusChange || onAssignClick || onEscalate);
   const isMobileLayout = useIsMobileHistorialLayout();
@@ -431,6 +437,8 @@ export function TicketTable({
       onEscalate={showActionsColumn && onEscalate ? onEscalate : undefined}
       assigning={assigning}
       statusActionIds={statusActionIds}
+      isSuperAdmin={isSuperAdmin}
+      onTicketUpdated={onTicketUpdated}
     />
     </>
   );

@@ -97,6 +97,8 @@ export interface AsistiaTicket {
   status: AsistiaTicketStatus;
   urgency: string;
   subject: string;
+  /** Tag corto (glpi_tickets.name). Se muestra entre corchetes junto a la categoría. */
+  tag: string | null;
   description: string | null;
   category: { id: number; name: string } | null;
   location: { id: number | null; name: string | null } | null;
@@ -128,6 +130,8 @@ export interface AsistiaUserListResponse {
 export interface CreateTicketInput {
   type: AsistiaTicketType;
   subject: string;
+  /** Tag corto opcional (glpi_tickets.name), máx. 15 caracteres. Solo lo envía TI/super admin. */
+  tag?: string;
   description: string;
   categoryId: number;
   locationId?: number;

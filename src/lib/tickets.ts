@@ -102,6 +102,43 @@ export function urgencyLabel(urgency: string): string {
   return TICKET_URGENCY_LABELS[urgency] ?? urgency;
 }
 
+/**
+ * Categoría (completename) usada como título visible del ticket.
+ * @param ticket - Ticket a mostrar.
+ * @returns Nombre de categoría o guion si no hay.
+ */
+export function ticketCategoryTitle(ticket: AsistiaTicket): string {
+  return ticket.category?.name?.trim() || "—";
+}
+
+/**
+ * Tag efectivo a mostrar entre corchetes. Se omite cuando coincide con la
+ * categoría (tickets antiguos donde name == categoría) o está vacío.
+ * @param ticket - Ticket a evaluar.
+ * @returns Tag corto o `null` si no aplica.
+ */
+export function getTicketTag(ticket: AsistiaTicket): string | null {
+  const tag = ticket.tag?.trim();
+  if (!tag) return null;
+  // Los tags reales están limitados a 15 caracteres; un valor más largo es un
+  // título heredado (categoría/inbound) y no debe mostrarse como tag.
+  if (tag.length > 15) return null;
+  const category = ticket.category?.name?.trim();
+  if (category && tag === category) return null;
+  return tag;
+}
+
+/**
+ * Título visible de un ticket: Categoría y, si existe, `[TAG]` concatenado.
+ * @param ticket - Ticket a mostrar.
+ * @returns Texto "Categoría [TAG]" o solo la categoría.
+ */
+export function formatTicketTitle(ticket: AsistiaTicket): string {
+  const category = ticketCategoryTitle(ticket);
+  const tag = getTicketTag(ticket);
+  return tag ? `${category} [${tag}]` : category;
+}
+
 /** @param ticket - Ticket a evaluar. @returns `true` si el estado es abierto. */
 export function isTicketOpen(ticket: AsistiaTicket): boolean {
   return OPEN_STATUSES.includes(ticket.status);

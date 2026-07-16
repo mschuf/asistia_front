@@ -334,6 +334,14 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
     await fetchTickets();
   }, [fetchTickets]);
 
+  const patchTicket = useCallback((updated: AsistiaTicket) => {
+    setTickets((current) =>
+      current.map((ticket) =>
+        Number(ticket.id) === Number(updated.id) ? { ...ticket, ...updated } : ticket,
+      ),
+    );
+  }, []);
+
   useEffect(() => {
     if (!shouldPrefetchLocationsForBadges) return;
 
@@ -699,6 +707,7 @@ export function useTickets(options: UseTicketsOptions = {}): UseTicketsResult {
     catalogsError,
     techniciansError,
     refreshTickets,
+    patchTicket,
     handleCreateTicket,
     handleStatusChange,
     statusChanging,

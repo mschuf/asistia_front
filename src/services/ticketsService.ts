@@ -263,6 +263,24 @@ export async function updateTicketRequester(
 }
 
 /**
+ * Actualiza el tag (glpi_tickets.name) de un ticket. Solo super admin.
+ * @param ticketId - ID del ticket.
+ * @param tag - Nuevo tag (máx. 15 caracteres; vacío lo limpia).
+ * @returns Ticket con el tag actualizado.
+ */
+export async function updateTicketTag(
+  ticketId: number,
+  tag: string
+): Promise<AsistiaTicket> {
+  const response = await apiClient.patch<unknown>(
+    `/tickets/${ticketId}/tag`,
+    { tag },
+    { showBackdrop: false, timeoutMs: 30_000 }
+  );
+  return coerceTicketPayload(response);
+}
+
+/**
  * Busca técnicos activos por texto.
  * @param search - Texto de búsqueda opcional.
  * @param limit - Límite de resultados opcional.

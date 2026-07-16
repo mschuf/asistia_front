@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDateParts } from "@/lib/format";
-import { statusBadgeVariant, statusLabel } from "@/lib/tickets";
+import { formatTicketTitle, statusBadgeVariant, statusLabel } from "@/lib/tickets";
 import { cn } from "@/lib/utils";
 import type { AsistiaTicket } from "@/types/asistia";
 import type {
@@ -167,7 +167,7 @@ export function TicketsCloseTable({
                 <td className="px-4 py-3 text-muted-foreground">
                   <CreatedAtCell value={item.createdAt} />
                 </td>
-                <td className="min-w-56 px-4 py-3">{item.subject}</td>
+                <td className="min-w-56 px-4 py-3">{formatTicketTitle(item)}</td>
                 <td className="px-4 py-3 text-muted-foreground">{item.requester.name ?? "—"}</td>
                 <td className="min-w-40 px-4 py-3">{item.location?.name ?? "—"}</td>
                 <td className="whitespace-nowrap px-4 py-3">

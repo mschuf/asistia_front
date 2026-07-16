@@ -93,9 +93,11 @@ export interface UseTicketsResult {
   catalogsError: string;
   techniciansError: string;
   refreshTickets: () => Promise<void>;
+  patchTicket: (ticket: AsistiaTicket) => void;
   handleCreateTicket: (input: {
     type: AsistiaTicketType;
     subject: string;
+    tag?: string;
     description: string;
     categoryId: number;
     locationId?: number;

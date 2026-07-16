@@ -10,7 +10,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Loading } from "@/components/ui/loading";
 import { formatDate } from "@/lib/format";
 import { isAbortError } from "@/lib/http";
-import { statusBadgeVariant, statusLabel, typeLabel } from "@/lib/tickets";
+import { formatTicketTitle, statusBadgeVariant, statusLabel, typeLabel } from "@/lib/tickets";
 import type { AsistiaTicket } from "@/types/asistia";
 
 interface TicketCloseDetailModalProps {
@@ -78,7 +78,12 @@ export function TicketCloseDetailModal({
   if (ticketId === null) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title={`Caso #${ticketId}`} description={ticket?.subject}>
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={ticket ? `Caso #${ticketId} - ${typeLabel(ticket.type)}` : `Caso #${ticketId}`}
+      description={ticket ? formatTicketTitle(ticket) : undefined}
+    >
       {loading && !ticket ? (
         <div className="flex min-h-32 items-center justify-center">
           <Loading label="Cargando detalles..." />

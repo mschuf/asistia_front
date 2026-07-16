@@ -7,11 +7,14 @@ import { TicketActions } from "@/components/tickets/TicketActions";
 import { TicketAttachmentsList } from "@/components/tickets/TicketAttachmentsList";
 import { Badge } from "@/components/ui/badge";
 import { Dialog } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Loading } from "@/components/ui/loading";
+import { useToast } from "@/context/ToastContext";
 import { formatDate } from "@/lib/format";
 import { isAbortError } from "@/lib/http";
-import { statusBadgeVariant, statusLabel, typeLabel } from "@/lib/tickets";
-import { getTicketById } from "@/services/ticketsService";
+import { ApiError } from "@/api/apiClient";
+import { formatTicketTitle, getTicketTag, statusBadgeVariant, statusLabel, typeLabel } from "@/lib/tickets";
+import { getTicketById, updateTicketTag } from "@/services/ticketsService";
 import type { AsistiaTicket, AsistiaTicketStatus } from "@/types/asistia";
 
 type TicketStatusActionId = "solved" | "closed" | "waiting";
@@ -26,6 +29,10 @@ interface TicketDetailModalProps {
   onEscalate?: (ticket: AsistiaTicket) => void;
   assigning?: { ticketId: number } | null;
   statusActionIds?: TicketStatusActionId[];
+  /** Habilita la edición del tag (solo super admin). */
+  isSuperAdmin?: boolean;
+  /** Propaga a la lista el ticket con el tag actualizado. */
+  onTicketUpdated?: (ticket: AsistiaTicket) => void;
 }
 
 /**
@@ -71,10 +78,15 @@ export function TicketDetailModal({
   onEscalate,
   assigning = null,
   statusActionIds,
+  isSuperAdmin = false,
+  onTicketUpdated,
 }: TicketDetailModalProps) {
+  const toast = useToast();
   const [detail, setDetail] = useState<AsistiaTicket | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState("");
+  const [tagValue, setTagValue] = useState("");
+  const [savingTag, setSavingTag] = useState(false);
 
   useEffect(() => {
     if (!open || !ticket) {
@@ -113,16 +125,50 @@ export function TicketDetailModal({
     setDetail((current) => (current?.id === ticket.id ? ticket : current));
   }, [ticket, open]);
 
+  const currentTicket = detail ?? ticket;
+
+  useEffect(() => {
+    setTagValue(currentTicket ? getTicketTag(currentTicket) ?? "" : "");
+  }, [currentTicket?.id, currentTicket?.tag]);
+
   if (!ticket) return null;
 
   const displayTicket = detail ?? ticket;
+
+  /**
+   * Persiste el tag al presionar Enter o perder el foco (solo super admin).
+   * @returns void
+   */
+  const handleSaveTag = async () => {
+    const next = tagValue.trim().slice(0, 15);
+    const current = getTicketTag(displayTicket) ?? "";
+    if (next === current || savingTag) return;
+
+    setSavingTag(true);
+    try {
+      const updated = await updateTicketTag(displayTicket.id, next);
+      setDetail(updated);
+      setTagValue(getTicketTag(updated) ?? "");
+      onTicketUpdated?.(updated);
+      toast.success("Tag guardado correctamente.");
+    } catch (err) {
+      const message =
+        err instanceof ApiError || err instanceof Error
+          ? err.message
+          : "No se pudo guardar el tag.";
+      toast.error(message);
+      setTagValue(getTicketTag(displayTicket) ?? "");
+    } finally {
+      setSavingTag(false);
+    }
+  };
 
   return (
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      title={`Caso #${displayTicket.id}`}
-      description={displayTicket.subject}
+      title={`Caso #${displayTicket.id} - ${typeLabel(displayTicket.type)}`}
+      description={formatTicketTitle(displayTicket)}
     >
       {loadingDetail && !detail ? (
         <div className="flex min-h-32 items-center justify-center">
@@ -142,8 +188,29 @@ export function TicketDetailModal({
                 {statusLabel(displayTicket.status)}
               </Badge>
             </DetailRow>
+            <DetailRow label="Tag" inline>
+              {isSuperAdmin ? (
+                <Input
+                  value={tagValue}
+                  onChange={(event) => setTagValue(event.target.value.slice(0, 15))}
+                  onBlur={() => void handleSaveTag()}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      event.currentTarget.blur();
+                    }
+                  }}
+                  maxLength={15}
+                  disabled={savingTag}
+                  placeholder="Sin tag"
+                  aria-label="Tag del caso"
+                  className="h-8 max-w-[12rem]"
+                />
+              ) : (
+                <span>{getTicketTag(displayTicket) ?? "—"}</span>
+              )}
+            </DetailRow>
             <div className="grid grid-cols-[40%_1fr] gap-x-4 gap-y-4 sm:block sm:space-y-4">
-              <DetailRow label="Tipo">{typeLabel(displayTicket.type)}</DetailRow>
               <DetailRow label="Solicitante">
                 <div>
                   <p>{displayTicket.requester.name ?? "—"}</p>

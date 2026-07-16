@@ -7,6 +7,7 @@ import { FormEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, us
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { Loading } from "@/components/ui/loading";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import type { SearchableSelectHandle, SearchableSelectOption } from "@/components/ui/searchable-select";
@@ -36,10 +37,12 @@ interface TicketFormProps {
   categories: AsistiaCategory[];
   locations: AsistiaLocation[];
   isTechnician: boolean;
+  isSuperAdmin: boolean;
   user: AuthUser;
   onSubmit: (input: {
     type: AsistiaTicketType;
     subject: string;
+    tag?: string;
     description: string;
     categoryId: number;
     locationId?: number;
@@ -52,6 +55,7 @@ interface TicketFormProps {
 type FormErrors = Partial<Record<"category" | "description" | "technician" | "attachments", string>>;
 
 const DESCRIPTION_MIN_LENGTH = 12;
+const TAG_MAX_LENGTH = 15;
 const TECHNICIAN_EMPTY_OPTION = { value: "", label: "Seleccione un TI" };
 const REQUESTER_EMPTY_OPTION = { value: "", label: "Seleccione solicitante" };
 
@@ -72,9 +76,10 @@ function defaultTechnicianId(user: AuthUser, isTechnician: boolean): string {
  * @param props - Catálogos, rol de usuario y callback onSubmit.
  * @returns Formulario de creación de ticket.
  */
-export function TicketForm({ categories, locations, isTechnician, user, onSubmit }: TicketFormProps) {
+export function TicketForm({ categories, locations, isTechnician, isSuperAdmin, user, onSubmit }: TicketFormProps) {
   const [ticketType, setTicketType] = useState<AsistiaTicketType>("request");
   const [categoryId, setCategoryId] = useState("");
+  const [tag, setTag] = useState("");
   const [description, setDescription] = useState(() => createDefaultTicketDescription());
   const [technicianId, setTechnicianId] = useState(() => defaultTechnicianId(user, isTechnician));
   const [requesterId, setRequesterId] = useState(() => defaultRequesterId(user, isTechnician));
@@ -264,6 +269,7 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
   const resetForm = (clearFeedback = true) => {
     setTicketType("request");
     setCategoryId("");
+    setTag("");
     setDescription(createDefaultTicketDescription());
     setTechnicianId(defaultTechnicianId(user, isTechnician));
     setRequesterId(defaultRequesterId(user, isTechnician));
@@ -285,9 +291,11 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
 
     try {
       const subject = selectedCategory?.fullPath || selectedCategory?.name || "";
+      const trimmedTag = tag.trim().slice(0, TAG_MAX_LENGTH);
       await onSubmit({
         type: effectiveType,
         subject,
+        tag: isTechnician && trimmedTag ? trimmedTag : undefined,
         description,
         categoryId: Number(categoryId),
         locationId: locationId ? Number(locationId) : undefined,
@@ -363,6 +371,20 @@ export function TicketForm({ categories, locations, isTechnician, user, onSubmit
             aria-describedby={errors.category ? "ticket-category-error" : undefined}
           />
         </Field>
+
+        {isTechnician ? (
+          <Field id="ticket-tag" label="Tag">
+            <Input
+              id="ticket-tag"
+              value={tag}
+              onChange={(event) => setTag(event.target.value.slice(0, TAG_MAX_LENGTH))}
+              maxLength={TAG_MAX_LENGTH}
+              placeholder={isSuperAdmin ? "Tag corto (máx. 15)" : "Solo super admin"}
+              disabled={!isSuperAdmin || submitting}
+              autoComplete="off"
+            />
+          </Field>
+        ) : null}
 
         {isTechnician ? (
           <Field id="ticket-technician" label="Técnico" error={errors.technician}>
