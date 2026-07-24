@@ -523,6 +523,7 @@ export default function NuevoErsPage() {
             <ErsProjectManagementPanel
               form={form}
               onChange={setForm}
+              showPriority={false}
               states={states}
               requestTypes={requestTypes}
               technicians={technicians}

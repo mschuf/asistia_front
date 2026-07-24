@@ -37,6 +37,7 @@ interface ErsProjectManagementPanelProps {
   loadingTechnicians: boolean;
   loadingTeamTechnicians?: boolean;
   showTeamLocations?: boolean;
+  showPriority?: boolean;
   progressFromTasks: number;
   teamSearch: string;
   onTeamSearchChange: (value: string) => void;
@@ -60,6 +61,7 @@ export function ErsProjectManagementPanel({
   loadingTechnicians,
   loadingTeamTechnicians = loadingTechnicians,
   showTeamLocations = false,
+  showPriority = true,
   progressFromTasks,
   teamSearch,
   onTeamSearchChange,
@@ -204,7 +206,7 @@ export function ErsProjectManagementPanel({
             ))}
           </Select>
         </label>
-        {isSuperAdmin ? (
+        {showPriority && isSuperAdmin ? (
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-muted-foreground">Prioridad TI</span>
             <Select
@@ -313,19 +315,26 @@ export function ErsProjectManagementPanel({
         open={executionOrderListOpen}
         onOpenChange={setExecutionOrderListOpen}
         title="Órdenes de ejecución en esta sede"
-        description="Proyectos con orden de ejecución ya asignado en la misma sede."
+        description="Proyectos de la misma sede y su orden de ejecución actual."
         className="max-w-md"
       >
         {executionOrderItems.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No hay proyectos con orden asignado en esta sede.
+            No hay proyectos en esta sede.
           </p>
         ) : (
           <ul className="divide-y">
             {executionOrderItems.map((item) => (
               <li key={item.projectId} className="flex items-center justify-between gap-3 py-2 text-sm">
                 <span className="min-w-0 truncate">{item.projectName}</span>
-                <span className="shrink-0 font-medium tabular-nums">{item.executionOrder}</span>
+                <span
+                  className={cn(
+                    "shrink-0 tabular-nums",
+                    item.executionOrder === null ? "text-muted-foreground" : "font-medium",
+                  )}
+                >
+                  {item.executionOrder ?? "Sin asignar"}
+                </span>
               </li>
             ))}
           </ul>

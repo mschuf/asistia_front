@@ -27,7 +27,7 @@ function getSortableColumns(isTechnician: boolean): Array<{ id: ErsSortColumn; l
   return [
     { id: "projectId", label: isTechnician ? "Proyecto" : "ID" },
     { id: "projectName", label: "Nombre proyecto" },
-    { id: "ticketId", label: isTechnician ? "Caso" : "Caso" },
+    ...(isTechnician ? [{ id: "executionOrder" as const, label: "Orden" }] : []),
     { id: "requesterName", label: "Solicitante" },
     { id: "requesterArea", label: "Área" },
     { id: "locationName", label: "Sede" },
@@ -152,7 +152,7 @@ export function ErsTable({
   return (
     <div className="overflow-hidden rounded-md border bg-card shadow-soft">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1080px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[900px] border-collapse text-left text-sm">
           <thead className="bg-muted text-xs uppercase tracking-normal text-muted-foreground">
             <tr>
               {sortableColumns.map(({ id, label }) => (
@@ -172,13 +172,6 @@ export function ErsTable({
                 sortOrder={sortOrder}
                 onSortColumnChange={onSortColumnChange}
               />
-              <SortableHeader
-                column="createdAt"
-                label="Creado"
-                sortColumn={sortColumn}
-                sortOrder={sortOrder}
-                onSortColumnChange={onSortColumnChange}
-              />
               {isTechnician ? <th className="px-4 py-3 font-semibold">Acciones</th> : null}
             </tr>
           </thead>
@@ -187,9 +180,11 @@ export function ErsTable({
               <tr key={row.projectId} className="hover:bg-muted/40">
                 <td className="px-4 py-3 font-medium tabular-nums">#{row.projectId}</td>
                 <td className="px-4 py-3">{row.projectName}</td>
-                <td className="px-4 py-3 tabular-nums">
-                  {row.ticketId ? `#${row.ticketId}` : "—"}
-                </td>
+                {isTechnician ? (
+                  <td className="px-4 py-3 text-center tabular-nums">
+                    {row.executionOrder ?? "—"}
+                  </td>
+                ) : null}
                 <td className="px-4 py-3">{row.requesterName ?? "—"}</td>
                 <td className="px-4 py-3">{row.requesterArea ?? "—"}</td>
                 <td className="px-4 py-3">{row.locationName ?? "—"}</td>
@@ -215,7 +210,6 @@ export function ErsTable({
                     {row.approved ? "SI" : "NO"}
                   </Badge>
                 </td>
-                <td className="px-4 py-3">{formatCreatedDate(row.createdAt)}</td>
                 {isTechnician ? (
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
@@ -255,16 +249,5 @@ export function ErsTable({
       </div>
     </div>
   );
-}
-
-function formatCreatedDate(value: string | null): string {
-  if (!value) return "—";
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return "—";
-  return parsed.toLocaleDateString("es-AR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
 }
 

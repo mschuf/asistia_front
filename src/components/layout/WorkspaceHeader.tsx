@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, FilePlus2, History, RefreshCw } from 'lucide-react';
+import { BarChart3, FilePlus2, History, ListOrdered, RefreshCw } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { ErsExecutionOrderManagerDialog } from '@/components/ers/ErsExecutionOrderManagerDialog';
 import {
   IrsErsSwitch,
   resolveWorkspaceMode,
@@ -43,6 +44,7 @@ export function WorkspaceHeader({
   const location = useLocation();
   const navigate = useNavigate();
   const [fallbackLocations, setFallbackLocations] = useState<AsistiaLocation[]>([]);
+  const [orderManagerOpen, setOrderManagerOpen] = useState(false);
 
   useEffect(() => {
     if (locations?.length || !user?.locationId) return;
@@ -83,6 +85,20 @@ export function WorkspaceHeader({
       </div>
 
       <div className='ml-auto hidden shrink-0 items-center gap-2 sm:flex'>
+        {isSuperAdmin && mode === 'ers' ? (
+          <div className='flex shrink-0 rounded-md border bg-card p-1'>
+            <Button
+              type='button'
+              variant='ghost'
+              size='sm'
+              aria-label='Orden de ejecución por sede'
+              title='Orden de ejecución por sede'
+              onClick={() => setOrderManagerOpen(true)}
+            >
+              <ListOrdered className='h-4 w-4' aria-hidden='true' />
+            </Button>
+          </div>
+        ) : null}
         <IrsErsSwitch />
         {onRefresh ? (
           <div className='flex shrink-0 rounded-md border bg-card p-1'>
@@ -117,6 +133,14 @@ export function WorkspaceHeader({
           ))}
         </div>
       </div>
+
+      {orderManagerOpen ? (
+        <ErsExecutionOrderManagerDialog
+          open
+          onOpenChange={setOrderManagerOpen}
+          onSaved={onRefresh}
+        />
+      ) : null}
     </div>
   );
 }

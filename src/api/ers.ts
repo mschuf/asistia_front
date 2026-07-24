@@ -12,6 +12,7 @@ interface ErsReadOptions {
 export interface ErsListItem {
   projectId: number;
   projectName: string;
+  executionOrder: number | null;
   ticketId: number | null;
   requesterId: number | null;
   requesterName: string | null;
@@ -89,6 +90,7 @@ export interface ErsListResponse {
 export type ErsSortColumn =
   | "projectId"
   | "projectName"
+  | "executionOrder"
   | "ticketId"
   | "requesterName"
   | "requesterArea"
@@ -225,7 +227,12 @@ export interface ErsProjectType {
 export interface ErsExecutionOrderItem {
   projectId: number;
   projectName: string;
-  executionOrder: number;
+  executionOrder: number | null;
+  /**
+   * El proyecto tiene tickets en más de una sede. El orden se guarda en un único campo sin
+   * sede, así que reordenarlo aquí también altera su posición en las demás.
+   */
+  sharedAcrossLocations: boolean;
 }
 
 export interface ErsExecutionOrderSuggestion {
@@ -327,6 +334,23 @@ export async function obtenerOrdenEjecucionErs(
   return apiClient.get<ErsExecutionOrderSuggestion>("/ers/execution-order", { ...options, query });
 }
 
+export interface ReordenarOrdenEjecucionPayload {
+  locationId: number;
+  items: Array<{ projectId: number; executionOrder: number | null }>;
+}
+
+/**
+ * Reescribe en bloque los órdenes de ejecución de una sede en una única transacción.
+ * `items` debe cubrir todos los proyectos de la sede; si no, el backend responde 409.
+ */
+export async function reordenarOrdenEjecucionErs(
+  payload: ReordenarOrdenEjecucionPayload,
+): Promise<ErsExecutionOrderItem[]> {
+  return apiClient.put<ErsExecutionOrderItem[]>("/ers/execution-order", payload, {
+    timeoutMs: 60_000,
+  });
+}
+
 /** Lista tipos de requerimiento configurados para ERS. */
 export async function listarTiposRequerimiento(options?: ErsReadOptions): Promise<string[]> {
   return apiClient.get<string[]>("/ers/request-types", options);
@@ -363,4 +387,3 @@ export async function listarSolicitantesErs(
 export async function listarSedesErs(options?: ErsReadOptions): Promise<ErsLocation[]> {
   return apiClient.get<ErsLocation[]>("/ers/locations", options);
 }
-

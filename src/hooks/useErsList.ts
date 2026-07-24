@@ -19,7 +19,6 @@ import type { ErsFilterState, UseErsListResult } from "@/types/pages/ers-page.ty
 /** @returns Filtros ERS en estado inicial. */
 function createInitialFilters(
   searchParams?: URLSearchParams,
-  defaultAssignedMemberId?: number,
 ): ErsFilterState {
   const hasLifecycleParam = searchParams?.has("lifecycle") ?? false;
   const hasAssignedMemberParam = searchParams?.has("assignedMemberId") ?? false;
@@ -46,9 +45,7 @@ function createInitialFilters(
     locationId: searchParams?.get("locationId") ?? "",
     assignedMemberId: hasAssignedMemberParam
       ? searchParams?.get("assignedMemberId") ?? ""
-      : defaultAssignedMemberId
-        ? String(defaultAssignedMemberId)
-        : "",
+      : "",
   };
 }
 
@@ -73,16 +70,16 @@ function toListParams(
     approved: filters.approved || undefined,
     locationId: filters.locationId ? Number(filters.locationId) : undefined,
     assignedMemberId: filters.assignedMemberId ? Number(filters.assignedMemberId) : undefined,
-    sortBy: sort?.column,
-    sortOrder: sort?.order,
+    sortBy: sort?.column ?? "projectId",
+    sortOrder: sort?.order ?? "desc",
   };
 }
 
 /** Hook principal para la pantalla `/ers`. */
-export function useErsList(defaultAssignedMemberId?: number): UseErsListResult {
+export function useErsList(): UseErsListResult {
   const [searchParams] = useSearchParams();
   const initialFilters = useMemo(
-    () => createInitialFilters(searchParams, defaultAssignedMemberId),
+    () => createInitialFilters(searchParams),
     [],
   );
   const [items, setItems] = useState<UseErsListResult["items"]>([]);
@@ -90,10 +87,7 @@ export function useErsList(defaultAssignedMemberId?: number): UseErsListResult {
   const [appliedFilters, setAppliedFilters] = useState<ErsFilterState>(initialFilters);
   const [page, setPageState] = useState(1);
   const [pageLimit, setPageLimitState] = useState<ErsPageSize>(ERS_PAGE_SIZE);
-  const [sort, setSortState] = useState<ErsSortState | null>({
-    column: "projectId",
-    order: "desc",
-  });
+  const [sort, setSortState] = useState<ErsSortState | null>(null);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
