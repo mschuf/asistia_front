@@ -3,7 +3,7 @@
  * @description Layout principal con header, menú lateral y barra inferior móvil.
  */
 import { Link, useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import { BarChart3, Building2, ChevronDown, FilePlus2, History, Lock, LogOut, Menu, MessageSquareText, Moon, Sun, ClipboardList, X } from "lucide-react";
+import { BarChart3, Building2, ChevronDown, FilePlus2, History, Lock, LogOut, Menu, MessageSquareText, Moon, PackageOpen, Sun, ClipboardList, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { BottomTabBar } from "@/components/layout/BottomTabBar";
@@ -34,6 +34,7 @@ const superAdminNavItems: Array<{
   enabled: boolean;
 }> = [
   { label: "Empresas", icon: Building2, path: "/admin/empresas", enabled: true },
+  { label: "Software", icon: PackageOpen, path: "/admin/software", enabled: true },
   { label: "Prompts", icon: MessageSquareText, path: "/admin/prompts", enabled: true },
   { label: "Reporte irs", icon: History, path: "/admin/reporte-irs", enabled: true },
   { label: "Cerrar tickets", icon: Lock, path: "/admin/cierre-tickets", enabled: true },

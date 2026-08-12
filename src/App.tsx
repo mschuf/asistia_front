@@ -26,6 +26,7 @@ const NuevoErsPage = lazy(() => import("./pages/NuevoErsPage"));
 const EscalarTicketErsPage = lazy(() => import("./pages/EscalarTicketErsPage"));
 const ErsEditPage = lazy(() => import("./pages/ErsEditPage"));
 const ErsHistoryPage = lazy(() => import("./pages/ErsHistoryPage"));
+const RequestTypesPage = lazy(() => import("./pages/RequestTypesPage"));
 
 export default function App() {
   const { isAuthenticated, user } = useAuth();
@@ -114,6 +115,14 @@ export default function App() {
               <TicketsRoute>
                 <ErsHistoryPage />
               </TicketsRoute>
+            }
+          />
+          <Route
+            path="admin/software"
+            element={
+              <SuperAdminRoute>
+                <RequestTypesPage />
+              </SuperAdminRoute>
             }
           />
           <Route

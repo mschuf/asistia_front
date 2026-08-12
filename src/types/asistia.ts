@@ -101,6 +101,8 @@ export interface AsistiaTicket {
   tag: string | null;
   description: string | null;
   category: { id: number; name: string } | null;
+  /** Software seleccionado al crear tickets de categoría Software. */
+  software?: { id: number; name: string } | null;
   location: { id: number | null; name: string | null } | null;
   requester: AsistiaTicketActor;
   technician: AsistiaTicketActor | null;
@@ -134,6 +136,7 @@ export interface CreateTicketInput {
   tag?: string;
   description: string;
   categoryId: number;
+  requestTypeId?: number;
   locationId?: number;
   assignedTechnicianId?: number;
   requesterId?: number;

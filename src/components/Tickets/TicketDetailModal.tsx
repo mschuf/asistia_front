@@ -13,7 +13,14 @@ import { useToast } from "@/context/ToastContext";
 import { formatDate } from "@/lib/format";
 import { isAbortError } from "@/lib/http";
 import { ApiError } from "@/api/apiClient";
-import { formatTicketTitle, getTicketTag, statusBadgeVariant, statusLabel, typeLabel } from "@/lib/tickets";
+import {
+  formatTicketTitle,
+  getTicketTag,
+  statusBadgeVariant,
+  statusLabel,
+  ticketCategoryTitle,
+  typeLabel,
+} from "@/lib/tickets";
 import { getTicketById, updateTicketTag } from "@/services/ticketsService";
 import type { AsistiaTicket, AsistiaTicketStatus } from "@/types/asistia";
 
@@ -31,6 +38,8 @@ interface TicketDetailModalProps {
   statusActionIds?: TicketStatusActionId[];
   /** Habilita la edición del tag (solo super admin). */
   isSuperAdmin?: boolean;
+  /** Muestra el software seleccionado; disponible solo para TI/superadmin. */
+  showSoftware?: boolean;
   /** Propaga a la lista el ticket con el tag actualizado. */
   onTicketUpdated?: (ticket: AsistiaTicket) => void;
 }
@@ -79,6 +88,7 @@ export function TicketDetailModal({
   assigning = null,
   statusActionIds,
   isSuperAdmin = false,
+  showSoftware = false,
   onTicketUpdated,
 }: TicketDetailModalProps) {
   const toast = useToast();
@@ -134,6 +144,13 @@ export function TicketDetailModal({
   if (!ticket) return null;
 
   const displayTicket = detail ?? ticket;
+  const softwareName = showSoftware
+    ? (displayTicket.software?.name ?? ticket.software?.name)?.trim()
+    : "";
+  const tag = getTicketTag(displayTicket);
+  const headerDescription = softwareName
+    ? `${ticketCategoryTitle(displayTicket)} {${softwareName}}${tag ? ` [${tag}]` : ""}`
+    : formatTicketTitle(displayTicket);
 
   /**
    * Persiste el tag al presionar Enter o perder el foco (solo super admin).
@@ -150,7 +167,6 @@ export function TicketDetailModal({
       setDetail(updated);
       setTagValue(getTicketTag(updated) ?? "");
       onTicketUpdated?.(updated);
-      toast.success("Tag guardado correctamente.");
     } catch (err) {
       const message =
         err instanceof ApiError || err instanceof Error
@@ -168,7 +184,7 @@ export function TicketDetailModal({
       open={open}
       onOpenChange={onOpenChange}
       title={`Caso #${displayTicket.id} - ${typeLabel(displayTicket.type)}`}
-      description={formatTicketTitle(displayTicket)}
+      description={headerDescription}
     >
       {loadingDetail && !detail ? (
         <div className="flex min-h-32 items-center justify-center">

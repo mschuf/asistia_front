@@ -49,6 +49,7 @@ export type HistorySortColumn =
   | "requester"
   | "location"
   | "type"
+  | "software"
   | "subject"
   | "status"
   | "technician";
@@ -100,6 +101,7 @@ export interface UseTicketsResult {
     tag?: string;
     description: string;
     categoryId: number;
+    requestTypeId?: number;
     locationId?: number;
     assignedTechnicianId?: number;
     requesterId?: number;

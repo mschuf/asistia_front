@@ -204,7 +204,7 @@ export default function TicketsPage() {
       className={cn(
         "space-y-5",
         tab === "historial" &&
-          "w-full min-w-0 min-[1600px]:mx-auto min-[1600px]:max-w-[75vw]",
+          "w-full min-w-0 min-[1600px]:mx-auto min-[1600px]:max-w-[97.5vw]",
       )}
     >
       <WorkspaceHeader
@@ -354,6 +354,7 @@ export default function TicketsPage() {
                       : ["closed"]
                 }
                 isSuperAdmin={isSuperAdmin}
+                showSoftware={isTechnician}
                 onTicketUpdated={patchTicket}
               />
 

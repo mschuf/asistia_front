@@ -24,6 +24,7 @@ const HISTORY_COLUMN_LABELS: Record<HistoryTableColumn, string> = {
   requester: "Solicitante",
   location: "Ubicación",
   type: "Tipo",
+  software: "Software",
   subject: "Título",
   status: "Estado",
   technician: "Asignado a",
@@ -36,6 +37,7 @@ const HISTORY_COLUMN_ORDER_DESKTOP: HistoryTableColumn[] = [
   "requester",
   "location",
   "type",
+  "software",
   "subject",
   "status",
   "technician",
@@ -49,6 +51,7 @@ const HISTORY_COLUMN_ORDER_MOBILE: HistoryTableColumn[] = [
   "requester",
   "status",
   "type",
+  "software",
   "subject",
   "technician",
 ];
@@ -82,6 +85,8 @@ interface TicketTableProps {
   statusActionIds?: TicketStatusActionId[];
   /** Habilita edición del tag en el modal de detalle. */
   isSuperAdmin?: boolean;
+  /** Muestra el software seleccionado; disponible solo para TI/superadmin. */
+  showSoftware?: boolean;
   /** Propaga a la lista un ticket actualizado (p. ej. tras editar el tag). */
   onTicketUpdated?: (ticket: AsistiaTicket) => void;
 }
@@ -153,6 +158,8 @@ function renderTicketCell(
       return <span className="line-clamp-2">{ticket.location?.name ?? "—"}</span>;
     case "type":
       return typeLabel(ticket.type);
+    case "software":
+      return <span className="line-clamp-2">{ticket.software?.name ?? "—"}</span>;
     case "subject":
       return formatTicketTitle(ticket);
     case "status":
@@ -176,6 +183,8 @@ function ticketCellClassName(column: HistoryTableColumn) {
       return "max-w-xs px-4 py-3 text-muted-foreground";
     case "type":
       return "whitespace-nowrap px-4 py-3";
+    case "software":
+      return "max-w-xs px-4 py-3 text-muted-foreground";
     case "subject":
       return "min-w-56 px-4 py-3";
     case "status":
@@ -251,11 +260,14 @@ export function TicketTable({
   assigning = null,
   statusActionIds,
   isSuperAdmin = false,
+  showSoftware = false,
   onTicketUpdated,
 }: TicketTableProps) {
   const showActionsColumn = Boolean(onStatusChange || onAssignClick || onEscalate);
   const isMobileLayout = useIsMobileHistorialLayout();
-  const columnOrder = isMobileLayout ? HISTORY_COLUMN_ORDER_MOBILE : HISTORY_COLUMN_ORDER_DESKTOP;
+  const columnOrder = (
+    isMobileLayout ? HISTORY_COLUMN_ORDER_MOBILE : HISTORY_COLUMN_ORDER_DESKTOP
+  ).filter((column) => showSoftware || column !== "software");
   const [selectedTicket, setSelectedTicket] = useState<AsistiaTicket | null>(null);
   const [expandedTicketId, setExpandedTicketId] = useState<number | null>(null);
 
@@ -438,6 +450,7 @@ export function TicketTable({
       assigning={assigning}
       statusActionIds={statusActionIds}
       isSuperAdmin={isSuperAdmin}
+      showSoftware={showSoftware}
       onTicketUpdated={onTicketUpdated}
     />
     </>

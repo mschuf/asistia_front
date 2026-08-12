@@ -3,12 +3,11 @@
  * @description Service worker PWA: precache del shell, estrategia network-first en navegación y caché de assets estáticos.
  */
 /* asistIA service worker — shell cache mínimo */
-const CACHE_VERSION = "asistia-v3";
+const CACHE_VERSION = "asistia-v4";
 const PRECACHE_URLS = [
   "/",
   "/index.html",
   "/manifest.webmanifest",
-  "/icons/icon.svg",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
   "/icons/icon-512-maskable.png",
