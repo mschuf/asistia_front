@@ -157,7 +157,33 @@ export interface TicketAttachment {
   mimeType: string;
   size: number;
   uploadedById?: number;
+  /** Nombre de quien subió el adjunto; puede venir null si no se pudo resolver. */
+  uploadedByName?: string | null;
   createdAt: string;
+}
+
+/** Tipo de entrada del historial de un ticket. */
+export type TicketActivityType =
+  | "attachment_added"
+  | "attachment_removed"
+  | "description_updated";
+
+/** Entrada del historial de un ticket: alta de adjunto o edición de texto. */
+export interface TicketActivityEntry {
+  id: string;
+  type: TicketActivityType;
+  createdAt: string;
+  /** ID GLPI del autor; null en entradas leídas del histórico de GLPI. */
+  authorId: number | null;
+  authorName: string | null;
+  /** Nombre del archivo; solo en entradas de adjunto. */
+  filename?: string;
+  /** Tamaño en bytes; solo en entradas de adjunto. */
+  size?: number;
+  /** Texto anterior; solo en entradas de edición. */
+  previousValue?: string | null;
+  /** Texto resultante; solo en entradas de edición. */
+  newValue?: string;
 }
 
 /** Respuesta al actualizar el estado de un ticket. */

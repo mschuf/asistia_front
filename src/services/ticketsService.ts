@@ -281,6 +281,24 @@ export async function updateTicketTag(
 }
 
 /**
+ * Actualiza la descripción (glpi_tickets.content) de un ticket. Solo TI.
+ * @param ticketId - ID del ticket.
+ * @param description - Nueva descripción en texto plano.
+ * @returns Ticket con la descripción actualizada.
+ */
+export async function updateTicketDescription(
+  ticketId: number,
+  description: string
+): Promise<AsistiaTicket> {
+  const response = await apiClient.patch<unknown>(
+    `/tickets/${ticketId}/description`,
+    { description },
+    { showBackdrop: false, timeoutMs: 30_000 }
+  );
+  return coerceTicketPayload(response);
+}
+
+/**
  * Busca técnicos activos por texto.
  * @param search - Texto de búsqueda opcional.
  * @param limit - Límite de resultados opcional.

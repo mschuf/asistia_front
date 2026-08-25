@@ -46,7 +46,6 @@ const EMPTY_FORM: ErsEditState = {
   description: "",
   impact: "",
   requestType: "",
-  priority: 3,
   executionOrder: "",
   approved: false,
   approverId: "",
@@ -75,7 +74,6 @@ function mapDetailToForm(detail: ErsDetail): ErsEditState {
     description: detail.description ?? "",
     impact: detail.impact ?? "",
     requestType: detail.requestType ?? "",
-    priority: detail.priority,
     executionOrder: detail.executionOrder ? String(detail.executionOrder) : "",
     approved: detail.approved,
     approverId: detail.approverId ? String(detail.approverId) : "",
@@ -342,13 +340,6 @@ export default function ErsEditPage() {
     if (previousSection) setSection(previousSection);
   };
 
-  const reloadDetail = async () => {
-    if (!Number.isFinite(projectIdNumber) || projectIdNumber <= 0) return;
-    const updated = await obtenerErs(projectIdNumber);
-    setDetail(updated);
-    setForm(mapDetailToForm(updated));
-  };
-
   const handleSave = async (discardUnapprovedTasks = false) => {
     if (!detail) return;
     if (loadingRequestTypes || requestTypesUnavailable) {
@@ -385,9 +376,7 @@ export default function ErsEditPage() {
         !task.name.trim() ||
         !task.content.trim() ||
         !task.projectStateId ||
-        !task.userId ||
-        !task.planStartDate ||
-        !task.planEndDate,
+        !task.userId,
     );
     if (hasInvalidTask) {
       toast.error("Completa todos los campos obligatorios de las tareas.", "ERS");
@@ -410,7 +399,6 @@ export default function ErsEditPage() {
     try {
       await guardarErs(detail.projectId, {
         requestType: form.requestType,
-        priority: form.priority,
         executionOrder: form.executionOrder ? Number(form.executionOrder) : undefined,
         approved: form.approved,
         projectName: form.projectName.trim(),
@@ -431,9 +419,9 @@ export default function ErsEditPage() {
           planEndDate: toIsoDate(task.planEndDate ?? ""),
         })),
       });
-      await reloadDetail();
       setUnapprovedTasksDialogOpen(false);
       toast.success("Proyecto ERS actualizado.", "ERS");
+      navigate("/ers", { replace: true });
     } catch (error) {
       const message = error instanceof ApiError ? error.message : "No se pudo guardar el proyecto ERS.";
       toast.error(message, "ERS");

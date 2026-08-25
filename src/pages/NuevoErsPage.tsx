@@ -46,7 +46,6 @@ const EMPTY_FORM: ErsEditState = {
   description: "",
   impact: "",
   requestType: "",
-  priority: 3,
   executionOrder: "",
   approved: false,
   approverId: "",
@@ -391,9 +390,7 @@ export default function NuevoErsPage() {
         !task.name.trim() ||
         !task.content.trim() ||
         !task.projectStateId ||
-        !task.userId ||
-        !task.planStartDate ||
-        !task.planEndDate,
+        !task.userId,
     );
     if (hasInvalidTask) {
       toast.error("Completa todos los campos obligatorios de las tareas.", "ERS");
@@ -415,7 +412,6 @@ export default function NuevoErsPage() {
     try {
       const created = await crearErs({
         requestType: form.requestType,
-        priority: form.priority,
         executionOrder: form.executionOrder ? Number(form.executionOrder) : undefined,
         approved: form.approved,
         requesterId: requester.id,
@@ -449,11 +445,10 @@ export default function NuevoErsPage() {
       setUnapprovedTasksDialogOpen(false);
       if (failedDocuments.length > 0) {
         toast.error(`El ERS fue creado, pero no se pudieron subir: ${failedDocuments.join(", ")}.`, "ERS");
-        navigate(`/ers/${created.projectId}/editar?seccion=documentos`);
       } else {
         toast.success(`ERS #${created.projectId} creado correctamente.`, "ERS");
-        navigate("/ers");
       }
+      navigate("/ers", { replace: true });
     } catch (error) {
       toast.error(
         error instanceof ApiError ? error.message : "No se pudo crear el proyecto ERS.",
@@ -523,7 +518,6 @@ export default function NuevoErsPage() {
             <ErsProjectManagementPanel
               form={form}
               onChange={setForm}
-              showPriority={false}
               states={states}
               requestTypes={requestTypes}
               technicians={technicians}

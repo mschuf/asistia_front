@@ -10,7 +10,14 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDateParts, formatNameParts, formatOpenDuration } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { formatTicketTitle, statusBadgeVariant, statusLabel, typeLabel, TICKETS_HISTORIAL_LAYOUT_MIN_WIDTH_CLASS } from "@/lib/tickets";
+import {
+  getTicketTag,
+  statusBadgeVariant,
+  statusLabel,
+  ticketCategoryTitle,
+  typeLabel,
+  TICKETS_HISTORIAL_LAYOUT_MIN_WIDTH_CLASS,
+} from "@/lib/tickets";
 import type { AsistiaTicket, AsistiaTicketStatus } from "@/types/asistia";
 import type { HistorySortColumn, HistorySortOrder } from "@/types/pages/tickets-page.types";
 
@@ -85,6 +92,8 @@ interface TicketTableProps {
   statusActionIds?: TicketStatusActionId[];
   /** Habilita edición del tag en el modal de detalle. */
   isSuperAdmin?: boolean;
+  /** Habilita editar descripción y agregar adjuntos desde el modal de detalle. */
+  isTechnician?: boolean;
   /** Muestra el software seleccionado; disponible solo para TI/superadmin. */
   showSoftware?: boolean;
   /** Propaga a la lista un ticket actualizado (p. ej. tras editar el tag). */
@@ -128,6 +137,23 @@ function MobileRequesterCell({ ticket }: { ticket: AsistiaTicket }) {
   );
 }
 
+/** @param props - Ticket de la fila. @returns Título con el tag destacado en azul. */
+function TicketTitleCell({ ticket }: { ticket: AsistiaTicket }) {
+  const tag = getTicketTag(ticket);
+
+  return (
+    <>
+      {ticketCategoryTitle(ticket)}
+      {tag ? (
+        <>
+          {" "}
+          <span className="font-medium text-blue-600 dark:text-blue-400">[{tag}]</span>
+        </>
+      ) : null}
+    </>
+  );
+}
+
 /** @param ticket - Ticket de la fila. @param column - Columna a renderizar. @returns Contenido de celda de datos. */
 function renderTicketCell(
   ticket: AsistiaTicket,
@@ -161,7 +187,7 @@ function renderTicketCell(
     case "software":
       return <span className="line-clamp-2">{ticket.software?.name ?? "—"}</span>;
     case "subject":
-      return formatTicketTitle(ticket);
+      return <TicketTitleCell ticket={ticket} />;
     case "status":
       return <Badge variant={statusBadgeVariant(ticket.status)}>{statusLabel(ticket.status)}</Badge>;
     case "technician":
@@ -260,10 +286,11 @@ export function TicketTable({
   assigning = null,
   statusActionIds,
   isSuperAdmin = false,
+  isTechnician = false,
   showSoftware = false,
   onTicketUpdated,
 }: TicketTableProps) {
-  const showActionsColumn = Boolean(onStatusChange || onAssignClick || onEscalate);
+  const showActionsColumn = Boolean(onStatusChange || onAssignClick);
   const isMobileLayout = useIsMobileHistorialLayout();
   const columnOrder = (
     isMobileLayout ? HISTORY_COLUMN_ORDER_MOBILE : HISTORY_COLUMN_ORDER_DESKTOP
@@ -399,7 +426,6 @@ export function TicketTable({
                       onAssignClick={
                         onAssignClick ? () => handleAssignClick(ticket) : undefined
                       }
-                      onEscalate={onEscalate ? () => onEscalate(ticket) : undefined}
                       assignPending={assigning?.ticketId === Number(ticket.id)}
                       statusActionIds={statusActionIds}
                     />
@@ -437,19 +463,19 @@ export function TicketTable({
       onOpenChange={(open) => {
         if (!open) setSelectedTicket(null);
       }}
-      onStatusChange={showActionsColumn ? handleStatusChange : undefined}
+      onStatusChange={onStatusChange ? handleStatusChange : undefined}
       pendingStatus={
-        showActionsColumn &&
         selectedTicket &&
         statusChanging?.ticketId === Number(selectedTicket.id)
           ? statusChanging.status
           : null
       }
-      onAssignClick={showActionsColumn && onAssignClick ? handleAssignClick : undefined}
-      onEscalate={showActionsColumn && onEscalate ? onEscalate : undefined}
+      onAssignClick={onAssignClick ? handleAssignClick : undefined}
+      onEscalate={onEscalate}
       assigning={assigning}
       statusActionIds={statusActionIds}
       isSuperAdmin={isSuperAdmin}
+      isTechnician={isTechnician}
       showSoftware={showSoftware}
       onTicketUpdated={onTicketUpdated}
     />

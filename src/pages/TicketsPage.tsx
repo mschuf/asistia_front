@@ -348,12 +348,13 @@ export default function TicketsPage() {
                 assigning={assigning}
                 statusActionIds={
                   isTechnician && !isSuperAdmin
-                    ? ["solved", "waiting"]
+                    ? ["solved"]
                     : isTechnician
                       ? undefined
                       : ["closed"]
                 }
                 isSuperAdmin={isSuperAdmin}
+                isTechnician={isTechnician}
                 showSoftware={isTechnician}
                 onTicketUpdated={patchTicket}
               />

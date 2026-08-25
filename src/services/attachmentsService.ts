@@ -47,6 +47,22 @@ export async function listTicketAttachments(
 }
 
 /**
+ * Elimina un adjunto de un ticket. Solo TI.
+ * @param ticketId - ID del ticket.
+ * @param attachmentId - ID del adjunto a eliminar.
+ * @returns Metadatos del adjunto eliminado.
+ */
+export async function deleteTicketAttachment(
+  ticketId: number,
+  attachmentId: number,
+): Promise<TicketAttachment> {
+  return apiClient.delete<TicketAttachment>(
+    `/tickets/${ticketId}/attachments/${attachmentId}`,
+    { showBackdrop: false, timeoutMs: 30_000 },
+  );
+}
+
+/**
  * Construye la URL de descarga de un adjunto con credenciales de cookie.
  * @param ticketId - ID del ticket.
  * @param attachmentId - ID del adjunto.

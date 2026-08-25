@@ -1,6 +1,6 @@
 ﻿/**
  * @file TicketActions.tsx
- * @description Botones de acción inline sobre un ticket (asignar, resolver, cerrar, escalar).
+ * @description Botones de acción sobre un ticket (asignar, resolver, cerrar; escalar si hay callback).
  */
 import { ArrowUpRight, Check, Loader2, Lock, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -75,13 +75,13 @@ export function TicketActions({
     ? actions.filter((action) => statusActionIds.includes(action.id))
     : actions;
   const waitingAction = actions.find((action) => action.id === "waiting");
-  const showEscalateButton =
-    Boolean(onEscalate) &&
-    waitingAction &&
-    !filteredStatusActions.some((action) => action.id === "waiting");
-  const visibleStatusActions = showEscalateButton
-    ? [...filteredStatusActions, waitingAction]
-    : filteredStatusActions;
+  const statusActionsWithoutEscalate = filteredStatusActions.filter(
+    (action) => action.id !== "waiting"
+  );
+  const visibleStatusActions =
+    onEscalate && waitingAction
+      ? [...statusActionsWithoutEscalate, waitingAction]
+      : statusActionsWithoutEscalate;
 
   return (
     <div className={cn("grid w-fit grid-cols-2 gap-3 md:flex md:flex-nowrap md:items-center", className)}>

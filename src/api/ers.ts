@@ -191,7 +191,6 @@ export interface SaveErsTaskPayload {
 
 export interface SaveErsPayload {
   requestType: string;
-  priority: number;
   executionOrder?: number;
   approved: boolean;
   projectName?: string;

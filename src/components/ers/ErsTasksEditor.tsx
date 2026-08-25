@@ -208,8 +208,6 @@ export const ErsTasksEditor = forwardRef<ErsTasksEditorHandle, ErsTasksEditorPro
     }
     if (!draft.projectStateId.trim()) errors.projectStateId = "El estado es obligatorio.";
     if (!draft.userId.trim()) errors.userId = "El responsable es obligatorio.";
-    if (!draft.planStartDate.trim()) errors.planStartDate = "El inicio planificado es obligatorio.";
-    if (!draft.planEndDate.trim()) errors.planEndDate = "El fin planificado es obligatorio.";
     if (!draft.content.trim()) errors.content = "La descripción es obligatoria.";
     return { valid: Object.keys(errors).length === 0, errors };
   };
@@ -510,9 +508,7 @@ export const ErsTasksEditor = forwardRef<ErsTasksEditorHandle, ErsTasksEditorPro
               </div>
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-muted-foreground">
-                Inicio planificado <span className="text-destructive">*</span>
-              </span>
+              <span className="text-muted-foreground">Inicio planificado</span>
               <Input
                 ref={fieldRefs.planStartDate as RefObject<HTMLInputElement>}
                 className={cn(taskErrors.planStartDate && "border-destructive focus-visible:ring-destructive")}
@@ -527,9 +523,7 @@ export const ErsTasksEditor = forwardRef<ErsTasksEditorHandle, ErsTasksEditorPro
               />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-muted-foreground">
-                Fin planificado <span className="text-destructive">*</span>
-              </span>
+              <span className="text-muted-foreground">Fin planificado</span>
               <Input
                 ref={fieldRefs.planEndDate as RefObject<HTMLInputElement>}
                 className={cn(taskErrors.planEndDate && "border-destructive focus-visible:ring-destructive")}

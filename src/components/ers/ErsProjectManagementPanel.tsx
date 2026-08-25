@@ -37,7 +37,6 @@ interface ErsProjectManagementPanelProps {
   loadingTechnicians: boolean;
   loadingTeamTechnicians?: boolean;
   showTeamLocations?: boolean;
-  showPriority?: boolean;
   progressFromTasks: number;
   teamSearch: string;
   onTeamSearchChange: (value: string) => void;
@@ -61,7 +60,6 @@ export function ErsProjectManagementPanel({
   loadingTechnicians,
   loadingTeamTechnicians = loadingTechnicians,
   showTeamLocations = false,
-  showPriority = true,
   progressFromTasks,
   teamSearch,
   onTeamSearchChange,
@@ -206,25 +204,8 @@ export function ErsProjectManagementPanel({
             ))}
           </Select>
         </label>
-        {showPriority && isSuperAdmin ? (
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted-foreground">Prioridad TI</span>
-            <Select
-              value={form.priority}
-              onChange={(event) => onChange({ ...form, priority: Number(event.target.value) })}
-              disabled={!form.approved}
-            >
-              <option value={6}>Mayor</option>
-              <option value={5}>Muy alta</option>
-              <option value={4}>Alta</option>
-              <option value={3}>Media</option>
-              <option value={2}>Baja</option>
-              <option value={1}>Muy baja</option>
-            </Select>
-          </label>
-        ) : null}
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted-foreground">Orden de ejecución</span>
+          <span className="text-muted-foreground">Orden de ejecución (agrupado por sede)</span>
           <div className="relative" title={executionOrderTitle}>
             <Input
               ref={executionOrderInputRef}

@@ -42,6 +42,8 @@ interface DialogProps {
   contentClassName?: string;
   /** Evita recortar menús desplegables (p. ej. SearchableSelect) dentro del modal. */
   allowOverflow?: boolean;
+  /** Controles extra renderizados a la izquierda del botón de cerrar. */
+  headerActions?: ReactNode;
 }
 
 /**
@@ -57,6 +59,7 @@ export function Dialog({
   className,
   contentClassName,
   allowOverflow = false,
+  headerActions,
 }: DialogProps) {
   const titleId = useId();
   const descriptionId = useId();
@@ -111,16 +114,19 @@ export function Dialog({
               </p>
             ) : null}
           </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="shrink-0"
-            aria-label="Cerrar"
-            onClick={() => onOpenChange(false)}
-          >
-            <X className="h-4 w-4" aria-hidden="true" />
-          </Button>
+          <div className="flex shrink-0 items-center gap-1">
+            {headerActions}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="shrink-0"
+              aria-label="Cerrar"
+              onClick={() => onOpenChange(false)}
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </div>
         </div>
         <div
           className={cn(

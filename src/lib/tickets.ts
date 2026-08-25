@@ -11,6 +11,36 @@ import { stripHtml } from "@/lib/utils";
 
 export const OPEN_STATUSES: AsistiaTicketStatus[] = ["new", "assigned", "planned", "waiting"];
 
+/** Máximo de caracteres visibles (sin HTML) admitidos en la descripción de un ticket. */
+export const TICKET_DESCRIPTION_MAX_LENGTH = 1500;
+
+const HTML_BLOCK_BREAK = /<\/(?:p|div|li|h[1-6]|tr|blockquote|pre)>/gi;
+
+/**
+ * Longitud del contenido visible de la descripción, replicando el conteo del backend
+ * (`htmlToPlainText`) para que el límite del formulario coincida con el de la API.
+ * @param description - HTML del editor o texto plano.
+ * @returns Cantidad de caracteres que valida el backend.
+ */
+export function getTicketDescriptionPlainLength(description: string): number {
+  if (!description) return 0;
+
+  const decoded = description
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#0?39;/gi, "'")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&");
+
+  return decoded
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(HTML_BLOCK_BREAK, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim().length;
+}
+
 /** Usuario de servicio que representa tickets pendientes de asignación humana. */
 export const ASISTIA_UNASSIGNED_TECHNICIAN_ID = 1368;
 

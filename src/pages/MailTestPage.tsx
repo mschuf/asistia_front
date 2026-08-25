@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
+import { TICKET_DESCRIPTION_MAX_LENGTH } from "@/lib/tickets";
 import { listMailTestCategories, sendMailRequest } from "@/services/mailService";
 import { Mail, SendHorizontal } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -105,6 +106,10 @@ export default function MailTestPage() {
     }
     if (trimmedDescription.length < DESCRIPTION_MIN_LENGTH) {
       setError(`La descripción debe tener al menos ${DESCRIPTION_MIN_LENGTH} caracteres.`);
+      return;
+    }
+    if (trimmedDescription.length > TICKET_DESCRIPTION_MAX_LENGTH) {
+      setError(`La descripción no puede superar ${TICKET_DESCRIPTION_MAX_LENGTH} caracteres.`);
       return;
     }
     if (!Number.isInteger(parsedCategoryId) || parsedCategoryId <= 0) {
@@ -225,9 +230,13 @@ export default function MailTestPage() {
             rows={5}
             placeholder="No puedo acceder a Outlook desde la mañana."
             value={description}
+            maxLength={TICKET_DESCRIPTION_MAX_LENGTH}
             onChange={(event) => setDescription(event.target.value)}
           />
-          <p className="text-xs text-muted-foreground">Mínimo {DESCRIPTION_MIN_LENGTH} caracteres.</p>
+          <p className="text-xs text-muted-foreground">
+            Mínimo {DESCRIPTION_MIN_LENGTH} caracteres — {description.length} /{" "}
+            {TICKET_DESCRIPTION_MAX_LENGTH}.
+          </p>
         </Field>
 
         {error ? (

@@ -51,7 +51,6 @@ export interface ErsEditState {
   description: string;
   impact: string;
   requestType: string;
-  priority: number;
   executionOrder: string;
   approved: boolean;
   approverId: string;

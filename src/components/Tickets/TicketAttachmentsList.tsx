@@ -1,75 +1,73 @@
 /**
  * @file TicketAttachmentsList.tsx
- * @description Lista de adjuntos de un ticket con miniaturas y descarga.
+ * @description Lista de adjuntos de un ticket con miniaturas, descarga, alta y baja posterior.
  */
-import { Download, Eye, FileText, Loader2 } from "lucide-react";
+import { Download, Eye, FileText, Loader2, Plus, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AttachmentImagePreview } from "@/components/tickets/AttachmentImagePreview";
+import { TicketAttachmentDeleteConfirmDialog } from "@/components/tickets/TicketAttachmentDeleteConfirmDialog";
 import {
+  ATTACHMENT_ACCEPT,
   attachmentExtensionLabelFromFilename,
   formatAttachmentSize,
   isTicketAttachmentImage,
+  MAX_ATTACHMENTS,
 } from "@/lib/attachments";
-import { isAbortError } from "@/lib/http";
 import { cn } from "@/lib/utils";
 import {
   downloadTicketAttachment,
   fetchTicketAttachmentBlob,
-  listTicketAttachments,
 } from "@/services/attachmentsService";
 import type { TicketAttachment } from "@/types/asistia";
 
 interface TicketAttachmentsListProps {
   ticketId: number;
   enabled: boolean;
+  attachments: TicketAttachment[];
+  loading: boolean;
+  /** Error de carga o de subida proveniente del hook de adjuntos. */
+  error?: string;
+  /** Muestra el botón para agregar adjuntos al ticket ya creado (solo TI). */
+  canUpload?: boolean;
+  /** Subida en curso; deshabilita el botón de agregar. */
+  uploading?: boolean;
+  /** Sube el archivo elegido; el hook se encarga de validar y refrescar. */
+  onUpload?: (file: File) => Promise<boolean>;
+  /** Muestra el botón de eliminar en cada adjunto (solo TI). */
+  canDelete?: boolean;
+  /** ID del adjunto que se está eliminando, o `null`. */
+  removingId?: number | null;
+  /** Elimina el adjunto indicado; el hook actualiza la lista. */
+  onDelete?: (attachmentId: number) => Promise<boolean>;
 }
 
 /**
- * Carga y muestra adjuntos de un ticket con preview de imágenes.
- * @param props - ID del ticket y flag de carga habilitada.
- * @returns Lista de adjuntos, estados de carga o mensaje vacío.
+ * Muestra los adjuntos de un ticket con preview de imágenes y alta/baja opcionales.
+ * @param props - Adjuntos, estados de carga y controles de subida y eliminación.
+ * @returns Grilla de adjuntos, estados de carga o mensaje vacío.
  */
-export function TicketAttachmentsList({ ticketId, enabled }: TicketAttachmentsListProps) {
-  const [attachments, setAttachments] = useState<TicketAttachment[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+export function TicketAttachmentsList({
+  ticketId,
+  enabled,
+  attachments,
+  loading,
+  error = "",
+  canUpload = false,
+  uploading = false,
+  onUpload,
+  canDelete = false,
+  removingId = null,
+  onDelete,
+}: TicketAttachmentsListProps) {
+  const [downloadError, setDownloadError] = useState("");
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [previewUrls, setPreviewUrls] = useState<Record<number, string>>({});
   const [previewLoadingIds, setPreviewLoadingIds] = useState<Set<number>>(new Set());
   const [viewingAttachment, setViewingAttachment] = useState<TicketAttachment | null>(null);
+  const [attachmentToDelete, setAttachmentToDelete] = useState<TicketAttachment | null>(null);
   const previewUrlsRef = useRef<Record<number, string>>({});
-
-  useEffect(() => {
-    if (!enabled || !ticketId) {
-      setAttachments([]);
-      setLoading(false);
-      setError("");
-      return;
-    }
-
-    const controller = new AbortController();
-    setLoading(true);
-    setError("");
-
-    void listTicketAttachments(ticketId, { signal: controller.signal })
-      .then((items) => {
-        if (!controller.signal.aborted) {
-          setAttachments(items);
-        }
-      })
-      .catch((err) => {
-        if (isAbortError(err) || controller.signal.aborted) return;
-        setError("No se pudieron cargar los adjuntos.");
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
-      });
-
-    return () => controller.abort();
-  }, [enabled, ticketId]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -127,12 +125,75 @@ export function TicketAttachmentsList({ ticketId, enabled }: TicketAttachmentsLi
     setDownloadingId(attachment.id);
     try {
       await downloadTicketAttachment(ticketId, attachment.id, attachment.filename);
+      setDownloadError("");
     } catch {
-      setError("No se pudo descargar el adjunto.");
+      setDownloadError("No se pudo descargar el adjunto.");
     } finally {
       setDownloadingId(null);
     }
   };
+
+  /**
+   * Sube el archivo elegido en el input y limpia la selección.
+   * @param selected - FileList del input de archivos.
+   * @returns void
+   */
+  const handleSelectFile = async (selected: FileList | null) => {
+    const file = selected?.[0];
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    if (!file || !onUpload) return;
+    await onUpload(file);
+  };
+
+  /**
+   * Confirma la eliminación del adjunto seleccionado y cierra el diálogo si tuvo éxito.
+   * @returns void
+   */
+  const handleConfirmDelete = async () => {
+    if (!attachmentToDelete || !onDelete) return;
+    const deleted = await onDelete(attachmentToDelete.id);
+    if (deleted) {
+      setAttachmentToDelete(null);
+    }
+  };
+
+  const showAddButton = canUpload && attachments.length < MAX_ATTACHMENTS;
+  const displayError = error || downloadError;
+
+  /**
+   * Botón (o tile) para agregar un adjunto nuevo al ticket.
+   * @returns Elemento del input oculto más su disparador.
+   */
+  const renderAddTile = () => (
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={ATTACHMENT_ACCEPT}
+        className="sr-only"
+        disabled={uploading}
+        onChange={(event) => void handleSelectFile(event.target.files)}
+      />
+      <button
+        type="button"
+        disabled={uploading}
+        onClick={() => fileInputRef.current?.click()}
+        aria-label="Agregar adjunto"
+        className="flex aspect-square w-28 shrink-0 flex-col items-center justify-center gap-1 rounded-md border border-dashed border-input bg-muted/10 text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {uploading ? (
+          <Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" />
+        ) : (
+          <Plus className="h-6 w-6" aria-hidden="true" />
+        )}
+        <span className="text-xs font-medium">
+          {uploading ? "Subiendo..." : "Agregar"}
+        </span>
+      </button>
+    </>
+  );
 
   if (loading) {
     return (
@@ -143,17 +204,26 @@ export function TicketAttachmentsList({ ticketId, enabled }: TicketAttachmentsLi
     );
   }
 
-  if (error && attachments.length === 0) {
-    return <p className="text-sm text-amber-700 dark:text-amber-200">{error}</p>;
-  }
-
   if (attachments.length === 0) {
-    return <span className="text-sm text-muted-foreground">Sin adjuntos</span>;
+    return (
+      <div className="space-y-2">
+        {displayError ? (
+          <p className="text-sm text-amber-700 dark:text-amber-200">{displayError}</p>
+        ) : null}
+        {showAddButton ? (
+          <div className="flex flex-wrap gap-3">{renderAddTile()}</div>
+        ) : (
+          <span className="text-sm text-muted-foreground">Sin adjuntos</span>
+        )}
+      </div>
+    );
   }
 
   return (
     <>
-      {error ? <p className="mb-2 text-sm text-amber-700 dark:text-amber-200">{error}</p> : null}
+      {displayError ? (
+        <p className="mb-2 text-sm text-amber-700 dark:text-amber-200">{displayError}</p>
+      ) : null}
 
       <ul className="flex flex-wrap gap-3">
         {attachments.map((attachment) => {
@@ -227,10 +297,30 @@ export function TicketAttachmentsList({ ticketId, enabled }: TicketAttachmentsLi
                     <Download className="h-4 w-4" aria-hidden="true" />
                   )}
                 </Button>
+                {canDelete ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    title="Eliminar"
+                    disabled={removingId === attachment.id}
+                    aria-label={`Eliminar ${attachment.filename}`}
+                    onClick={() => setAttachmentToDelete(attachment)}
+                    className="h-7 w-7 rounded-full text-destructive shadow-sm hover:text-destructive"
+                  >
+                    {removingId === attachment.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    )}
+                  </Button>
+                ) : null}
               </div>
             </li>
           );
         })}
+
+        {showAddButton ? <li className="shrink-0">{renderAddTile()}</li> : null}
       </ul>
 
       {viewingAttachment && previewUrls[viewingAttachment.id] ? (
@@ -241,6 +331,15 @@ export function TicketAttachmentsList({ ticketId, enabled }: TicketAttachmentsLi
           onClose={() => setViewingAttachment(null)}
         />
       ) : null}
+
+      <TicketAttachmentDeleteConfirmDialog
+        filename={attachmentToDelete?.filename ?? null}
+        deleting={removingId !== null}
+        onOpenChange={(open) => {
+          if (!open) setAttachmentToDelete(null);
+        }}
+        onConfirm={() => void handleConfirmDelete()}
+      />
     </>
   );
 }

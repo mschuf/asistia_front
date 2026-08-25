@@ -49,7 +49,6 @@ const EMPTY_FORM: ErsEditState = {
   description: "",
   impact: "",
   requestType: "",
-  priority: 3,
   executionOrder: "",
   approved: false,
   approverId: "",
@@ -337,7 +336,7 @@ export default function EscalarTicketErsPage() {
       return;
     }
     const hasInvalidTask = form.approved && form.tasks.some(
-      (task) => !task.name.trim() || !task.content.trim() || !task.projectStateId || !task.userId || !task.planStartDate || !task.planEndDate,
+      (task) => !task.name.trim() || !task.content.trim() || !task.projectStateId || !task.userId,
     );
     if (hasInvalidTask) {
       toast.error("Completa todos los campos obligatorios de las tareas.", "ERS");
@@ -356,7 +355,6 @@ export default function EscalarTicketErsPage() {
       const created = await escalarTicket({
         ticketId: ticket.id,
         requestType: form.requestType,
-        priority: form.priority,
         executionOrder: form.executionOrder ? Number(form.executionOrder) : undefined,
         approved: form.approved,
         projectName: form.projectName.trim(),
@@ -388,11 +386,10 @@ export default function EscalarTicketErsPage() {
       setUnapprovedTasksDialogOpen(false);
       if (failedDocuments.length > 0) {
         toast.error(`El ERS fue creado, pero no se pudieron subir: ${failedDocuments.join(", ")}.`, "ERS");
-        navigate(`/ers/${created.projectId}/editar?seccion=documentos`);
       } else {
         toast.success(`ERS #${created.projectId} creado correctamente.`, "ERS");
-        navigate("/ers");
       }
+      navigate("/ers", { replace: true });
     } catch (submitError) {
       toast.error(submitError instanceof ApiError ? submitError.message : "No se pudo completar el escalamiento.", "ERS");
       if (isExecutionOrderConflict(submitError)) {

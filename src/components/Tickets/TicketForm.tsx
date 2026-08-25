@@ -7,7 +7,6 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { Loading } from "@/components/ui/loading";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import type { SearchableSelectOption } from "@/components/ui/searchable-select";
@@ -15,13 +14,16 @@ import { ServerSearchableSelect } from "@/components/ui/server-searchable-select
 import { RichDescriptionEditor } from "@/components/tickets/RichDescriptionEditor";
 import { TicketAttachmentsField } from "@/components/tickets/TicketAttachmentsField";
 import { validateAttachmentSelection } from "@/lib/attachments";
+import { cn } from "@/lib/utils";
 import {
   createDefaultTicketDescription,
   buildCategoryOptions,
   buildLocationOptions,
   buildRequesterDisplayLabel,
   buildTechnicianSelectOptions,
+  getTicketDescriptionPlainLength,
   getTicketDescriptionValidationContent,
+  TICKET_DESCRIPTION_MAX_LENGTH,
   findLocationById,
   locationDisplayName,
   typeLabel,
@@ -41,7 +43,6 @@ interface TicketFormProps {
   onSubmit: (input: {
     type: AsistiaTicketType;
     subject: string;
-    tag?: string;
     description: string;
     categoryId: number;
     requestTypeId?: number;
@@ -55,7 +56,7 @@ interface TicketFormProps {
 type FormErrors = Partial<Record<"category" | "description" | "technician" | "attachments", string>>;
 
 const DESCRIPTION_MIN_LENGTH = 12;
-const TAG_MAX_LENGTH = 15;
+const SOFTWARE_CATEGORY = "software: office, windows, sap, aplicaciones";
 const TECHNICIAN_EMPTY_OPTION = { value: "", label: "Seleccione un TI" };
 const REQUESTER_EMPTY_OPTION = { value: "", label: "Seleccione solicitante" };
 
@@ -76,14 +77,13 @@ function defaultTechnicianId(user: AuthUser, isTechnician: boolean): string {
  * @param props - Catálogos, rol de usuario y callback onSubmit.
  * @returns Formulario de creación de ticket.
  */
-export function TicketForm({ categories, locations, isTechnician, isSuperAdmin, user, onSubmit }: TicketFormProps) {
+export function TicketForm({ categories, locations, isTechnician, user, onSubmit }: TicketFormProps) {
   const [ticketType, setTicketType] = useState<AsistiaTicketType>("request");
   const [categoryId, setCategoryId] = useState("");
   const [requestTypeId, setRequestTypeId] = useState("");
   const [requestTypes, setRequestTypes] = useState<RequestType[]>([]);
   const [requestTypesLoading, setRequestTypesLoading] = useState(false);
   const [requestTypesError, setRequestTypesError] = useState("");
-  const [tag, setTag] = useState("");
   const [description, setDescription] = useState(() => createDefaultTicketDescription());
   const [technicianId, setTechnicianId] = useState(() => defaultTechnicianId(user, isTechnician));
   const [requesterId, setRequesterId] = useState(() => defaultRequesterId(user, isTechnician));
@@ -95,20 +95,15 @@ export function TicketForm({ categories, locations, isTechnician, isSuperAdmin, 
   const categoryOptions = useMemo(() => buildCategoryOptions(categories), [categories]);
   const locationOptions = useMemo(() => buildLocationOptions(locations), [locations]);
   const showLocationField = locations.length > 0 && (isTechnician || !user.locationId);
-  const isTiOnly = isTechnician && !isSuperAdmin;
   const effectiveType = isTechnician ? ticketType : "request";
   const selectedCategory = useMemo(
     () => categories.find((category) => String(category.id) === categoryId) ?? null,
     [categories, categoryId],
   );
-  const showSoftwareField =
-    isTechnician &&
-    Boolean(
-      (selectedCategory?.fullPath || selectedCategory?.name)
-        ?.trim()
-        .toLocaleLowerCase("es")
-        .startsWith("software"),
-    );
+  const isSoftwareCategory =
+    (selectedCategory?.fullPath || selectedCategory?.name || "")
+      .trim()
+      .toLocaleLowerCase("es") === SOFTWARE_CATEGORY;
   const requestTypeOptions = useMemo<SearchableSelectOption[]>(
     () =>
       requestTypes.map((item) => ({
@@ -120,7 +115,7 @@ export function TicketForm({ categories, locations, isTechnician, isSuperAdmin, 
   );
 
   useEffect(() => {
-    if (!showSoftwareField || requestTypes.length > 0) return;
+    if (!isSoftwareCategory || requestTypes.length > 0) return;
     const controller = new AbortController();
     setRequestTypesLoading(true);
     setRequestTypesError("");
@@ -140,7 +135,7 @@ export function TicketForm({ categories, locations, isTechnician, isSuperAdmin, 
         if (!controller.signal.aborted) setRequestTypesLoading(false);
       });
     return () => controller.abort();
-  }, [requestTypes.length, showSoftwareField]);
+  }, [isSoftwareCategory, requestTypes.length]);
   const defaultTechnicianOption = useMemo<SearchableSelectOption | null>(() => {
     if (!isTechnician || !user.id) return null;
     const location = findLocationById(locations, user.locationId);
@@ -216,6 +211,11 @@ export function TicketForm({ categories, locations, isTechnician, isSuperAdmin, 
     [locations],
   );
 
+  const descriptionLength = useMemo(
+    () => getTicketDescriptionPlainLength(description),
+    [description],
+  );
+
   const errors = useMemo<FormErrors>(() => {
     const nextErrors: FormErrors = {};
     if (!categoryId) {
@@ -228,6 +228,8 @@ export function TicketForm({ categories, locations, isTechnician, isSuperAdmin, 
     );
     if (validationContent.length < DESCRIPTION_MIN_LENGTH) {
       nextErrors.description = `Su descripción debe tener al menos ${DESCRIPTION_MIN_LENGTH} caracteres.`;
+    } else if (descriptionLength > TICKET_DESCRIPTION_MAX_LENGTH) {
+      nextErrors.description = `Su descripción no puede superar ${TICKET_DESCRIPTION_MAX_LENGTH} caracteres (actual: ${descriptionLength}).`;
     }
     if (isTechnician && !technicianId) {
       nextErrors.technician = "Seleccione el técnico asignado.";
@@ -237,7 +239,16 @@ export function TicketForm({ categories, locations, isTechnician, isSuperAdmin, 
       nextErrors.attachments = attachmentError;
     }
     return nextErrors;
-  }, [attachments, categoryId, description, effectiveType, isTechnician, selectedCategory, technicianId]);
+  }, [
+    attachments,
+    categoryId,
+    description,
+    descriptionLength,
+    effectiveType,
+    isTechnician,
+    selectedCategory,
+    technicianId,
+  ]);
 
   const canSubmit = Object.keys(errors).length === 0 && !submitting;
   const createActionLabel = useMemo(
@@ -261,7 +272,7 @@ export function TicketForm({ categories, locations, isTechnician, isSuperAdmin, 
     const nextLabel = (nextCategory?.fullPath || nextCategory?.name || "")
       .trim()
       .toLocaleLowerCase("es");
-    if (!nextLabel.startsWith("software")) {
+    if (nextLabel !== SOFTWARE_CATEGORY) {
       setRequestTypeId("");
     }
   };
@@ -284,7 +295,6 @@ export function TicketForm({ categories, locations, isTechnician, isSuperAdmin, 
     setTicketType("request");
     setCategoryId("");
     setRequestTypeId("");
-    setTag("");
     setDescription(createDefaultTicketDescription());
     setTechnicianId(defaultTechnicianId(user, isTechnician));
     setRequesterId(defaultRequesterId(user, isTechnician));
@@ -305,14 +315,12 @@ export function TicketForm({ categories, locations, isTechnician, isSuperAdmin, 
 
     try {
       const subject = selectedCategory?.fullPath || selectedCategory?.name || "";
-      const trimmedTag = tag.trim().slice(0, TAG_MAX_LENGTH);
       await onSubmit({
         type: effectiveType,
         subject,
-        tag: isTechnician && trimmedTag ? trimmedTag : undefined,
         description,
         categoryId: Number(categoryId),
-        requestTypeId: showSoftwareField && requestTypeId ? Number(requestTypeId) : undefined,
+        requestTypeId: isSoftwareCategory && requestTypeId ? Number(requestTypeId) : undefined,
         locationId: locationId ? Number(locationId) : undefined,
         assignedTechnicianId: technicianId ? Number(technicianId) : undefined,
         requesterId: requesterId ? Number(requesterId) : undefined,
@@ -374,21 +382,41 @@ export function TicketForm({ categories, locations, isTechnician, isSuperAdmin, 
 
       </div>
 
-      {isTiOnly && !showSoftwareField ? (
-        <div className="grid gap-4 lg:grid-cols-3">
-          <Field id="ticket-category" label="Categoría" error={errors.category}>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Field id="ticket-category" label="Categoría" error={errors.category}>
+          <SearchableSelect
+            id="ticket-category"
+            value={categoryId}
+            onChange={handleCategoryChange}
+            options={categoryOptions}
+            placeholder="Seleccione una categoría"
+            searchPlaceholder="Buscar categoría..."
+            emptyOption={{ value: "", label: "Seleccione una categoría" }}
+            aria-describedby={errors.category ? "ticket-category-error" : undefined}
+          />
+        </Field>
+
+        {isTechnician ? (
+          <Field id="ticket-software" label="Software" error={requestTypesError || undefined}>
             <SearchableSelect
-              id="ticket-category"
-              value={categoryId}
-              onChange={handleCategoryChange}
-              options={categoryOptions}
-              placeholder="Seleccione una categoría"
-              searchPlaceholder="Buscar categoría..."
-              emptyOption={{ value: "", label: "Seleccione una categoría" }}
-              aria-describedby={errors.category ? "ticket-category-error" : undefined}
+              id="ticket-software"
+              value={requestTypeId}
+              onChange={setRequestTypeId}
+              options={requestTypeOptions}
+              placeholder={requestTypesLoading ? "Cargando software..." : "Seleccione software"}
+              searchPlaceholder="Buscar software..."
+              emptyOption={{ value: "", label: "Sin especificar" }}
+              disabled={
+                !isSoftwareCategory || requestTypesLoading || submitting || Boolean(requestTypesError)
+              }
+              noResultsText="Sin software disponible"
             />
           </Field>
+        ) : null}
+      </div>
 
+      {isTechnician ? (
+        <div className="grid gap-4 lg:grid-cols-2">
           <Field id="ticket-technician" label="Técnico" error={errors.technician}>
             <ServerSearchableSelect
               id="ticket-technician"
@@ -420,107 +448,7 @@ export function TicketForm({ categories, locations, isTechnician, isSuperAdmin, 
             <div aria-hidden="true" />
           )}
         </div>
-      ) : (
-        <>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Field id="ticket-category" label="Categoría" error={errors.category}>
-              <SearchableSelect
-                id="ticket-category"
-                value={categoryId}
-                onChange={handleCategoryChange}
-                options={categoryOptions}
-                placeholder="Seleccione una categoría"
-                searchPlaceholder="Buscar categoría..."
-                emptyOption={{ value: "", label: "Seleccione una categoría" }}
-                aria-describedby={errors.category ? "ticket-category-error" : undefined}
-              />
-            </Field>
-
-            {showSoftwareField ? (
-              <Field id="ticket-software" label="Software" error={requestTypesError || undefined}>
-                <SearchableSelect
-                  id="ticket-software"
-                  value={requestTypeId}
-                  onChange={setRequestTypeId}
-                  options={requestTypeOptions}
-                  placeholder={requestTypesLoading ? "Cargando software..." : "Seleccione software"}
-                  searchPlaceholder="Buscar software..."
-                  emptyOption={{ value: "", label: "Sin especificar" }}
-                  disabled={requestTypesLoading || submitting || Boolean(requestTypesError)}
-                  noResultsText="Sin software disponible"
-                />
-              </Field>
-            ) : isSuperAdmin ? (
-              <Field id="ticket-tag" label="Tag">
-                <Input
-                  id="ticket-tag"
-                  value={tag}
-                  onChange={(event) => setTag(event.target.value.slice(0, TAG_MAX_LENGTH))}
-                  maxLength={TAG_MAX_LENGTH}
-                  placeholder="Tag corto (máx. 15)"
-                  disabled={submitting}
-                  autoComplete="off"
-                />
-              </Field>
-            ) : null}
-          </div>
-
-          {isTechnician ? (
-            <div
-              className={
-                showSoftwareField && isSuperAdmin
-                  ? "grid gap-4 lg:grid-cols-3"
-                  : "grid gap-4 lg:grid-cols-2"
-              }
-            >
-              <Field id="ticket-technician" label="Técnico" error={errors.technician}>
-                <ServerSearchableSelect
-                  id="ticket-technician"
-                  value={technicianId}
-                  onChange={setTechnicianId}
-                  onLoadOptions={loadTechnicianOptions}
-                  resolveSelectedOption={resolveTechnicianOption}
-                  defaultSelectedOption={defaultTechnicianOption}
-                  placeholder="Seleccione un TI"
-                  searchPlaceholder="Buscar técnico..."
-                  emptyOption={TECHNICIAN_EMPTY_OPTION}
-                  aria-describedby={errors.technician ? "ticket-technician-error" : undefined}
-                />
-              </Field>
-
-              {showLocationField ? (
-                <Field id="ticket-location" label="Ubicación">
-                  <SearchableSelect
-                    id="ticket-location"
-                    value={locationId}
-                    onChange={setLocationId}
-                    options={locationOptions}
-                    placeholder="Seleccione una ubicación"
-                    searchPlaceholder="Buscar ubicación..."
-                    emptyOption={{ value: "", label: "Seleccione una ubicación" }}
-                  />
-                </Field>
-              ) : (
-                <div aria-hidden="true" />
-              )}
-
-              {showSoftwareField && isSuperAdmin ? (
-                <Field id="ticket-tag" label="Tag">
-                  <Input
-                    id="ticket-tag"
-                    value={tag}
-                    onChange={(event) => setTag(event.target.value.slice(0, TAG_MAX_LENGTH))}
-                    maxLength={TAG_MAX_LENGTH}
-                    placeholder="Tag corto (máx. 15)"
-                    disabled={submitting}
-                    autoComplete="off"
-                  />
-                </Field>
-              ) : null}
-            </div>
-          ) : null}
-        </>
-      )}
+      ) : null}
 
       <Field id="ticket-description" label="Descripción" error={errors.description}>
         <RichDescriptionEditor
@@ -530,6 +458,16 @@ export function TicketForm({ categories, locations, isTechnician, isSuperAdmin, 
           describedBy={errors.description ? "ticket-description-error" : undefined}
           disabled={submitting}
         />
+        <p
+          className={cn(
+            "mt-1 text-right text-xs",
+            descriptionLength > TICKET_DESCRIPTION_MAX_LENGTH
+              ? "text-destructive"
+              : "text-muted-foreground",
+          )}
+        >
+          {descriptionLength} / {TICKET_DESCRIPTION_MAX_LENGTH}
+        </p>
       </Field>
 
       <TicketAttachmentsField
