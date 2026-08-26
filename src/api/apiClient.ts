@@ -283,14 +283,26 @@ export const apiClient = {
     path: string,
     options?: Omit<RequestOptions, "method" | "data">,
   ): Promise<{ blob: Blob; filename: string }> {
-    const { showBackdrop = true, signal, query } = options ?? {};
+    const { showBackdrop = true, signal: externalSignal, query, timeoutMs } = options ?? {};
+    const hasAbort = typeof AbortController !== "undefined";
+    const useTimeout = hasAbort && typeof timeoutMs === "number" && timeoutMs > 0;
+    const useExternal = hasAbort && externalSignal != null;
+    const controller = useTimeout || useExternal ? new AbortController() : null;
+    const timeoutId =
+      controller && useTimeout ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+    if (controller && useExternal) {
+      if (externalSignal!.aborted) controller.abort();
+      else externalSignal!.addEventListener("abort", () => controller.abort(), { once: true });
+    }
+
     if (showBackdrop) onRequestStart();
 
     try {
       const response = await fetch(buildUrl(path, query), {
         method: "GET",
         credentials: "include",
-        signal,
+        signal: controller?.signal ?? externalSignal,
       });
 
       if (!response.ok) {
@@ -319,6 +331,7 @@ export const apiClient = {
       const filename = parseDownloadFilename(response.headers.get("Content-Disposition"));
       return { blob, filename };
     } finally {
+      if (timeoutId) clearTimeout(timeoutId);
       if (showBackdrop) onRequestEnd();
     }
   }

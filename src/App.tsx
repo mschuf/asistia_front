@@ -27,6 +27,9 @@ const EscalarTicketErsPage = lazy(() => import("./pages/EscalarTicketErsPage"));
 const ErsEditPage = lazy(() => import("./pages/ErsEditPage"));
 const ErsHistoryPage = lazy(() => import("./pages/ErsHistoryPage"));
 const RequestTypesPage = lazy(() => import("./pages/RequestTypesPage"));
+const UserStatusPage = lazy(() => import("./pages/UserStatusPage"));
+const UserStatusCompaniesPage = lazy(() => import("./pages/UserStatusCompaniesPage"));
+const UserStatusConfigurationsPage = lazy(() => import("./pages/UserStatusConfigurationsPage"));
 
 export default function App() {
   const { isAuthenticated, user } = useAuth();
@@ -146,6 +149,30 @@ export default function App() {
             element={
               <SuperAdminRoute>
                 <TicketCreatedReportPage />
+              </SuperAdminRoute>
+            }
+          />
+          <Route
+            path="admin/estado-usuarios"
+            element={
+              <SuperAdminRoute>
+                <UserStatusPage />
+              </SuperAdminRoute>
+            }
+          />
+          <Route
+            path="admin/estado-usuarios/empresas"
+            element={
+              <SuperAdminRoute>
+                <UserStatusCompaniesPage />
+              </SuperAdminRoute>
+            }
+          />
+          <Route
+            path="admin/estado-usuarios/configuraciones"
+            element={
+              <SuperAdminRoute>
+                <UserStatusConfigurationsPage />
               </SuperAdminRoute>
             }
           />

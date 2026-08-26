@@ -3,7 +3,7 @@
  * @description Layout principal con header, menú lateral y barra inferior móvil.
  */
 import { Link, useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import { BarChart3, Building2, ChevronDown, FilePlus2, History, Lock, LogOut, Menu, MessageSquareText, Moon, PackageOpen, Sun, ClipboardList, X } from "lucide-react";
+import { BarChart3, Building2, ChevronDown, FilePlus2, History, Lock, LogOut, Menu, MessageSquareText, Moon, PackageOpen, SlidersHorizontal, Sun, ClipboardList, UserRoundCheck, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { BottomTabBar } from "@/components/layout/BottomTabBar";
@@ -27,17 +27,30 @@ const ticketNavItems: Array<{ label: string; tab: NavTab; icon: typeof FilePlus2
   { label: "Historial", tab: "historial", icon: History },
 ];
 
-const superAdminNavItems: Array<{
+interface SuperAdminNavItem {
   label: string;
   icon: typeof Building2;
   path: string | null;
   enabled: boolean;
-}> = [
+  children?: Array<{ label: string; icon: typeof Building2; path: string }>;
+}
+
+const superAdminNavItems: SuperAdminNavItem[] = [
   { label: "Empresas", icon: Building2, path: "/admin/empresas", enabled: true },
   { label: "Software", icon: PackageOpen, path: "/admin/software", enabled: true },
   { label: "Prompts", icon: MessageSquareText, path: "/admin/prompts", enabled: true },
   { label: "Reporte irs", icon: History, path: "/admin/reporte-irs", enabled: true },
   { label: "Cerrar tickets", icon: Lock, path: "/admin/cierre-tickets", enabled: true },
+  {
+    label: "Estado de usuarios",
+    icon: UserRoundCheck,
+    path: "/admin/estado-usuarios",
+    enabled: true,
+    children: [
+      { label: "Empresas", icon: Building2, path: "/admin/estado-usuarios/empresas" },
+      { label: "Configuraciones", icon: SlidersHorizontal, path: "/admin/estado-usuarios/configuraciones" },
+    ],
+  },
 ];
 
 interface NavSectionProps {
@@ -89,7 +102,8 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   const isTicketsHistorialLayout = onTicketsRoute && currentTab === "historial";
   const [irsExpanded, setIrsExpanded] = useState(onTicketsRoute);
   const [superAdminExpanded, setSuperAdminExpanded] = useState(onSuperAdminRoute);
-  const isWideHistoryLayout = isTicketsHistorialLayout || location.pathname === '/ers';
+  const [userStatusExpanded, setUserStatusExpanded] = useState(location.pathname.startsWith("/admin/estado-usuarios"));
+  const isWideHistoryLayout = isTicketsHistorialLayout || location.pathname === '/ers' || location.pathname.startsWith('/admin/estado-usuarios');
 
   useEffect(() => {
     if (onTicketsRoute || onErsRoute) setIrsExpanded(true);
@@ -98,6 +112,10 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
   useEffect(() => {
     if (onSuperAdminRoute) setSuperAdminExpanded(true);
   }, [onSuperAdminRoute]);
+
+  useEffect(() => {
+    if (location.pathname.startsWith("/admin/estado-usuarios")) setUserStatusExpanded(true);
+  }, [location.pathname]);
 
   /** Cierra sesión con toast y cierra el menú. @returns void */
   function handleLogout() {
@@ -242,7 +260,7 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
             >
               {superAdminNavItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = item.path ? isNavPathActive(location.pathname, item.path) : false;
+                const isActive = item.path ? location.pathname === item.path : false;
 
                 if (!item.enabled || !item.path) {
                   return (
@@ -256,6 +274,59 @@ export function AppShell({ children, theme, onToggleTheme }: AppShellProps) {
                       <Icon className="h-4 w-4" aria-hidden="true" />
                       {item.label}
                     </button>
+                  );
+                }
+
+                if (item.children?.length) {
+                  return (
+                    <div key={item.label} className="space-y-1">
+                      <div className={cn(
+                        "flex items-center rounded-md text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                        isActive && "bg-muted text-foreground",
+                      )}>
+                        <button
+                          type="button"
+                          onClick={() => goToSuperAdmin(item.path!)}
+                          aria-current={isActive ? "page" : undefined}
+                          className="flex min-w-0 flex-1 items-center gap-3 rounded-l-md px-3 py-2 text-left"
+                        >
+                          <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                          <span className="truncate">{item.label}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setUserStatusExpanded((current) => !current)}
+                          aria-expanded={userStatusExpanded}
+                          aria-label={userStatusExpanded ? "Contraer Estado de usuarios" : "Expandir Estado de usuarios"}
+                          className="mr-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md hover:bg-background/70"
+                        >
+                          <ChevronDown className={cn("h-4 w-4 transition-transform", userStatusExpanded && "rotate-180")} aria-hidden="true" />
+                        </button>
+                      </div>
+                      {userStatusExpanded ? (
+                        <div className="space-y-1 pl-6">
+                          {item.children.map((child) => {
+                            const ChildIcon = child.icon;
+                            const childActive = isNavPathActive(location.pathname, child.path);
+                            return (
+                              <button
+                                key={child.path}
+                                type="button"
+                                onClick={() => goToSuperAdmin(child.path)}
+                                aria-current={childActive ? "page" : undefined}
+                                className={cn(
+                                  "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                                  childActive && "bg-muted text-foreground",
+                                )}
+                              >
+                                <ChildIcon className="h-4 w-4" aria-hidden="true" />
+                                {child.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
                   );
                 }
 
