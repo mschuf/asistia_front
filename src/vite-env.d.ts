@@ -2,6 +2,7 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_URL?: string;
+  readonly VITE_USER_STATUS_DIRECTORY_TIMEOUT_MS?: string;
 }
 
 interface ImportMeta {

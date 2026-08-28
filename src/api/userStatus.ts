@@ -172,7 +172,12 @@ export function getUserStatusSyncHistory(page = 1, limit: number = SYNC_HISTORY_
   return apiClient.get("/user-status/sync/history", { query: { page, limit }, showBackdrop: false });
 }
 
-export const SOURCE_DIRECTORY_TIMEOUT_MS = 120_000;
+function readDirectoryTimeoutMs(): number {
+  const parsed = Number(import.meta.env.VITE_USER_STATUS_DIRECTORY_TIMEOUT_MS);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 120_000;
+}
+
+export const SOURCE_DIRECTORY_TIMEOUT_MS = readDirectoryTimeoutMs();
 
 export interface SourceDirectoryUser {
   source: UserStatusSource;
